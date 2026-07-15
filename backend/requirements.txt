@@ -1,0 +1,5 @@
+opencv-python-headless
+PyYAML
+# gpiod 为可选依赖：camera_service的led_control.py会在其不可用时自动降级到sysfs GPIO接口。
+# 若开发板Python环境可安装该库，建议安装以获得更现代的GPIO字符设备访问方式。
+# gpiod

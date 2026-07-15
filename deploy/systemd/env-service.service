@@ -1,0 +1,14 @@
+[Unit]
+Description=WarehouseKeeper Environment Monitor Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/warehousekeeper
+ExecStart=/usr/bin/python3 -m backend.env_service.main
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

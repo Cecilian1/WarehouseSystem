@@ -1,0 +1,32 @@
+# camera_service 配置
+# 摄像头设备节点名需上板后用 `ls /dev/video*` 核实，udev别名可能因固件版本不同而变化。
+camera_device: /dev/video-camera0
+
+# 采集分辨率（与官方QCamera示例一致，控制单核CPU负载）
+resolution: [640, 480]
+
+# 每隔多少秒采集一次（补光→取帧→熄灯的完整周期），对应docx"30秒~1分钟"，此处默认45秒
+capture_interval_sec: 45
+
+# LED补光灯GPIO编号（sysfs方式，/sys/class/gpio/export）
+# 占位值，需开发者按JP7扩展排针实测选定的GPIO编号填写，不要直接采信此默认值
+led_gpio: 74
+
+# 补光灯点亮后等待多久再拍照，保证曝光稳定（秒）
+led_warmup_sec: 0.08
+
+# 帧间差分：二值化阈值（0-255）与变化像素占比触发阈值（0-1）
+diff_threshold: 25
+change_ratio_threshold: 0.05
+
+# 差分计算前降采样尺寸，减轻单核CPU计算负担
+diff_downsample: [320, 240]
+
+# 采集图片保存目录
+frame_save_dir: /data/warehousekeeper/frames
+
+# SQLite数据库文件路径（与env_service、Qt前端共用同一个文件）
+db_path: /data/warehousekeeper/warehousekeeper.db
+
+# 设备ID，写入device_status表用
+device_id: fridge-01

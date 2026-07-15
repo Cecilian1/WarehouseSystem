@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Qt构建产物
+qt-frontend/build-*/
+qt-frontend/*.pro.user
+
+# SQLite数据库文件与WAL/SHM辅助文件（部署时生成，不应入库）
+*.db
+*.db-wal
+*.db-shm
+
+# 采集图片
+backend/camera_service/frames/
