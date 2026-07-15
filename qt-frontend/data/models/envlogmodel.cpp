@@ -4,6 +4,7 @@
 
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QVariant>
 
 EnvLogModel::EnvLogModel(QObject *parent)
     : QObject(parent)

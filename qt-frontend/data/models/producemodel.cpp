@@ -4,6 +4,7 @@
 
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QVariant>
 
 ProduceModel::ProduceModel(QObject *parent)
     : QAbstractTableModel(parent)

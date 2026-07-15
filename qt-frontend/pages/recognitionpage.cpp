@@ -7,6 +7,7 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QVBoxLayout>
+#include <QVariant>
 
 RecognitionPage::RecognitionPage(QWidget *parent)
     : QWidget(parent)

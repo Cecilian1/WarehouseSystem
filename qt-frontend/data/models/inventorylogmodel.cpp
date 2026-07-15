@@ -4,6 +4,7 @@
 
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QVariant>
 
 InventoryLogModel::InventoryLogModel(QObject *parent)
     : QAbstractTableModel(parent)

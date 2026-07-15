@@ -4,6 +4,7 @@
 
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QVariant>
 
 AlertModel::AlertModel(QObject *parent)
     : QAbstractTableModel(parent)

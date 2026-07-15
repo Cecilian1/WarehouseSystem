@@ -35,7 +35,7 @@ void OnScreenKeyboardWidget::buildLayout()
     for (const char *rowChars : kRows) {
         int col = 0;
         for (const char *p = rowChars; *p; ++p) {
-            const QString ch(QChar(*p));
+            const QString ch{QChar(*p)};
             auto *btn = new QPushButton(ch, this);
             btn->setMinimumSize(48, 48);
             connect(btn, &QPushButton::clicked, this, [this, ch]() { appendChar(ch); });
