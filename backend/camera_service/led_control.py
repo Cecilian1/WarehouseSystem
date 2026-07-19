@@ -31,11 +31,25 @@ class LedControl:
         self.warmup_sec = warmup_sec
         self._line = None  # gpiod line，仅gpiod路径使用
         self._chip = None
+        self._available = False  # LED是否可用标志
 
         if _HAS_GPIOD:
-            self._init_gpiod()
+            try:
+                self._init_gpiod()
+                self._available = True
+            except Exception as e:
+                logger.warning(f"gpiod初始化失败: {e}，尝试sysfs...")
+                try:
+                    self._init_sysfs()
+                    self._available = True
+                except OSError as e2:
+                    logger.warning(f"LED GPIO {gpio_num} 初始化失败（可能被占用或无权限），禁用LED: {e2}")
         else:
-            self._init_sysfs()
+            try:
+                self._init_sysfs()
+                self._available = True
+            except OSError as e:
+                logger.warning(f"LED GPIO {gpio_num} 初始化失败（可能被占用或无权限），禁用LED: {e}")
 
     # ---------- gpiod 路径 ----------
     def _init_gpiod(self) -> None:
@@ -73,11 +87,21 @@ class LedControl:
             self._set_sysfs(value)
 
     def turn_on(self) -> None:
-        self._set(1)
-        time.sleep(self.warmup_sec)
+        if not self._available:
+            return
+        try:
+            self._set(1)
+            time.sleep(self.warmup_sec)
+        except Exception as e:
+            logger.warning(f"LED turn_on失败: {e}")
 
     def turn_off(self) -> None:
-        self._set(0)
+        if not self._available:
+            return
+        try:
+            self._set(0)
+        except Exception as e:
+            logger.warning(f"LED turn_off失败: {e}")
 
     def close(self) -> None:
         if _HAS_GPIOD and self._chip is not None:

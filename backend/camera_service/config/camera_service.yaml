@@ -1,6 +1,6 @@
 # camera_service 配置
 # 摄像头设备节点名需上板后用 `ls /dev/video*` 核实，udev别名可能因固件版本不同而变化。
-camera_device: /dev/video-camera0
+camera_device: /dev/video0
 
 # 采集分辨率（与官方QCamera示例一致，控制单核CPU负载）
 resolution: [640, 480]
