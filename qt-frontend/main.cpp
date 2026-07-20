@@ -3,9 +3,23 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <signal.h>
+#include <stdlib.h>
+
+static void signalHandler(int signum)
+{
+    qDebug() << "收到信号" << signum << "，执行清理...";
+    DatabaseManager::setFrontendActive(false);
+    DatabaseManager::closeConnection();
+    exit(0);
+}
 
 int main(int argc, char *argv[])
 {
+    // 注册信号处理器，确保Ctrl+C时能执行cleanup
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
+
     QApplication a(argc, argv);
 
     // frontend.ini路径相对于程序运行时的工作目录（部署时约定为可执行文件
