@@ -33,7 +33,14 @@ RecognitionPage::RecognitionPage(QWidget *parent)
 
 void RecognitionPage::refresh()
 {
-    QSqlQuery query(DatabaseManager::database());
+    QSqlDatabase db = DatabaseManager::database();
+
+    // 清理SQL query缓存，确保获取最新数据
+    QSqlQuery cleanCache(db);
+    cleanCache.exec("PRAGMA query_only=OFF");
+
+    QSqlQuery query(db);
+    query.setForwardOnly(true);  // 禁用缓存，逐行获取
     query.prepare(
         "SELECT id, image_path, status, change_ratio FROM pending_frames "
         "ORDER BY id DESC LIMIT 1");
