@@ -15,11 +15,16 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // 标记前端已启动
+    DatabaseManager::setFrontendActive(true);
+
     MainWindow w;
     w.show();
 
     const int result = a.exec();
 
+    // 标记前端已停止
+    DatabaseManager::setFrontendActive(false);
     DatabaseManager::closeConnection();
     return result;
 }

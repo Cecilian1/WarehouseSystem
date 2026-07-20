@@ -44,3 +44,18 @@ void DatabaseManager::closeConnection()
         QSqlDatabase::removeDatabase(kConnectionName);
     }
 }
+
+void DatabaseManager::setFrontendActive(bool active)
+{
+    QSqlDatabase db = database();
+    if (!db.isOpen())
+        return;
+
+    QSqlQuery query(db);
+    query.prepare("UPDATE device_status SET frontend_active = :active WHERE device_id = 'fridge-01'");
+    query.bindValue(":active", active ? 1 : 0);
+
+    if (!query.exec()) {
+        qWarning() << "更新frontend_active失败:" << query.lastError().text();
+    }
+}

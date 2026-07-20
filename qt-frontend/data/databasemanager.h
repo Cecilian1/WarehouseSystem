@@ -20,6 +20,9 @@ public:
 
     static void closeConnection();
 
+    // 更新device_status.frontend_active标记（1=前端正在运行，0=前端已停止）
+    static void setFrontendActive(bool active);
+
 private:
     static const QString kConnectionName;
 };
