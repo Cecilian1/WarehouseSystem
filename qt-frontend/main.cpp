@@ -18,12 +18,17 @@ int main(int argc, char *argv[])
     // 标记前端已启动
     DatabaseManager::setFrontendActive(true);
 
-    MainWindow w;
-    w.show();
+    int result = 0;
+    try {
+        MainWindow w;
+        w.show();
+        result = a.exec();
+    } catch (...) {
+        qWarning() << "程序异常，但仍尝试cleanup";
+    }
 
-    const int result = a.exec();
-
-    // 标记前端已停止
+    // 无论如何都要执行cleanup
+    qDebug() << "前端正在关闭，设置frontend_active=false";
     DatabaseManager::setFrontendActive(false);
     DatabaseManager::closeConnection();
     return result;
