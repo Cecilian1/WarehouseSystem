@@ -26,9 +26,9 @@ WarehouseSystem/
 └── deploy/               # systemd单元、开发板安装脚本
 ```
 
-## 快速开始（开发者在自己的Ubuntu主机/开发板上执行）
+## 快速开始（开发者从零开始）
 
-1. 按 [docs/qt5-setup-guide.md](docs/qt5-setup-guide.md) 搭建Qt5交叉编译环境
+1. 按 [docs/development-environment-setup.md](docs/development-environment-setup.md) 完成从0开始的开发环境搭建（虚拟机导入、网络配置、交叉编译工具链、Qt开发环境）
 2. 按 [docs/build-and-deploy.md](docs/build-and-deploy.md) 交叉编译Qt前端、部署Python后端
 3. 按 [docs/verification-checklist.md](docs/verification-checklist.md) 逐项验证
 

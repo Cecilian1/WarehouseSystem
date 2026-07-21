@@ -1,7 +1,7 @@
 # 交叉编译 / 部署 / systemd 操作速查
 
-前提：已按 [qt5-setup-guide.md](qt5-setup-guide.md) 完成Qt5交叉编译环境搭建。
-以下命令均在开发者的Ubuntu主机/开发板上执行。
+前提：已按 [development-environment-setup.md](development-environment-setup.md) 完成开发环境搭建（包括虚拟机导入、网络配置、交叉编译工具链、Qt开发环境）。
+以下命令均在Ubuntu虚拟机内执行。
 
 ## 1. Qt前端交叉编译
 

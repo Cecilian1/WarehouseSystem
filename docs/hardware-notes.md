@@ -62,8 +62,8 @@ i2cdetect -y 3
   camera_service是Python后台daemon而非Qt前端直接控制摄像头），但采集参数
   （640×480分辨率）与其保持一致。
 
-## Qt5交叉工具链
+## Qt5交叉工具链与开发环境搭建
 
 - 安装包`atk-dl2k0300-toolchain-qt5-loongarch64-buildroot-linux-gnu-x86_64-20250328-v1.1.run`
   位于资料盘"06、开发工具.zip"内，约449MB，默认装到`/opt/atk-dl2k0300-toolchain`。
-- 详细搭建步骤见 [qt5-setup-guide.md](qt5-setup-guide.md)。
+- 完整的开发环境搭建步骤（包括虚拟机导入、网络配置、基础编译工具链、Qt5交叉编译环境）见 [development-environment-setup.md](development-environment-setup.md)。
