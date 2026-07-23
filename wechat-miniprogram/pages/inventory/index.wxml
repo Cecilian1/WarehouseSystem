@@ -1,0 +1,59 @@
+<view class="page-shell inventory-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <view>
+      <view class="page-title">库存</view>
+      <view class="page-subtitle">看见冰箱里每一份新鲜</view>
+    </view>
+    <button class="mode-button" bindtap="toggleMode"><x-icon type="record" size="{{36}}" />{{viewMode === 'card' ? '列表' : '卡片'}}</button>
+  </view>
+
+  <view class="search-card">
+    <x-icon type="search" size="{{34}}" />
+    <input value="{{keyword}}" bindinput="inputKeyword" confirm-type="search" bindconfirm="search" placeholder="搜索果蔬、分类或货位" />
+    <button bindtap="search">搜索</button>
+  </view>
+
+  <scroll-view scroll-x class="chip-scroll" show-scrollbar="{{false}}">
+    <button wx:for="{{categories}}" wx:key="*this" data-value="{{item}}" bindtap="selectCategory" class="chip {{category === item ? 'active' : ''}}">{{item}}</button>
+  </scroll-view>
+
+  <scroll-view scroll-x class="chip-scroll compact" show-scrollbar="{{false}}">
+    <button wx:for="{{freshnessOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="selectFreshness" class="chip {{freshness === item.value ? 'active' : ''}}">{{item.label}}</button>
+    <button wx:for="{{sortOptions}}" wx:key="*this" data-value="{{item}}" bindtap="selectSort" class="chip sort {{sort === item ? 'active' : ''}}">按{{item}}</button>
+  </scroll-view>
+
+  <view class="inventory-actions">
+    <button class="ghost-button" bindtap="manualInbound"><x-icon type="add" size="{{34}}" />手动入库</button>
+    <button class="primary-button" bindtap="startRecognition"><x-icon type="scan" size="{{34}}" />开始识别</button>
+  </view>
+
+  <view wx:if="{{list.length}}" class="inventory-list {{viewMode}}">
+    <produce-card
+      wx:for="{{list}}"
+      wx:key="id"
+      item="{{item}}"
+      mode="{{viewMode}}"
+      bind:detail="goDetail"
+      bind:action="handleAction"
+    />
+  </view>
+
+  <empty-state
+    wx:else
+    title="冰箱里暂时没有库存"
+    desc="可以通过 AI 识别或手动入库，让芯鲜管家开始守护食材。"
+    button-text="立即开始识别"
+    icon="scan"
+    bind:action="startRecognition"
+  />
+
+  <confirm-sheet
+    visible="{{sheetVisible}}"
+    title="{{pendingAction.title}}"
+    desc="{{pendingAction.desc}}"
+    danger="{{pendingAction.danger}}"
+    confirm-text="确认"
+    bind:cancel="cancelSheet"
+    bind:confirm="confirmSheet"
+  />
+</view>

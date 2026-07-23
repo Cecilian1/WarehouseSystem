@@ -1,0 +1,41 @@
+<view class="login-page" style="--status-top: {{statusTop}}px;">
+  <view class="login-hero">
+    <view class="hero-nav" style="padding-top: {{statusTop}}px;">
+      <view>
+        <view class="hero-title">芯鲜管家</view>
+        <view class="hero-subtitle">家庭冰箱的端侧 AI 新鲜守护</view>
+      </view>
+    </view>
+    <view class="fridge-illu">
+      <view class="fridge-body">
+        <view class="screen"></view>
+        <view class="shelf shelf-a"></view>
+        <view class="shelf shelf-b"></view>
+      </view>
+      <view class="terminal">
+        <view></view>
+      </view>
+      <view class="signal signal-a"></view>
+      <view class="signal signal-b"></view>
+    </view>
+  </view>
+
+  <view class="login-panel fade-up">
+    <view class="panel-title">连接你的智能冰箱</view>
+    <view class="panel-desc">微信登录后即可查看库存、新鲜度预警和开发板设备状态。</view>
+
+    <button class="primary-button" loading="{{loading}}" bindtap="login">
+      <x-icon type="check" size="{{34}}" /> 微信一键登录并绑定
+    </button>
+
+    <view class="input-row">
+      <x-icon type="device" size="{{34}}" />
+      <input value="{{deviceCode}}" bindinput="inputCode" placeholder="请输入设备编号" />
+    </view>
+
+    <view class="login-actions">
+      <button bindtap="scanCode"><x-icon type="scan" size="{{32}}" />扫码绑定设备</button>
+      <button bindtap="showHelp"><x-icon type="record" size="{{32}}" />查看绑定说明</button>
+    </view>
+  </view>
+</view>

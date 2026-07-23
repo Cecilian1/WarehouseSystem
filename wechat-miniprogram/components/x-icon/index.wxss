@@ -1,0 +1,307 @@
+.x-icon {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.part {
+  position: absolute;
+  border-color: currentColor;
+}
+
+.icon-home .p1 {
+  left: 23%;
+  top: 20%;
+  width: 52%;
+  height: 52%;
+  border-top: 4rpx solid currentColor;
+  border-left: 4rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.icon-home .p2 {
+  left: 24%;
+  bottom: 16%;
+  width: 52%;
+  height: 42%;
+  border: 4rpx solid currentColor;
+  border-top: 0;
+  border-radius: 4rpx;
+}
+
+.icon-box .p1,
+.icon-inventory .p1 {
+  left: 15%;
+  top: 21%;
+  width: 70%;
+  height: 58%;
+  border: 4rpx solid currentColor;
+  border-radius: 10rpx;
+}
+
+.icon-box .p2,
+.icon-inventory .p2 {
+  left: 26%;
+  top: 38%;
+  width: 48%;
+  border-top: 4rpx solid currentColor;
+}
+
+.icon-scan .p1 {
+  inset: 15%;
+  border: 4rpx solid currentColor;
+  border-radius: 14rpx;
+}
+
+.icon-scan .p2 {
+  left: 20%;
+  right: 20%;
+  top: 48%;
+  border-top: 4rpx solid currentColor;
+  box-shadow: 0 0 14rpx currentColor;
+}
+
+.icon-alert .p1 {
+  left: 18%;
+  top: 16%;
+  width: 64%;
+  height: 62%;
+  background: currentColor;
+  clip-path: polygon(50% 0, 100% 94%, 0 94%);
+}
+
+.icon-alert .p2 {
+  left: 47%;
+  top: 40%;
+  width: 6%;
+  height: 18%;
+  border-radius: 6rpx;
+  background: #fff;
+}
+
+.icon-alert .p3 {
+  left: 47%;
+  top: 65%;
+  width: 6%;
+  height: 6%;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.icon-mine .p1 {
+  left: 35%;
+  top: 17%;
+  width: 30%;
+  height: 30%;
+  border: 4rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.icon-mine .p2 {
+  left: 21%;
+  bottom: 14%;
+  width: 58%;
+  height: 34%;
+  border: 4rpx solid currentColor;
+  border-radius: 40rpx 40rpx 16rpx 16rpx;
+}
+
+.icon-temp .p1 {
+  left: 42%;
+  top: 12%;
+  width: 16%;
+  height: 54%;
+  border: 4rpx solid currentColor;
+  border-radius: 20rpx;
+}
+
+.icon-temp .p2 {
+  left: 32%;
+  bottom: 10%;
+  width: 36%;
+  height: 36%;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.icon-water .p1,
+.icon-humidity .p1 {
+  left: 26%;
+  top: 11%;
+  width: 48%;
+  height: 70%;
+  border-radius: 50% 50% 54% 54%;
+  background: currentColor;
+  clip-path: polygon(50% 0, 86% 42%, 100% 68%, 83% 96%, 50% 100%, 16% 96%, 0 68%, 14% 42%);
+}
+
+.icon-camera .p1 {
+  left: 13%;
+  top: 28%;
+  width: 74%;
+  height: 48%;
+  border: 4rpx solid currentColor;
+  border-radius: 12rpx;
+}
+
+.icon-camera .p2 {
+  left: 39%;
+  top: 38%;
+  width: 22%;
+  height: 22%;
+  border: 4rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.icon-device .p1 {
+  left: 19%;
+  top: 18%;
+  width: 62%;
+  height: 50%;
+  border: 4rpx solid currentColor;
+  border-radius: 10rpx;
+}
+
+.icon-device .p2 {
+  left: 38%;
+  bottom: 13%;
+  width: 24%;
+  border-top: 4rpx solid currentColor;
+}
+
+.icon-clock .p1 {
+  inset: 15%;
+  border: 4rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.icon-clock .p2 {
+  left: 48%;
+  top: 28%;
+  height: 24%;
+  border-left: 4rpx solid currentColor;
+}
+
+.icon-clock .p3 {
+  left: 48%;
+  top: 50%;
+  width: 20%;
+  border-top: 4rpx solid currentColor;
+  transform: rotate(24deg);
+  transform-origin: left center;
+}
+
+.icon-search .p1 {
+  left: 16%;
+  top: 14%;
+  width: 42%;
+  height: 42%;
+  border: 4rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.icon-search .p2 {
+  right: 16%;
+  bottom: 17%;
+  width: 28%;
+  border-top: 4rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.icon-add .p1 {
+  left: 48%;
+  top: 18%;
+  height: 64%;
+  border-left: 5rpx solid currentColor;
+}
+
+.icon-add .p2 {
+  left: 18%;
+  top: 48%;
+  width: 64%;
+  border-top: 5rpx solid currentColor;
+}
+
+.icon-check .p1 {
+  left: 20%;
+  top: 44%;
+  width: 26%;
+  height: 14%;
+  border-left: 5rpx solid currentColor;
+  border-bottom: 5rpx solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.icon-edit .p1 {
+  left: 22%;
+  top: 56%;
+  width: 52%;
+  border-top: 5rpx solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.icon-edit .p2 {
+  left: 18%;
+  bottom: 16%;
+  width: 62%;
+  border-bottom: 4rpx solid currentColor;
+}
+
+.icon-trash .p1 {
+  left: 25%;
+  top: 28%;
+  width: 50%;
+  height: 48%;
+  border: 4rpx solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 8rpx 8rpx;
+}
+
+.icon-trash .p2 {
+  left: 20%;
+  top: 20%;
+  width: 60%;
+  border-top: 4rpx solid currentColor;
+}
+
+.icon-back .p1 {
+  left: 30%;
+  top: 27%;
+  width: 32%;
+  height: 32%;
+  border-left: 5rpx solid currentColor;
+  border-bottom: 5rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.icon-arrow .p1 {
+  left: 25%;
+  top: 30%;
+  width: 32%;
+  height: 32%;
+  border-right: 5rpx solid currentColor;
+  border-top: 5rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.icon-record .p1 {
+  left: 20%;
+  top: 16%;
+  height: 68%;
+  border-left: 4rpx solid currentColor;
+}
+
+.icon-record .p2,
+.icon-record .p3 {
+  left: 32%;
+  width: 50%;
+  border-top: 4rpx solid currentColor;
+}
+
+.icon-record .p2 {
+  top: 30%;
+}
+
+.icon-record .p3 {
+  top: 58%;
+}

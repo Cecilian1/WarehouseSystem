@@ -1,0 +1,350 @@
+@import 'element-plus/dist/index.css';
+
+:root {
+  --bg-0: #07111f;
+  --bg-1: #0d1728;
+  --bg-2: #111f33;
+  --surface: rgba(16, 31, 52, 0.68);
+  --surface-strong: rgba(20, 37, 61, 0.86);
+  --surface-soft: rgba(255, 255, 255, 0.055);
+  --stroke: rgba(148, 163, 184, 0.16);
+  --stroke-strong: rgba(148, 163, 184, 0.28);
+  --text-1: #f4f8ff;
+  --text-2: #a8b7ca;
+  --text-3: #70829a;
+  --blue: #4f8cff;
+  --cyan: #38bdf8;
+  --teal: #14b8a6;
+  --green: #22c55e;
+  --orange: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b7cff;
+  --shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
+  --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.16);
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 11px;
+  --sidebar-width: 244px;
+  --header-height: 76px;
+  --el-color-primary: #4f8cff;
+  --el-bg-color: #101e32;
+  --el-bg-color-overlay: #172942;
+  --el-text-color-primary: #f4f8ff;
+  --el-text-color-regular: #a8b7ca;
+  --el-border-color: rgba(148, 163, 184, 0.17);
+  --el-fill-color-blank: rgba(255, 255, 255, 0.04);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-1);
+  background: var(--bg-0);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+:root[data-theme='light'] {
+  --bg-0: #eef4fa;
+  --bg-1: #f6f9fc;
+  --bg-2: #ffffff;
+  --surface: rgba(255, 255, 255, 0.74);
+  --surface-strong: rgba(255, 255, 255, 0.94);
+  --surface-soft: rgba(15, 23, 42, 0.035);
+  --stroke: rgba(100, 116, 139, 0.18);
+  --stroke-strong: rgba(100, 116, 139, 0.32);
+  --text-1: #16263d;
+  --text-2: #59708d;
+  --text-3: #8b9bb0;
+  --shadow: 0 22px 70px rgba(32, 62, 91, 0.12);
+  --shadow-soft: 0 10px 28px rgba(32, 62, 91, 0.08);
+  --el-bg-color: #ffffff;
+  --el-bg-color-overlay: #ffffff;
+  --el-text-color-primary: #16263d;
+  --el-text-color-regular: #59708d;
+  --el-border-color: rgba(100, 116, 139, 0.18);
+  --el-fill-color-blank: rgba(15, 23, 42, 0.025);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(56, 189, 248, 0.13), transparent 26%),
+    radial-gradient(circle at 88% 5%, rgba(139, 124, 255, 0.12), transparent 24%),
+    radial-gradient(circle at 74% 82%, rgba(34, 197, 94, 0.08), transparent 28%),
+    linear-gradient(140deg, var(--bg-0), var(--bg-1) 48%, var(--bg-2));
+  background-attachment: fixed;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  opacity: 0.24;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.038) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.038) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 75%);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-content {
+  min-height: 100vh;
+  padding-left: var(--sidebar-width);
+  transition: padding-left 0.28s ease;
+}
+
+.app-content.is-collapsed {
+  padding-left: 78px;
+}
+
+.page-content {
+  width: 100%;
+  max-width: 1920px;
+  min-height: calc(100vh - var(--header-height));
+  margin: 0 auto;
+  padding: 24px 28px 34px;
+}
+
+.glass-panel {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.025)), var(--surface);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.glass-panel--strong {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035)), var(--surface-strong);
+}
+
+.panel-hover {
+  transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+}
+
+.panel-hover:hover {
+  border-color: var(--stroke-strong);
+  box-shadow: var(--shadow);
+  transform: translateY(-3px);
+}
+
+.section-title {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.section-subtitle {
+  margin: 5px 0 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.el-button {
+  border-radius: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.el-button:hover {
+  box-shadow: 0 8px 22px rgba(79, 140, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.el-button--primary {
+  border: 0;
+  background: linear-gradient(135deg, #4f8cff, #6c63ff);
+}
+
+.el-button--primary:hover,
+.el-button--primary:focus {
+  background: linear-gradient(135deg, #66a0ff, #7b72ff);
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  box-shadow: none;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+  border-color: rgba(79, 140, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.12);
+}
+
+.el-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: rgba(255, 255, 255, 0.045);
+  --el-table-row-hover-bg-color: rgba(79, 140, 255, 0.08);
+  --el-table-border-color: var(--stroke);
+  --el-table-text-color: var(--text-2);
+  --el-table-header-text-color: var(--text-1);
+  background: transparent;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+}
+
+.el-table::before {
+  background-color: var(--stroke);
+}
+
+.el-pagination {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-button-bg-color: var(--surface-soft);
+  --el-pagination-hover-color: var(--blue);
+}
+
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(7px);
+}
+
+.realtime-dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14), 0 0 12px rgba(34, 197, 94, 0.76);
+}
+
+.realtime-dot::after {
+  position: absolute;
+  inset: -5px;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  border-radius: inherit;
+  content: "";
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 12px;
+  background: var(--surface-soft);
+}
+
+.status-chip.is-online {
+  color: #8ef4b1;
+  border-color: rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.status-chip.is-warning {
+  color: #fbd38d;
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.status-chip.is-offline {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.ripple-effect {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.42);
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple 0.52s ease-out forwards;
+}
+
+@keyframes pulse-ring {
+  0% { opacity: 0.55; transform: scale(0.7); }
+  100% { opacity: 0; transform: scale(1.65); }
+}
+
+@keyframes ripple {
+  to { opacity: 0; transform: translate(-50%, -50%) scale(10); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); opacity: 0; }
+  15%, 72% { opacity: 0.6; }
+  100% { transform: translateY(720%); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(160%); }
+}
+
+@media (max-width: 1180px) {
+  :root { --sidebar-width: 82px; }
+  .page-content { padding: 20px; }
+}
+
+@media (max-width: 760px) {
+  :root { --header-height: 64px; }
+  .app-content,
+  .app-content.is-collapsed { padding-left: 0; }
+  .page-content { padding: 16px 14px 30px; }
+}

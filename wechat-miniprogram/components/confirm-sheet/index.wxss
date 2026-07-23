@@ -1,0 +1,47 @@
+.sheet-mask {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(20, 36, 32, .36);
+  backdrop-filter: blur(10rpx);
+}
+
+.sheet-panel {
+  width: 100%;
+  padding: 18rpx 28rpx calc(36rpx + env(safe-area-inset-bottom));
+  border-radius: 38rpx 38rpx 0 0;
+  border: 1rpx solid rgba(255, 255, 255, .74);
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 -18rpx 60rpx rgba(52, 95, 85, .14);
+}
+
+.sheet-handle {
+  width: 80rpx;
+  height: 8rpx;
+  margin: 0 auto 26rpx;
+  border-radius: 99rpx;
+  background: rgba(52, 95, 85, .14);
+}
+
+.sheet-title {
+  color: #263a34;
+  font-size: 34rpx;
+  font-weight: 900;
+  text-align: center;
+}
+
+.sheet-desc {
+  margin: 16rpx 18rpx 30rpx;
+  color: #879691;
+  font-size: 28rpx;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.sheet-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+}

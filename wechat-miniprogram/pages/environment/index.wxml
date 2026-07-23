@@ -1,0 +1,64 @@
+<view class="page-shell environment-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <button class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></button>
+    <view>
+      <view class="page-title">环境监测</view>
+      <view class="page-subtitle">温湿度趋势与异常分析</view>
+    </view>
+  </view>
+
+  <glass-card wx:if="{{current}}" tone="{{current.state === '适宜' ? 'deep' : 'warn'}}" padding="normal">
+    <view class="current-head">
+      <view>
+        <view class="env-label">当前环境</view>
+        <view class="env-state">{{current.state}}</view>
+      </view>
+      <status-tag label="{{current.state}}" tone="{{current.state === '适宜' ? 'success' : 'critical'}}" />
+    </view>
+    <view class="env-current-values">
+      <view><x-icon type="temp" size="{{44}}" /><text>{{current.temperature}}</text><small>°C</small></view>
+      <view><x-icon type="humidity" size="{{44}}" /><text>{{current.humidity}}</text><small>%RH</small></view>
+    </view>
+  </glass-card>
+
+  <view class="metric-grid" wx:if="{{current}}">
+    <glass-card padding="small">
+      <view class="metric"><text>{{current.today.tempMax}}</text><small>今日最高温</small></view>
+    </glass-card>
+    <glass-card padding="small">
+      <view class="metric"><text>{{current.today.tempMin}}</text><small>今日最低温</small></view>
+    </glass-card>
+    <glass-card padding="small">
+      <view class="metric"><text>{{current.today.humidityMax}}</text><small>最高湿度</small></view>
+    </glass-card>
+    <glass-card padding="small">
+      <view class="metric"><text>{{current.today.humidityMin}}</text><small>最低湿度</small></view>
+    </glass-card>
+  </view>
+
+  <view class="range-row">
+    <button wx:for="{{ranges}}" wx:key="*this" data-value="{{item}}" bindtap="selectRange" class="{{range === item ? 'active' : ''}}">{{item}}</button>
+  </view>
+
+  <glass-card padding="normal">
+    <view class="chart-title">温湿度历史</view>
+    <view class="trend-chart">
+      <view wx:for="{{history}}" wx:key="date" class="trend-col">
+        <view class="bars">
+          <view class="temp-bar" style="height: {{item.tempHeight}}rpx;"></view>
+          <view class="humidity-bar" style="height: {{item.humidityHeight}}rpx;"></view>
+        </view>
+        <text>{{item.date}}</text>
+      </view>
+    </view>
+    <view class="chart-legend">
+      <view><i class="temp"></i>温度</view>
+      <view><i class="humidity"></i>湿度</view>
+    </view>
+  </glass-card>
+
+  <glass-card wx:if="{{current}}" padding="normal">
+    <view class="analysis-title">环境分析</view>
+    <view class="analysis-copy">{{current.analysis}}</view>
+  </glass-card>
+</view>

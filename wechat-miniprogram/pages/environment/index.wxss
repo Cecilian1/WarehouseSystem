@@ -1,0 +1,179 @@
+.custom-nav {
+  display: flex;
+  align-items: center;
+}
+
+.current-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.env-label {
+  color: rgba(255, 255, 255, .72);
+  font-size: 24rpx;
+}
+
+.env-state {
+  margin-top: 8rpx;
+  color: #fff;
+  font-size: 38rpx;
+  font-weight: 900;
+}
+
+.env-current-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+  margin-top: 26rpx;
+}
+
+.env-current-values view {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  color: #fff;
+}
+
+.env-current-values text {
+  font-size: 62rpx;
+  font-weight: 900;
+}
+
+.env-current-values small {
+  font-size: 24rpx;
+  opacity: .78;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric text {
+  display: block;
+  color: #263a34;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.metric small {
+  display: block;
+  margin-top: 6rpx;
+  color: #879691;
+  font-size: 21rpx;
+}
+
+.range-row {
+  display: flex;
+  gap: 12rpx;
+  margin: 24rpx 0 18rpx;
+}
+
+.range-row button {
+  flex: 1;
+  height: 64rpx;
+  border-radius: 999rpx;
+  color: #879691;
+  font-size: 25rpx;
+  font-weight: 900;
+  text-align: center;
+  line-height: 64rpx;
+  background: rgba(255, 255, 255, .72);
+}
+
+.range-row .active {
+  color: #fff;
+  background: linear-gradient(135deg, #517765, #587f96);
+}
+
+.chart-title,
+.analysis-title {
+  color: #263a34;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 330rpx;
+  margin-top: 24rpx;
+}
+
+.trend-col {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8rpx;
+  height: 260rpx;
+}
+
+.temp-bar,
+.humidity-bar {
+  width: 16rpx;
+  border-radius: 999rpx;
+}
+
+.temp-bar {
+  background: linear-gradient(180deg, #587f96, rgba(88, 127, 150, .18));
+}
+
+.humidity-bar {
+  background: linear-gradient(180deg, #517765, rgba(81, 119, 101, .18));
+}
+
+.trend-col text {
+  margin-top: 12rpx;
+  color: #879691;
+  font-size: 22rpx;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 26rpx;
+  margin-top: 18rpx;
+  color: #879691;
+  font-size: 24rpx;
+}
+
+.chart-legend view {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.chart-legend i {
+  width: 18rpx;
+  height: 18rpx;
+  border-radius: 50%;
+}
+
+.chart-legend .temp {
+  background: #587f96;
+}
+
+.chart-legend .humidity {
+  background: #517765;
+}
+
+.analysis-copy {
+  margin-top: 14rpx;
+  color: #4b635d;
+  font-size: 28rpx;
+  line-height: 1.6;
+}

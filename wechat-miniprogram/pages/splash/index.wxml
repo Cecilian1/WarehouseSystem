@@ -1,0 +1,18 @@
+<view class="splash">
+  <view class="glow glow-a"></view>
+  <view class="glow glow-b"></view>
+  <view class="leaf-mark leaf-one"></view>
+  <view class="leaf-mark leaf-two"></view>
+  <view class="logo-wrap">
+    <view class="logo-chip">
+      <view class="chip-line line-a"></view>
+      <view class="chip-line line-b"></view>
+      <view class="logo-leaf"></view>
+      <view class="logo-fridge"></view>
+    </view>
+    <view class="scan-ring"></view>
+  </view>
+  <view class="brand">芯鲜管家</view>
+  <view class="slogan">让每一份新鲜，都被认真守护</view>
+  <view class="loading-line"><view></view></view>
+</view>

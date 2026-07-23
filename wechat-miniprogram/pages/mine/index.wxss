@@ -1,0 +1,113 @@
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  margin-top: 24rpx;
+  padding: 32rpx;
+  border-radius: 40rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #517765, #6f97a6 56%, #587f96);
+  box-shadow: 0 24rpx 60rpx rgba(52, 95, 85, .18);
+}
+
+.avatar {
+  display: grid;
+  width: 108rpx;
+  height: 108rpx;
+  place-items: center;
+  border: 2rpx solid rgba(255, 255, 255, .42);
+  border-radius: 34rpx;
+  background: rgba(255, 255, 255, .2);
+}
+
+.avatar view {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 50%;
+  border: 6rpx solid #fff;
+  border-bottom-color: rgba(255, 255, 255, .5);
+}
+
+.user-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.user-name {
+  font-size: 36rpx;
+  font-weight: 900;
+}
+
+.family-name {
+  margin-top: 8rpx;
+  font-size: 25rpx;
+  opacity: .82;
+}
+
+.mine-shortcuts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.mine-shortcuts button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 94rpx;
+  gap: 10rpx;
+  border: 1rpx solid rgba(255, 255, 255, .78);
+  border-radius: 30rpx;
+  color: #345f55;
+  font-size: 27rpx;
+  font-weight: 900;
+  background: rgba(255, 255, 255, .76);
+}
+
+.setting-group {
+  margin-top: 8rpx;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  min-height: 116rpx;
+  padding: 0 24rpx;
+}
+
+.setting-row + .setting-row {
+  border-top: 1rpx solid rgba(52, 95, 85, .08);
+}
+
+.setting-icon {
+  display: grid;
+  width: 66rpx;
+  height: 66rpx;
+  place-items: center;
+  border-radius: 22rpx;
+  color: #345f55;
+  background: rgba(81, 119, 101, .1);
+}
+
+.setting-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.setting-copy view {
+  color: #263a34;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.setting-copy text {
+  display: block;
+  overflow: hidden;
+  margin-top: 6rpx;
+  color: #879691;
+  font-size: 23rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

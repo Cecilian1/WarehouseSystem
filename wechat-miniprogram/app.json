@@ -1,0 +1,59 @@
+{
+  "pages": [
+    "pages/splash/index",
+    "pages/login/index",
+    "pages/home/index",
+    "pages/inventory/index",
+    "pages/recognition/index",
+    "pages/alerts/index",
+    "pages/mine/index",
+    "pages/detail/index",
+    "pages/environment/index",
+    "pages/records/index",
+    "pages/message-detail/index",
+    "pages/devices/index"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundTextStyle": "dark",
+    "backgroundColor": "#f4fbf9",
+    "enablePullDownRefresh": true
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#78908f",
+    "selectedColor": "#345f55",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/inventory/index",
+        "text": "库存"
+      },
+      {
+        "pagePath": "pages/recognition/index",
+        "text": "AI识别"
+      },
+      {
+        "pagePath": "pages/alerts/index",
+        "text": "预警"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "usingComponents": {
+    "x-icon": "/components/x-icon/index",
+    "glass-card": "/components/glass-card/index",
+    "status-tag": "/components/status-tag/index",
+    "empty-state": "/components/empty-state/index",
+    "confirm-sheet": "/components/confirm-sheet/index"
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

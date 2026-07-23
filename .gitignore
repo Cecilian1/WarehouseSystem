@@ -13,3 +13,20 @@ qt-frontend/*.pro.user
 
 # 采集图片
 backend/camera_service/frames/
+
+# Web前端依赖、构建产物与本地调试缓存
+web-frontend/node_modules/
+web-frontend/dist/
+web-frontend/.edge-*/
+web-frontend/.tmp/
+web-frontend/.env.local
+web-frontend/*.log
+web-frontend/*.png
+
+# 微信开发者工具本机配置
+wechat-miniprogram/project.private.config.json
+
+# 本地验证日志与会话文件
+*.out.log
+*.err.log
+*-cookies.txt

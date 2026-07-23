@@ -1,0 +1,36 @@
+<view class="produce-wrap {{opened ? 'is-open' : ''}} mode-{{mode}}" bindtouchstart="touchStart" bindtouchend="touchEnd">
+  <view class="action-rail">
+    <button data-type="edit" bindtap="action"><x-icon type="edit" size="{{30}}" />编辑</button>
+    <button data-type="outbound" bindtap="action"><x-icon type="arrow" size="{{30}}" />出库</button>
+    <button data-type="delete" class="danger" bindtap="action"><x-icon type="trash" size="{{30}}" />删除</button>
+  </view>
+  <view class="produce-card" bindtap="tapCard">
+    <view class="produce-visual" style="--food-color: {{item.color}}">
+      <view class="food food-{{item.icon}}"></view>
+    </view>
+    <view class="produce-main">
+      <view class="produce-head">
+        <view>
+          <view class="produce-name">{{item.name}}</view>
+          <view class="produce-meta">{{item.category}} · {{item.location}}</view>
+        </view>
+        <status-tag class="produce-status" label="{{tagText}}" tone="{{tagTone}}" />
+      </view>
+      <view class="produce-info">
+        <text>{{item.quantity}}{{item.unit}}</text>
+        <text>剩余 {{item.remainingDays}} 天</text>
+        <text>置信度 {{item.confidence}}%</text>
+      </view>
+      <view class="fresh-line">
+        <view style="width: {{item.freshnessScore}}%; background: {{item.color}};"></view>
+      </view>
+      <view class="produce-foot">
+        <text>入库 {{item.inboundAt}}</text>
+        <text>{{item.updatedAt}}</text>
+      </view>
+    </view>
+    <view class="score-ring" style="--score-color: {{item.color}};">
+      <text>{{item.freshnessScore}}</text>
+    </view>
+  </view>
+</view>

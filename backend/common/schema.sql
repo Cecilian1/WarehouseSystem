@@ -43,12 +43,11 @@ CREATE TABLE IF NOT EXISTS alert_record (
 );
 
 CREATE TABLE IF NOT EXISTS device_status (
-    device_id        TEXT PRIMARY KEY,
-    camera_status    TEXT,
-    sensor_status    TEXT,
-    storage_free     INTEGER,
-    last_heartbeat   TEXT,
-    frontend_active  INTEGER DEFAULT 0  -- 1=前端正在运行，0=前端未运行或已停止
+    device_id      TEXT PRIMARY KEY,
+    camera_status  TEXT,
+    sensor_status  TEXT,
+    storage_free   INTEGER,
+    last_heartbeat TEXT
 );
 
 CREATE TABLE IF NOT EXISTS env_log (

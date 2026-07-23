@@ -1,0 +1,267 @@
+.recognition-page {
+  min-height: 100vh;
+  color: #edf6f0;
+  background: linear-gradient(165deg, #243a34, #345f55 52%, #334a56);
+}
+
+.recognition-bg {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 82% 14%, rgba(88, 127, 150, .18), transparent 34%), radial-gradient(circle at 20% 80%, rgba(81, 119, 101, .18), transparent 38%);
+}
+
+.recognition-shell {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding: 0 28rpx calc(148rpx + env(safe-area-inset-bottom));
+}
+
+.custom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-title.dark {
+  color: #fff;
+}
+
+.dark-sub {
+  color: rgba(237, 246, 240, .72);
+}
+
+.camera-card {
+  margin-top: 28rpx;
+  padding: 22rpx;
+  border: 1rpx solid rgba(255, 255, 255, .18);
+  border-radius: 38rpx;
+  background: rgba(4, 18, 25, .56);
+  box-shadow: 0 30rpx 70rpx rgba(0, 0, 0, .22);
+}
+
+.camera-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+
+.camera-title {
+  color: #fff;
+  font-size: 31rpx;
+  font-weight: 900;
+}
+
+.camera-sub {
+  margin-top: 6rpx;
+  color: rgba(237, 246, 240, .62);
+  font-size: 23rpx;
+}
+
+.live-dot {
+  height: 48rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  color: #bde2c6;
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 48rpx;
+  background: rgba(93, 155, 115, .14);
+}
+
+.camera-stage {
+  height: 460rpx;
+  overflow: hidden;
+  border-radius: 28rpx;
+  background: #07151a;
+}
+
+.fridge-scene {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #d8e0d8, #8ba29a);
+}
+
+.shelf {
+  position: absolute;
+  left: 7%;
+  width: 86%;
+  height: 8rpx;
+  border-radius: 99rpx;
+  background: rgba(255, 255, 255, .72);
+}
+
+.shelf-top {
+  top: 38%;
+}
+
+.shelf-mid {
+  top: 70%;
+}
+
+.food-dot {
+  position: absolute;
+  border-radius: 50%;
+  filter: drop-shadow(0 8rpx 10rpx rgba(0, 0, 0, .2));
+}
+
+.apple {
+  left: 16%;
+  top: 26%;
+  width: 70rpx;
+  height: 70rpx;
+  background: #cb6259;
+}
+
+.broccoli {
+  right: 18%;
+  top: 22%;
+  width: 100rpx;
+  height: 84rpx;
+  border-radius: 50%;
+  background: #4f835e;
+}
+
+.tomato {
+  left: 52%;
+  top: 64%;
+  width: 78rpx;
+  height: 70rpx;
+  background: #cb6259;
+}
+
+.detect-box {
+  position: absolute;
+  border: 3rpx solid #5d9b73;
+  border-radius: 10rpx;
+  box-shadow: 0 0 18rpx rgba(93, 155, 115, .42);
+}
+
+.detect-box.mild,
+.detect-box.expiring {
+  border-color: #d99555;
+  box-shadow: 0 0 18rpx rgba(217, 149, 85, .42);
+}
+
+.detect-box.spoiled {
+  border-color: #cb6259;
+  box-shadow: 0 0 18rpx rgba(203, 98, 89, .42);
+}
+
+.detect-box text {
+  position: absolute;
+  left: -2rpx;
+  top: -38rpx;
+  padding: 5rpx 10rpx;
+  border-radius: 10rpx;
+  color: #fff;
+  font-size: 20rpx;
+  background: rgba(5, 20, 28, .72);
+  white-space: nowrap;
+}
+
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -20%;
+  height: 22%;
+  background: linear-gradient(180deg, transparent, rgba(88, 127, 150, .28), transparent);
+  animation: scan 2.2s ease-in-out infinite;
+}
+
+@keyframes scan {
+  to {
+    top: 100%;
+  }
+}
+
+.pipeline {
+  display: grid;
+  gap: 18rpx;
+}
+
+.pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.step-mark {
+  display: grid;
+  width: 54rpx;
+  height: 54rpx;
+  place-items: center;
+  border-radius: 18rpx;
+  color: #517765;
+  background: rgba(81, 119, 101, .12);
+}
+
+.step-name {
+  color: #263a34;
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.step-cost {
+  margin-top: 4rpx;
+  color: #879691;
+  font-size: 22rpx;
+}
+
+.dark-head .section-head__title {
+  color: #fff;
+}
+
+.target-list {
+  display: grid;
+  gap: 16rpx;
+}
+
+.target-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.target-main {
+  flex: 1;
+}
+
+.target-name {
+  color: #263a34;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.target-name text {
+  color: #345f55;
+}
+
+.target-meta {
+  margin: 8rpx 0 12rpx;
+  color: #879691;
+  font-size: 23rpx;
+}
+
+.target-actions {
+  display: grid;
+  gap: 12rpx;
+}
+
+.target-actions button {
+  min-width: 96rpx;
+  height: 52rpx;
+  border-radius: 18rpx;
+  color: #345f55;
+  font-size: 23rpx;
+  font-weight: 900;
+  background: rgba(81, 119, 101, .1);
+  text-align: center;
+  line-height: 52rpx;
+}
+
+.confirm-recognition {
+  margin-top: 28rpx;
+}

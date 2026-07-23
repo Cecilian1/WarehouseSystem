@@ -1,0 +1,11 @@
+<view wx:if="{{visible}}" class="sheet-mask" catchtap="cancel">
+  <view class="sheet-panel" catchtap="noop">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">{{title}}</view>
+    <view class="sheet-desc">{{desc}}</view>
+    <view class="sheet-actions">
+      <button class="ghost-button" bindtap="cancel">取消</button>
+      <button class="{{danger ? 'danger-button' : 'primary-button'}}" bindtap="confirm">{{confirmText}}</button>
+    </view>
+  </view>
+</view>

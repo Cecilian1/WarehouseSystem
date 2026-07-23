@@ -24,7 +24,6 @@ from backend.camera_service.frame_diff import FrameDiffDetector
 from backend.camera_service.led_control import LedControl
 from backend.camera_service.pending_frame_writer import PendingFrameWriter
 from backend.common.config import load_yaml
-from backend.common.db import get_connection
 from backend.common.init_db import init_db
 from backend.common.logging_setup import setup_logging
 
@@ -39,19 +38,6 @@ def _handle_shutdown(signum, frame):
     global _running
     logger.info("收到停止信号(%s)，准备退出主循环", signum)
     _running = False
-
-
-def _is_frontend_active(db_path: str) -> bool:
-    """检查前端是否正在运行"""
-    try:
-        conn = get_connection(db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT frontend_active FROM device_status WHERE device_id = 'fridge-01'")
-        row = cursor.fetchone()
-        conn.close()
-        return row is not None and row[0] == 1
-    except Exception:
-        return False  # 查询失败时假设前端不活跃，skip采集
 
 
 def main() -> None:
@@ -98,12 +84,6 @@ def main() -> None:
     try:
         while _running:
             cycle_start = time.monotonic()
-
-            # 只有前端在运行时才进行采集，否则跳过本轮
-            if not _is_frontend_active(config["db_path"]):
-                time.sleep(1.0)  # 前端不活跃时每秒检查一次，避免busy loop
-                continue
-
             try:
                 led.turn_on()
                 frame = camera.read_frame()

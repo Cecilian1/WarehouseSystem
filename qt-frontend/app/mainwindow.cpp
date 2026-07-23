@@ -62,7 +62,6 @@ void MainWindow::connectPolling()
     const int intervalMs = settings.value("polling/interval_ms", 2000).toInt();
 
     m_pollingTimer = new PollingTimer(intervalMs, this);
-    qDebug("MainWindow::connectPolling PollingTimer created with interval=%dms", intervalMs);
 
     connect(m_pollingTimer, &PollingTimer::dataMayHaveChanged, m_inventoryBoardPage, &InventoryBoardPage::refresh);
     connect(m_pollingTimer, &PollingTimer::dataMayHaveChanged, m_recognitionPage, &RecognitionPage::refresh);
@@ -73,5 +72,4 @@ void MainWindow::connectPolling()
     // 该页面数据在切换到本页/保存后手动refresh()
 
     m_pollingTimer->start();
-    qDebug("MainWindow::connectPolling PollingTimer started");
 }

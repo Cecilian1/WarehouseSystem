@@ -1,0 +1,12 @@
+<view class="empty-state">
+  <view class="empty-visual">
+    <view class="leaf leaf-a"></view>
+    <view class="leaf leaf-b"></view>
+    <view class="icon-wrap">
+      <x-icon type="{{icon}}" size="{{74}}" />
+    </view>
+  </view>
+  <view class="empty-title">{{title}}</view>
+  <view class="empty-desc">{{desc}}</view>
+  <button wx:if="{{buttonText}}" class="primary-button empty-button" bindtap="onAction">{{buttonText}}</button>
+</view>

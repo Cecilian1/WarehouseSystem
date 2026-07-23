@@ -1,0 +1,10 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "x-icon": "/components/x-icon/index",
+    "glass-card": "/components/glass-card/index",
+    "produce-card": "/components/produce-card/index",
+    "empty-state": "/components/empty-state/index",
+    "confirm-sheet": "/components/confirm-sheet/index"
+  }
+}

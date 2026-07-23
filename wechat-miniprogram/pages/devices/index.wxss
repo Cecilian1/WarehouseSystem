@@ -1,0 +1,114 @@
+.custom-nav {
+  display: flex;
+  align-items: center;
+}
+
+.device-list {
+  display: grid;
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+
+.device-row {
+  display: flex;
+  gap: 18rpx;
+}
+
+.device-icon {
+  display: grid;
+  width: 82rpx;
+  height: 82rpx;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 28rpx;
+  color: #345f55;
+  background: rgba(81, 119, 101, .12);
+}
+
+.device-icon.warning {
+  color: #9a6431;
+  background: rgba(217, 149, 85, .16);
+}
+
+.device-icon.offline {
+  color: #9d443e;
+  background: rgba(203, 98, 89, .16);
+}
+
+.device-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.device-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.device-name {
+  color: #263a34;
+  font-size: 31rpx;
+  font-weight: 900;
+}
+
+.device-code,
+.device-meta {
+  margin-top: 8rpx;
+  color: #879691;
+  font-size: 23rpx;
+}
+
+.device-data {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.device-data view {
+  padding: 14rpx;
+  border-radius: 20rpx;
+  background: rgba(81, 119, 101, .08);
+  text-align: center;
+}
+
+.device-data text,
+.device-data small {
+  display: block;
+}
+
+.device-data text {
+  color: #263a34;
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.device-data small {
+  margin-top: 4rpx;
+  color: #879691;
+  font-size: 20rpx;
+}
+
+.device-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.device-actions button {
+  height: 64rpx;
+  border-radius: 20rpx;
+  color: #345f55;
+  font-size: 24rpx;
+  font-weight: 900;
+  text-align: center;
+  line-height: 64rpx;
+  background: rgba(81, 119, 101, .1);
+}
+
+.add-device {
+  margin-top: 24rpx;
+}

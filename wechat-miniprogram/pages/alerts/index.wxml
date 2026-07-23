@@ -1,0 +1,59 @@
+<view class="page-shell alerts-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <view>
+      <view class="page-title">预警</view>
+      <view class="page-subtitle">保质期、环境与设备异常提醒</view>
+    </view>
+  </view>
+
+  <view class="alert-stats">
+    <glass-card wx:for="{{stats}}" wx:key="label" padding="small">
+      <view class="stat {{item.tone}}">
+        <text>{{item.value}}</text>
+        <small>{{item.label}}</small>
+      </view>
+    </glass-card>
+  </view>
+
+  <scroll-view scroll-x class="filter-row" show-scrollbar="{{false}}">
+    <button data-value="all" bindtap="setFilter" class="{{filter === 'all' ? 'active' : ''}}">全部</button>
+    <button data-value="critical" bindtap="setFilter" class="{{filter === 'critical' ? 'active' : ''}}">紧急</button>
+    <button data-value="warning" bindtap="setFilter" class="{{filter === 'warning' ? 'active' : ''}}">关注</button>
+    <button data-value="info" bindtap="setFilter" class="{{filter === 'info' ? 'active' : ''}}">普通</button>
+  </scroll-view>
+
+  <view wx:if="{{alerts.length}}" class="group-list">
+    <block wx:for="{{groups}}" wx:key="title">
+      <view wx:if="{{item.list.length}}" class="alert-group">
+        <view class="section-head">
+          <view class="section-head__title">{{item.title}}</view>
+        </view>
+        <glass-card wx:for="{{item.list}}" wx:for-item="alert" wx:key="id" padding="small" hover>
+          <view class="alert-row {{alert.level}}">
+            <view class="alert-icon {{alert.level}}"><x-icon type="alert" size="{{36}}" /></view>
+            <view class="alert-main" bindtap="goDetail" data-id="{{alert.id}}">
+              <view class="alert-title">{{alert.title}}</view>
+              <view class="alert-desc">{{alert.description}}</view>
+              <view class="alert-meta">{{alert.source}} · {{alert.time}}</view>
+            </view>
+            <view class="alert-side">
+              <status-tag label="{{alert.status === 'pending' ? '未读' : '已处理'}}" tone="{{alert.status === 'pending' ? 'warning' : 'success'}}" />
+              <button wx:if="{{alert.status === 'pending'}}" data-id="{{alert.id}}" bindtap="openHandle">处理</button>
+            </view>
+          </view>
+        </glass-card>
+      </view>
+    </block>
+  </view>
+
+  <empty-state wx:else title="暂无预警" desc="当前冰箱环境稳定，库存状态良好。" icon="check" />
+
+  <confirm-sheet
+    visible="{{sheetVisible}}"
+    title="标记为已处理"
+    desc="{{selected.suggestion}}"
+    confirm-text="已处理"
+    bind:cancel="cancelSheet"
+    bind:confirm="confirmSheet"
+  />
+</view>

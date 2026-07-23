@@ -1,0 +1,86 @@
+<view class="recognition-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="recognition-bg"></view>
+  <view class="recognition-shell">
+    <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+      <view>
+        <view class="page-title dark">AI识别</view>
+        <view class="page-subtitle dark-sub">最近一次端侧视觉识别结果</view>
+      </view>
+      <status-tag label="可复核" tone="info" icon="scan" />
+    </view>
+
+    <view wx:if="{{result}}" class="camera-card">
+      <view class="camera-head">
+        <view>
+          <view class="camera-title">冰箱内快照</view>
+          <view class="camera-sub">{{result.frameNo}} · {{result.time}}</view>
+        </view>
+        <view class="live-dot">处理完成</view>
+      </view>
+      <view class="camera-stage">
+        <view class="fridge-scene">
+          <view class="shelf shelf-top"></view>
+          <view class="shelf shelf-mid"></view>
+          <view class="food-dot apple"></view>
+          <view class="food-dot broccoli"></view>
+          <view class="food-dot tomato"></view>
+          <view class="scan-line"></view>
+          <view
+            wx:for="{{targets}}"
+            wx:key="id"
+            class="detect-box {{item.freshness}}"
+            style="left: {{item.x}}%; top: {{item.y}}%; width: {{item.w}}%; height: {{item.h}}%;"
+          >
+            <text>{{item.name}} ×{{item.quantity}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <glass-card wx:if="{{result}}" padding="normal">
+      <view class="pipeline">
+        <view wx:for="{{result.pipeline}}" wx:key="key" class="pipeline-step {{item.done ? 'done' : ''}}">
+          <view class="step-mark"><x-icon type="{{item.done ? 'check' : 'clock'}}" size="{{28}}" /></view>
+          <view>
+            <view class="step-name">{{item.name}}</view>
+            <view class="step-cost">{{item.cost}}</view>
+          </view>
+        </view>
+      </view>
+    </glass-card>
+
+    <view class="section-head dark-head">
+      <view class="section-head__title">识别结果</view>
+      <button class="section-head__more" bindtap="addTarget">添加目标</button>
+    </view>
+
+    <view class="target-list">
+      <glass-card wx:for="{{targets}}" wx:key="id" padding="small">
+        <view class="target-row">
+          <view class="target-main">
+            <view class="target-name">{{item.name}} <text>×{{item.quantity}}</text></view>
+            <view class="target-meta">{{item.category}} · 置信度 {{item.confidence}}% · 新鲜度 {{item.freshnessScore}}</view>
+            <status-tag label="{{item.freshnessLabel}}" tone="{{item.tone}}" />
+          </view>
+          <view class="target-actions">
+            <button data-id="{{item.id}}" bindtap="editTarget">修改</button>
+            <button data-id="{{item.id}}" bindtap="deleteTarget">删除</button>
+          </view>
+        </view>
+      </glass-card>
+    </view>
+
+    <button class="primary-button confirm-recognition" bindtap="confirmRecognition">
+      <x-icon type="check" size="{{34}}" />确认并更新库存
+    </button>
+  </view>
+
+  <confirm-sheet
+    visible="{{sheetVisible}}"
+    title="修改识别结果"
+    desc="演示版将快速切换该目标的新鲜度等级；正式接入后可编辑类别、数量与评分。"
+    confirm-text="切换新鲜度"
+    bind:cancel="cancelSheet"
+    bind:confirm="confirmEdit"
+  />
+</view>

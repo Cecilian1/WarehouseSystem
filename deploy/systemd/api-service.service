@@ -1,0 +1,16 @@
+[Unit]
+Description=WarehouseKeeper Web API Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/warehousekeeper
+Environment=WAREHOUSE_DB_PATH=/data/warehousekeeper/warehousekeeper.db
+Environment=WAREHOUSE_CORS_ORIGINS=*
+ExecStart=/usr/bin/python3 -m uvicorn backend.api_service.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

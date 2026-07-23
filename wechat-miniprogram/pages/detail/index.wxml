@@ -1,0 +1,76 @@
+<view wx:if="{{item}}" class="detail-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="detail-hero" style="--food-color: {{item.color}};">
+    <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+      <button class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></button>
+      <view class="detail-nav-title">果蔬详情</view>
+    </view>
+    <view class="hero-food food-{{item.icon}}"></view>
+    <view class="hero-copy">
+      <status-tag label="{{tagText}}" tone="{{tagTone}}" />
+      <view class="detail-name">{{item.name}}</view>
+      <view class="detail-meta">{{item.category}} · {{item.location}} · {{item.quantity}}{{item.unit}}</view>
+    </view>
+  </view>
+
+  <view class="detail-content">
+    <glass-card padding="normal">
+      <view class="score-row">
+        <view>
+          <text>{{item.freshnessScore}}</text>
+          <small>新鲜度评分</small>
+        </view>
+        <view>
+          <text>{{item.confidence}}%</text>
+          <small>AI识别置信度</small>
+        </view>
+        <view>
+          <text>{{item.remainingDays}}</text>
+          <small>剩余天数</small>
+        </view>
+      </view>
+    </glass-card>
+
+    <glass-card padding="normal">
+      <view class="info-grid">
+        <view><label>入库时间</label><text>{{item.inboundAt}}</text></view>
+        <view><label>预计过期</label><text>{{item.expireAt}}</text></view>
+        <view><label>推荐环境</label><text>{{item.ideal}}</text></view>
+        <view><label>最近快照</label><text>{{item.latestSnapshot}}</text></view>
+      </view>
+    </glass-card>
+
+    <glass-card padding="normal">
+      <view class="section-title">保存建议</view>
+      <view class="advice">{{item.advice}}</view>
+      <view class="exposure">{{item.exposure}}</view>
+    </glass-card>
+
+    <view class="section-head">
+      <view class="section-head__title">操作时间线</view>
+    </view>
+    <view class="timeline">
+      <view wx:for="{{item.timeline}}" wx:key="id" class="timeline-item">
+        <view class="timeline-dot"></view>
+        <glass-card padding="small">
+          <view class="timeline-title">{{item.action}} · {{item.detail}}</view>
+          <view class="timeline-meta">{{item.time}} · {{item.operator}}</view>
+        </glass-card>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-actions">
+    <button class="ghost-button" bindtap="edit"><x-icon type="edit" size="{{32}}" />修改信息</button>
+    <button class="ghost-button" bindtap="showOutbound"><x-icon type="arrow" size="{{32}}" />手动出库</button>
+    <button class="primary-button" bindtap="markHandled"><x-icon type="check" size="{{32}}" />标记已处理</button>
+  </view>
+
+  <confirm-sheet
+    visible="{{sheetVisible}}"
+    title="确认手动出库"
+    desc="将从当前库存中扣减 1 件，操作会写入出入库记录。"
+    confirm-text="确认出库"
+    bind:cancel="cancelSheet"
+    bind:confirm="confirmSheet"
+  />
+</view>

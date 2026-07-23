@@ -1,0 +1,40 @@
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  min-height: 44rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.tone-fresh,
+.tone-online,
+.tone-success {
+  color: #3c7654;
+  background: rgba(93, 155, 115, .16);
+}
+
+.tone-mild,
+.tone-warning {
+  color: #846b20;
+  background: rgba(219, 197, 109, .24);
+}
+
+.tone-expiring {
+  color: #9a6431;
+  background: rgba(217, 149, 85, .2);
+}
+
+.tone-spoiled,
+.tone-critical,
+.tone-offline {
+  color: #9d443e;
+  background: rgba(203, 98, 89, .17);
+}
+
+.tone-info {
+  color: #406f83;
+  background: rgba(88, 127, 150, .16);
+}

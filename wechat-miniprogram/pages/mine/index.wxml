@@ -1,0 +1,40 @@
+<view class="page-shell mine-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <view>
+      <view class="page-title">我的</view>
+      <view class="page-subtitle">家庭成员、设备与通知设置</view>
+    </view>
+  </view>
+
+  <view class="user-card fade-up">
+    <view class="avatar">
+      <view></view>
+    </view>
+    <view class="user-copy">
+      <view class="user-name">{{user.nickName}}</view>
+      <view class="family-name">{{user.familyName || '家庭冰箱'}}</view>
+    </view>
+    <status-tag label="{{sync.text}}" tone="success" icon="check" />
+  </view>
+
+  <view class="mine-shortcuts">
+    <button bindtap="goEnvironment"><x-icon type="temp" size="{{38}}" /><text>环境监测</text></button>
+    <button bindtap="goRecords"><x-icon type="record" size="{{38}}" /><text>出入库记录</text></button>
+  </view>
+
+  <view wx:for="{{groups}}" wx:key="title" class="setting-group">
+    <view class="section-head">
+      <view class="section-head__title">{{item.title}}</view>
+    </view>
+    <glass-card padding="none">
+      <button wx:for="{{item.items}}" wx:for-item="option" wx:key="title" class="setting-row" data-url="{{option.url}}" bindtap="navigate">
+        <view class="setting-icon"><x-icon type="{{option.icon}}" size="{{34}}" /></view>
+        <view class="setting-copy">
+          <view>{{option.title}}</view>
+          <text>{{option.desc}}</text>
+        </view>
+        <x-icon type="arrow" size="{{30}}" />
+      </button>
+    </glass-card>
+  </view>
+</view>

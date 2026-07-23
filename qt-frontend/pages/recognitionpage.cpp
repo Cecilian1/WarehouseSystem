@@ -33,16 +33,9 @@ RecognitionPage::RecognitionPage(QWidget *parent)
 
 void RecognitionPage::refresh()
 {
-    QSqlDatabase db = DatabaseManager::database();
-
-    // 清理SQL query缓存，确保获取最新数据
-    QSqlQuery cleanCache(db);
-    cleanCache.exec("PRAGMA query_only=OFF");
-
-    QSqlQuery query(db);
-    query.setForwardOnly(true);  // 禁用缓存，逐行获取
+    QSqlQuery query(DatabaseManager::database());
     query.prepare(
-        "SELECT id, image_path, status, change_ratio FROM pending_frames "
+        "SELECT image_path, status, change_ratio FROM pending_frames "
         "ORDER BY id DESC LIMIT 1");
 
     if (!query.exec()) {
@@ -51,23 +44,18 @@ void RecognitionPage::refresh()
     }
 
     if (!query.next()) {
-        qDebug("RecognitionPage::refresh 无数据");
         m_imageLabel->setText(QStringLiteral("暂无采集画面"));
         m_statusLabel->setText(QStringLiteral("等待AI识别服务接入"));
         return;
     }
 
-    const int frameId = query.value(0).toInt();
-    const QString imagePath = query.value(1).toString();
-    const QString status = query.value(2).toString();
-    qDebug("RecognitionPage::refresh frameId=%d, path=%s, status=%s", frameId, qPrintable(imagePath), qPrintable(status));
+    const QString imagePath = query.value(0).toString();
+    const QString status = query.value(1).toString();
 
     QPixmap pixmap(imagePath);
     if (!pixmap.isNull()) {
         m_imageLabel->setPixmap(pixmap.scaled(m_imageLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        qDebug("RecognitionPage::refresh 图片加载成功");
     } else {
-        qWarning("RecognitionPage::refresh 图片加载失败: %s", qPrintable(imagePath));
         m_imageLabel->setText(QStringLiteral("图片加载失败: %1").arg(imagePath));
     }
 

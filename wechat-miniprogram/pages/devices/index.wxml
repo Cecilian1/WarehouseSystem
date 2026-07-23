@@ -1,0 +1,38 @@
+<view class="page-shell devices-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <button class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></button>
+    <view>
+      <view class="page-title">设备管理</view>
+      <view class="page-subtitle">开发板、摄像头与传感器状态</view>
+    </view>
+  </view>
+
+  <view class="device-list">
+    <glass-card wx:for="{{devices}}" wx:key="id" padding="normal" hover>
+      <view class="device-row">
+        <view class="device-icon {{item.state}}"><x-icon type="device" size="{{42}}" /></view>
+        <view class="device-main">
+          <view class="device-head">
+            <view>
+              <view class="device-name">{{item.name}}</view>
+              <view class="device-code">{{item.code}}</view>
+            </view>
+            <status-tag label="{{item.state === 'online' ? '在线' : item.state === 'warning' ? '需关注' : '离线'}}" tone="{{item.state}}" />
+          </view>
+          <view class="device-data">
+            <view><text>{{item.temperature}}</text><small>°C</small></view>
+            <view><text>{{item.humidity}}</text><small>%RH</small></view>
+            <view><text>{{item.firmware}}</text><small>固件</small></view>
+          </view>
+          <view class="device-meta">{{item.model}} · {{item.storage}} · {{item.lastSync}}</view>
+          <view class="device-actions">
+            <button data-id="{{item.id}}" bindtap="switchDevice">切换当前设备</button>
+            <button bindtap="unbindDevice">解除绑定</button>
+          </view>
+        </view>
+      </view>
+    </glass-card>
+  </view>
+
+  <button class="primary-button add-device" bindtap="addDevice"><x-icon type="add" size="{{34}}" />添加新设备</button>
+</view>

@@ -1,0 +1,65 @@
+.custom-nav {
+  display: flex;
+  align-items: center;
+}
+
+.message-title {
+  color: #fff;
+  font-size: 38rpx;
+  font-weight: 900;
+  line-height: 1.42;
+}
+
+.message-type {
+  margin-top: 12rpx;
+  color: rgba(255, 255, 255, .78);
+  font-size: 25rpx;
+}
+
+.message-page {
+  display: grid;
+  gap: 18rpx;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22rpx;
+}
+
+.detail-grid label,
+.detail-grid text {
+  display: block;
+}
+
+.detail-grid label {
+  color: #879691;
+  font-size: 23rpx;
+}
+
+.detail-grid text {
+  margin-top: 8rpx;
+  color: #263a34;
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.section-title {
+  color: #263a34;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.copy {
+  margin-top: 14rpx;
+  color: #4b635d;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.message-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 8rpx;
+}

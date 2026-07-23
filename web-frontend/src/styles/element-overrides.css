@@ -1,0 +1,31 @@
+.el-dialog {
+  overflow: hidden;
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background: var(--surface-strong);
+  backdrop-filter: blur(24px);
+}
+
+.el-dialog__header,
+.el-dialog__body {
+  color: var(--text-1);
+}
+
+.el-drawer {
+  background: var(--surface-strong);
+  backdrop-filter: blur(24px);
+}
+
+.el-message {
+  border-color: var(--stroke);
+  background: var(--surface-strong);
+  backdrop-filter: blur(18px);
+}
+
+.el-tag {
+  border-radius: 999px;
+}
+
+.el-switch__core {
+  border-color: transparent;
+}

@@ -21,15 +21,6 @@ def init_db(db_path: str) -> None:
     try:
         schema_sql = SCHEMA_PATH.read_text(encoding="utf-8")
         conn.executescript(schema_sql)
-
-        # 表升级：为已有的device_status表添加frontend_active列（如果不存在）
-        cursor = conn.cursor()
-        cursor.execute("PRAGMA table_info(device_status)")
-        columns = {row[1] for row in cursor.fetchall()}
-        if 'frontend_active' not in columns:
-            cursor.execute("ALTER TABLE device_status ADD COLUMN frontend_active INTEGER DEFAULT 0")
-            print("已为device_status表添加frontend_active列")
-
         conn.commit()
     finally:
         conn.close()

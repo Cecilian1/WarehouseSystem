@@ -1,0 +1,144 @@
+.alert-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.stat text,
+.stat small {
+  display: block;
+}
+
+.stat text {
+  color: #263a34;
+  font-size: 42rpx;
+  font-weight: 900;
+}
+
+.stat small {
+  margin-top: 6rpx;
+  color: #879691;
+  font-size: 24rpx;
+}
+
+.stat.warning text {
+  color: #9a6431;
+}
+
+.stat.critical text {
+  color: #9d443e;
+}
+
+.stat.info text {
+  color: #406f83;
+}
+
+.filter-row {
+  margin-top: 24rpx;
+  white-space: nowrap;
+}
+
+.filter-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 64rpx;
+  min-width: 116rpx;
+  margin-right: 14rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  color: #879691;
+  font-size: 25rpx;
+  font-weight: 900;
+  background: rgba(255, 255, 255, .72);
+}
+
+.filter-row .active {
+  color: #fff;
+  background: linear-gradient(135deg, #517765, #587f96);
+}
+
+.group-list {
+  display: grid;
+  gap: 10rpx;
+}
+
+.alert-group {
+  display: grid;
+  gap: 16rpx;
+}
+
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.alert-icon {
+  display: grid;
+  width: 72rpx;
+  height: 72rpx;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 24rpx;
+  color: #406f83;
+  background: rgba(88, 127, 150, .14);
+}
+
+.alert-icon.warning {
+  color: #9a6431;
+  background: rgba(217, 149, 85, .16);
+}
+
+.alert-icon.critical {
+  color: #9d443e;
+  background: rgba(203, 98, 89, .16);
+}
+
+.alert-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.alert-title {
+  color: #263a34;
+  font-size: 29rpx;
+  font-weight: 900;
+}
+
+.alert-desc,
+.alert-meta {
+  overflow: hidden;
+  color: #879691;
+  font-size: 24rpx;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alert-desc {
+  margin-top: 8rpx;
+}
+
+.alert-meta {
+  margin-top: 5rpx;
+}
+
+.alert-side {
+  display: grid;
+  justify-items: end;
+  gap: 12rpx;
+}
+
+.alert-side button {
+  min-width: 86rpx;
+  height: 52rpx;
+  border-radius: 18rpx;
+  color: #fff;
+  font-size: 23rpx;
+  font-weight: 900;
+  text-align: center;
+  line-height: 52rpx;
+  background: linear-gradient(135deg, #517765, #587f96);
+}

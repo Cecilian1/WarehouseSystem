@@ -1,0 +1,149 @@
+.splash {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(145deg, #517765, #6f97a6);
+}
+
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0) 68%);
+}
+
+.glow-a {
+  top: -120rpx;
+  left: -90rpx;
+  width: 430rpx;
+  height: 430rpx;
+}
+
+.glow-b {
+  right: -150rpx;
+  bottom: 120rpx;
+  width: 520rpx;
+  height: 520rpx;
+}
+
+.leaf-one {
+  top: 210rpx;
+  right: 110rpx;
+}
+
+.leaf-two {
+  left: 86rpx;
+  bottom: 220rpx;
+  transform: rotate(30deg);
+}
+
+.logo-wrap {
+  position: relative;
+  display: grid;
+  width: 210rpx;
+  height: 210rpx;
+  place-items: center;
+}
+
+.logo-chip {
+  position: relative;
+  display: grid;
+  width: 146rpx;
+  height: 146rpx;
+  place-items: center;
+  border: 2rpx solid rgba(255, 255, 255, .68);
+  border-radius: 44rpx;
+  background: rgba(255, 255, 255, .2);
+  box-shadow: inset 0 0 24rpx rgba(255, 255, 255, .18), 0 28rpx 60rpx rgba(52, 95, 85, .22);
+}
+
+.chip-line {
+  position: absolute;
+  background: rgba(255, 255, 255, .58);
+}
+
+.line-a {
+  width: 80rpx;
+  height: 4rpx;
+}
+
+.line-b {
+  width: 4rpx;
+  height: 80rpx;
+}
+
+.logo-leaf {
+  position: absolute;
+  width: 74rpx;
+  height: 48rpx;
+  border-radius: 60rpx 0 60rpx 0;
+  background: #dffdf0;
+  transform: rotate(-24deg);
+}
+
+.logo-fridge {
+  position: absolute;
+  right: 34rpx;
+  bottom: 30rpx;
+  width: 42rpx;
+  height: 68rpx;
+  border: 4rpx solid #fff;
+  border-radius: 12rpx;
+}
+
+.scan-ring {
+  position: absolute;
+  inset: 0;
+  border: 3rpx solid rgba(255, 255, 255, .2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1.4s linear infinite;
+}
+
+.brand {
+  margin-top: 30rpx;
+  font-size: 54rpx;
+  font-weight: 900;
+}
+
+.slogan {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  opacity: .92;
+}
+
+.loading-line {
+  width: 220rpx;
+  height: 8rpx;
+  margin-top: 58rpx;
+  overflow: hidden;
+  border-radius: 99rpx;
+  background: rgba(255, 255, 255, .24);
+}
+
+.loading-line view {
+  width: 45%;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+  animation: load 1.1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes load {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(240%);
+  }
+}

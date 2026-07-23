@@ -1,0 +1,32 @@
+<view class="page-shell records-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <button class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></button>
+    <view>
+      <view class="page-title">出入库记录</view>
+      <view class="page-subtitle">按时间倒序追溯每一次库存变化</view>
+    </view>
+  </view>
+
+  <view class="search-card">
+    <x-icon type="search" size="{{34}}" />
+    <input value="{{keyword}}" bindinput="inputKeyword" bindconfirm="search" placeholder="搜索果蔬或操作详情" />
+  </view>
+
+  <scroll-view scroll-x class="type-row" show-scrollbar="{{false}}">
+    <button wx:for="{{types}}" wx:key="value" data-value="{{item.value}}" bindtap="selectType" class="{{type === item.value ? 'active' : ''}}">{{item.label}}</button>
+  </scroll-view>
+
+  <view class="timeline">
+    <view wx:for="{{list}}" wx:key="id" class="record-item">
+      <view class="record-dot {{item.type}}"><x-icon type="{{item.type === 'manual' ? 'edit' : item.type === 'outbound' ? 'arrow' : 'check'}}" size="{{28}}" /></view>
+      <glass-card padding="small">
+        <view class="record-head">
+          <view class="record-title">{{item.action}}</view>
+          <view class="record-time">{{item.time}}</view>
+        </view>
+        <view class="record-detail">{{item.detail}}</view>
+        <view class="record-meta">{{item.operator}} · 置信度 {{item.confidence}}%</view>
+      </glass-card>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,38 @@
+<view wx:if="{{message}}" class="page-shell message-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <button class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></button>
+    <view>
+      <view class="page-title">消息详情</view>
+      <view class="page-subtitle">{{message.time}}</view>
+    </view>
+  </view>
+
+  <glass-card tone="{{message.status === 'pending' ? 'warn' : 'deep'}}" padding="normal">
+    <view class="message-title">{{message.title}}</view>
+    <view class="message-type">{{message.type}} · {{message.status === 'pending' ? '未处理' : '已处理'}}</view>
+  </glass-card>
+
+  <glass-card padding="normal">
+    <view class="detail-grid">
+      <view><label>关联设备</label><text>{{message.device || '客厅智能冰箱'}}</text></view>
+      <view><label>关联果蔬</label><text>{{message.produce || '无'}}</text></view>
+      <view><label>发生时间</label><text>{{message.time}}</text></view>
+      <view><label>处理状态</label><text>{{message.status === 'pending' ? '未处理' : '已处理'}}</text></view>
+    </view>
+  </glass-card>
+
+  <glass-card padding="normal">
+    <view class="section-title">详细原因</view>
+    <view class="copy">{{message.reason}}</view>
+  </glass-card>
+
+  <glass-card padding="normal">
+    <view class="section-title">处理建议</view>
+    <view class="copy">{{message.suggestion}}</view>
+  </glass-card>
+
+  <view class="message-actions">
+    <button class="ghost-button" bindtap="outbound"><x-icon type="arrow" size="{{32}}" />立即出库</button>
+    <button class="primary-button" bindtap="handle"><x-icon type="check" size="{{32}}" />标记已处理</button>
+  </view>
+</view>
