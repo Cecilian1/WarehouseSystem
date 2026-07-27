@@ -1,9 +1,12 @@
 const { inventoryService } = require('../../services/api')
+const { applyThemeClass } = require('../../utils/theme')
+const { INVENTORY_FORM_FIELDS } = require('../../utils/format')
 
 Page({
   data: {
     navHeight: 100,
     statusTop: 40,
+    themeClass: 'theme-dark',
     list: [],
     keyword: '',
     category: '全部',
@@ -21,7 +24,11 @@ Page({
     sortOptions: ['保质期', '新鲜度', '入库时间'],
     sheetVisible: false,
     pendingAction: { title: '', desc: '', danger: false },
-    pendingItem: null
+    pendingItem: null,
+    formVisible: false,
+    formFields: INVENTORY_FORM_FIELDS,
+    formValues: {},
+    stats: { categories: 0, total: 0, fresh: 0, urgent: 0 }
   },
   onLoad() {
     const app = getApp()
@@ -29,9 +36,11 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
+    applyThemeClass(this)
     this.load()
   },
   onShow() {
+    applyThemeClass(this)
     if (this.getTabBar) this.getTabBar().syncRoute()
   },
   onPullDownRefresh() {
@@ -47,7 +56,14 @@ Page({
       freshness: this.data.freshness,
       sort: this.data.sort
     }).then((res) => {
-      this.setData({ list: res.data })
+      const list = res.data
+      const stats = {
+        categories: new Set(list.map((item) => item.category)).size,
+        total: list.reduce((sum, item) => sum + item.quantity, 0),
+        fresh: list.filter((item) => item.freshness === 'fresh').length,
+        urgent: list.filter((item) => item.freshness === 'expiring' || item.freshness === 'spoiled').length
+      }
+      this.setData({ list, stats })
     })
   },
   inputKeyword(event) {
@@ -108,10 +124,19 @@ Page({
     wx.switchTab({ url: '/pages/recognition/index' })
   },
   manualInbound() {
-    wx.showModal({
-      title: '手动入库',
-      content: '当前小程序端已预留手动入库入口，正式接入后将写入开发板 API。',
-      showCancel: false
+    this.setData({
+      formVisible: true,
+      formValues: { name: '', category: '水果', quantity: 1, unit: '个', shelfLife: 7, location: '', storageAdvice: '' }
+    })
+  },
+  cancelForm() {
+    this.setData({ formVisible: false })
+  },
+  confirmForm(event) {
+    const values = event.detail.values
+    inventoryService.inbound(values).then(() => {
+      this.setData({ formVisible: false })
+      wx.showToast({ title: '库存记录已创建', icon: 'success' })
     })
   }
 })

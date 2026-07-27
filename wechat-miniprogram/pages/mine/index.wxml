@@ -1,4 +1,4 @@
-<view class="page-shell mine-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="page-shell mine-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="custom-nav" style="padding-top: {{statusTop}}px;">
     <view>
       <view class="page-title">我的</view>
@@ -22,7 +22,23 @@
     <button bindtap="goRecords"><x-icon type="record" size="{{38}}" /><text>出入库记录</text></button>
   </view>
 
-  <view wx:for="{{groups}}" wx:key="title" class="setting-group">
+  <view class="setting-group">
+    <view class="section-head">
+      <view class="section-head__title">外观</view>
+    </view>
+    <glass-card padding="none">
+      <view class="setting-row">
+        <view class="setting-icon"><view class="theme-icon-shape"></view></view>
+        <view class="setting-copy">
+          <view>深色模式</view>
+          <text>{{isDark ? '当前使用深色玻璃拟态风格' : '当前使用浅色玻璃拟态风格'}}</text>
+        </view>
+        <switch checked="{{isDark}}" color="#4f8cff" bindchange="onThemeToggle" />
+      </view>
+    </glass-card>
+  </view>
+
+  <view wx:for="{{groupsBefore}}" wx:key="title" class="setting-group">
     <view class="section-head">
       <view class="section-head__title">{{item.title}}</view>
     </view>
@@ -37,4 +53,154 @@
       </button>
     </glass-card>
   </view>
+
+  <view class="setting-group">
+    <view class="section-head">
+      <view class="section-head__title">账号与权限</view>
+    </view>
+    <glass-card padding="none">
+      <view class="setting-row" bindtap="openAccounts">
+        <view class="setting-icon"><x-icon type="box" size="{{34}}" /></view>
+        <view class="setting-copy">
+          <view>账号管理</view>
+          <text>共 {{accounts.length}} 个账号</text>
+        </view>
+        <x-icon type="arrow" size="{{30}}" />
+      </view>
+      <view class="setting-row" bindtap="openRoles">
+        <view class="setting-icon"><x-icon type="device" size="{{34}}" /></view>
+        <view class="setting-copy">
+          <view>权限管理</view>
+          <text>{{roles.length}} 个角色，按需分配权限</text>
+        </view>
+        <x-icon type="arrow" size="{{30}}" />
+      </view>
+    </glass-card>
+  </view>
+
+  <view class="setting-group">
+    <view class="section-head">
+      <view class="section-head__title">提醒设置</view>
+    </view>
+    <glass-card padding="none">
+      <view class="setting-row">
+        <view class="setting-icon"><x-icon type="alert" size="{{34}}" /></view>
+        <view class="setting-copy">
+          <view>预警通知</view>
+          <text>接收临期、腐败和设备异常消息</text>
+        </view>
+        <switch checked="{{notifySwitches.alert}}" color="#4f8cff" data-key="alert" bindchange="onNotifyChange" />
+      </view>
+      <view class="setting-row">
+        <view class="setting-icon"><x-icon type="device" size="{{34}}" /></view>
+        <view class="setting-copy">
+          <view>设备通知</view>
+          <text>设备离线或异常时提醒</text>
+        </view>
+        <switch checked="{{notifySwitches.device}}" color="#4f8cff" data-key="device" bindchange="onNotifyChange" />
+      </view>
+      <view class="setting-row">
+        <view class="setting-icon"><x-icon type="record" size="{{34}}" /></view>
+        <view class="setting-copy">
+          <view>声音提醒</view>
+          <text>收到预警时播放提示音</text>
+        </view>
+        <switch checked="{{notifySwitches.sound}}" color="#4f8cff" data-key="sound" bindchange="onNotifyChange" />
+      </view>
+      <view class="setting-row">
+        <view class="setting-icon"><x-icon type="clock" size="{{34}}" /></view>
+        <view class="setting-copy">
+          <view>果蔬预警提前天数</view>
+          <text>提前 {{thresholds.expireDays}} 天提醒 · 详见下方预警阈值</text>
+        </view>
+      </view>
+    </glass-card>
+  </view>
+
+  <view class="setting-group">
+    <view class="section-head">
+      <view class="section-head__title">预警阈值</view>
+    </view>
+    <glass-card padding="normal">
+      <view class="threshold-row">
+        <view class="threshold-label"><text>临期提前提醒</text><text class="threshold-value">{{thresholds.expireDays}} 天</text></view>
+        <slider min="1" max="7" value="{{thresholds.expireDays}}" activeColor="#4f8cff" data-key="expireDays" bindchange="onThresholdChange" />
+      </view>
+      <view class="threshold-row">
+        <view class="threshold-label"><text>温度高位阈值</text><text class="threshold-value">{{thresholds.tempHigh}}°C</text></view>
+        <slider min="4" max="15" value="{{thresholds.tempHigh}}" activeColor="#f59e0b" data-key="tempHigh" bindchange="onThresholdChange" />
+      </view>
+      <view class="threshold-row">
+        <view class="threshold-label"><text>湿度高位阈值</text><text class="threshold-value">{{thresholds.humidityHigh}}%RH</text></view>
+        <slider min="85" max="100" value="{{thresholds.humidityHigh}}" activeColor="#38bdf8" data-key="humidityHigh" bindchange="onThresholdChange" />
+      </view>
+      <view class="threshold-row">
+        <view class="threshold-label"><text>异常持续时间</text><text class="threshold-value">{{thresholds.abnormalDuration}} 分钟</text></view>
+        <slider min="1" max="30" value="{{thresholds.abnormalDuration}}" activeColor="#ef4444" data-key="abnormalDuration" bindchange="onThresholdChange" />
+      </view>
+      <button class="primary-button" bindtap="saveThresholds">保存阈值</button>
+    </glass-card>
+  </view>
+
+  <view class="setting-group">
+    <view class="section-head">
+      <view class="section-head__title">服务连接</view>
+    </view>
+    <glass-card padding="normal">
+      <view class="connection-row"><label>API 地址</label><text>{{connection.apiUrl}}</text></view>
+      <view class="connection-row"><label>WebSocket 地址</label><text>{{connection.wsUrl}}</text></view>
+      <view class="connection-row"><label>Token</label><text>{{connection.token}}</text></view>
+      <view class="connection-row">
+        <label>云同步间隔</label>
+        <view class="connection-stepper">
+          <view class="stepper-btn" bindtap="decreaseSyncInterval">-</view>
+          <text>{{connection.syncInterval}} 分钟</text>
+          <view class="stepper-btn" bindtap="increaseSyncInterval">+</view>
+        </view>
+      </view>
+      <view class="connection-status">
+        <status-tag label="SQLite 正常" tone="success" />
+        <status-tag label="FastAPI · Mock 模式" tone="info" />
+        <status-tag label="WebSocket · 未连接" tone="offline" />
+      </view>
+      <button class="primary-button" bindtap="saveConnection">保存连接设置</button>
+    </glass-card>
+  </view>
+
+  <view wx:for="{{groupsAfter}}" wx:key="title" class="setting-group">
+    <view class="section-head">
+      <view class="section-head__title">{{item.title}}</view>
+    </view>
+    <glass-card padding="none">
+      <button wx:for="{{item.items}}" wx:for-item="option" wx:key="title" class="setting-row" data-url="{{option.url}}" bindtap="navigate">
+        <view class="setting-icon"><x-icon type="{{option.icon}}" size="{{34}}" /></view>
+        <view class="setting-copy">
+          <view>{{option.title}}</view>
+          <text>{{option.desc}}</text>
+        </view>
+        <x-icon type="arrow" size="{{30}}" />
+      </button>
+    </glass-card>
+  </view>
+
+  <info-sheet visible="{{accountsVisible}}" title="账号管理" bind:close="closeAccounts">
+    <view class="account-row" wx:for="{{accounts}}" wx:key="account">
+      <view class="account-main">
+        <view class="account-name">{{item.name}} <text class="account-role">{{item.role}}</text></view>
+        <view class="account-meta">{{item.account}} · 最近登录 {{item.lastLogin}}</view>
+      </view>
+      <status-tag label="{{item.state}}" tone="{{item.state === '启用' ? 'success' : 'offline'}}" />
+    </view>
+    <button class="ghost-button account-add" bindtap="addAccount">添加账号</button>
+  </info-sheet>
+
+  <info-sheet visible="{{rolesVisible}}" title="权限管理" bind:close="closeRoles">
+    <view class="role-row" wx:for="{{roles}}" wx:key="name">
+      <view class="role-main">
+        <view class="role-name">{{item.name}}</view>
+        <view class="role-desc">{{item.desc}} · {{item.count}} 个账号</view>
+      </view>
+      <button class="ghost-button role-config" data-name="{{item.name}}" bindtap="configureRole">配置权限</button>
+    </view>
+  </info-sheet>
 </view>

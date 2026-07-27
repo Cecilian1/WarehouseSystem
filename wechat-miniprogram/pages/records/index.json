@@ -2,6 +2,7 @@
   "navigationStyle": "custom",
   "usingComponents": {
     "x-icon": "/components/x-icon/index",
-    "glass-card": "/components/glass-card/index"
+    "glass-card": "/components/glass-card/index",
+    "info-sheet": "/components/info-sheet/index"
   }
 }

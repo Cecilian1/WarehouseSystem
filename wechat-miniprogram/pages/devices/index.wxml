@@ -1,4 +1,4 @@
-<view class="page-shell devices-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="page-shell devices-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="custom-nav" style="padding-top: {{statusTop}}px;">
     <button class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></button>
     <view>
@@ -6,6 +6,34 @@
       <view class="page-subtitle">开发板、摄像头与传感器状态</view>
     </view>
   </view>
+
+  <glass-card padding="normal" class="board-card">
+    <view class="board-head">
+      <view class="board-chip">LA</view>
+      <view>
+        <view class="board-name">Loongson 2K2000-i</view>
+        <view class="board-sub">运行时长 12天 08:42</view>
+      </view>
+    </view>
+    <view class="board-grid">
+      <view><small>CPU</small><text>38%</text></view>
+      <view><small>内存</small><text>52%</text></view>
+      <view><small>存储</small><text>7.6 GB 可用</text></view>
+      <view><small>网络延迟</small><text>18 ms</text></view>
+    </view>
+  </glass-card>
+
+  <glass-card padding="normal" class="uptime-card">
+    <view class="uptime-row">
+      <view class="score-ring">
+        <text>{{avgUptime}}%</text>
+      </view>
+      <view class="uptime-caption">
+        <view class="uptime-title">设备在线率</view>
+        <view class="uptime-desc">{{devices.length}} 个设备 · {{onlineCount}} 正常 · {{attentionCount}} 需关注</view>
+      </view>
+    </view>
+  </glass-card>
 
   <view class="device-list">
     <glass-card wx:for="{{devices}}" wx:key="id" padding="normal" hover>

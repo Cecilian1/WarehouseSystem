@@ -1,4 +1,4 @@
-<view class="login-page" style="--status-top: {{statusTop}}px;">
+<view class="login-page {{themeClass}}" style="--status-top: {{statusTop}}px;">
   <view class="login-hero">
     <view class="hero-nav" style="padding-top: {{statusTop}}px;">
       <view>

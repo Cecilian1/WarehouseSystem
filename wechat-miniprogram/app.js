@@ -7,7 +7,9 @@ App({
     statusBarHeight: 0,
     capsuleTop: 0,
     navHeight: 88,
-    realtimeConnected: false
+    realtimeConnected: false,
+    theme: 'dark',
+    tabBarInstance: null
   },
 
   onLaunch() {
@@ -16,6 +18,7 @@ App({
     this.globalData.statusBarHeight = system.statusBarHeight || 0
     this.globalData.capsuleTop = capsule.top || this.globalData.statusBarHeight
     this.globalData.navHeight = (capsule.bottom || 80) + 10
+    this.globalData.theme = wx.getStorageSync('theme') === 'light' ? 'light' : 'dark'
 
     connectRealtime({
       onOpen: () => {

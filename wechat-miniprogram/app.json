@@ -16,14 +16,14 @@
   "window": {
     "navigationStyle": "custom",
     "backgroundTextStyle": "dark",
-    "backgroundColor": "#f4fbf9",
+    "backgroundColor": "#07111f",
     "enablePullDownRefresh": true
   },
   "tabBar": {
     "custom": true,
-    "color": "#78908f",
-    "selectedColor": "#345f55",
-    "backgroundColor": "#ffffff",
+    "color": "#70829a",
+    "selectedColor": "#4f8cff",
+    "backgroundColor": "#111f33",
     "list": [
       {
         "pagePath": "pages/home/index",
@@ -52,7 +52,9 @@
     "glass-card": "/components/glass-card/index",
     "status-tag": "/components/status-tag/index",
     "empty-state": "/components/empty-state/index",
-    "confirm-sheet": "/components/confirm-sheet/index"
+    "confirm-sheet": "/components/confirm-sheet/index",
+    "form-sheet": "/components/form-sheet/index",
+    "info-sheet": "/components/info-sheet/index"
   },
   "style": "v2",
   "lazyCodeLoading": "requiredComponents"

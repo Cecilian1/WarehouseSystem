@@ -1,4 +1,4 @@
-<view class="splash">
+<view class="splash {{themeClass}}">
   <view class="glow glow-a"></view>
   <view class="glow glow-b"></view>
   <view class="leaf-mark leaf-one"></view>

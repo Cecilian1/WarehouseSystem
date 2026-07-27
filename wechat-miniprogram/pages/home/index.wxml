@@ -1,4 +1,4 @@
-<view class="page-shell home-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="page-shell home-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="home-hero fade-up">
     <view class="custom-nav" style="padding-top: {{statusTop}}px;">
       <view>
@@ -8,6 +8,18 @@
     </view>
     <view class="hero-copy">{{overview.greeting || '正在读取冰箱状态'}}</view>
   </view>
+
+  <scroll-view wx:if="{{overview.statuses.length}}" scroll-x class="status-strip" show-scrollbar="{{false}}">
+    <view wx:for="{{overview.statuses}}" wx:key="id" class="status-chip-wrap">
+      <glass-card padding="small">
+        <view class="status-chip-row">
+          <i class="status-chip-dot {{item.state}}"></i>
+          <text class="status-chip-label">{{item.label}}</text>
+        </view>
+        <view class="status-chip-value">{{item.value}}</view>
+      </glass-card>
+    </view>
+  </scroll-view>
 
   <glass-card wx:if="{{overview}}" tone="light" padding="normal" hover bindtap="goDevice">
     <view class="device-card">
@@ -47,6 +59,59 @@
   </glass-card>
 
   <view class="section-head">
+    <view class="section-head__title">库存与趋势</view>
+  </view>
+  <view class="metric-grid-2" wx:if="{{metrics.length}}">
+    <glass-card wx:for="{{metrics}}" wx:key="id" padding="small">
+      <view class="metric2">
+        <text class="metric2-label">{{item.label}}</text>
+        <view class="metric2-value-row">
+          <text class="metric2-value tone-{{item.tone}}">{{item.value}}</text>
+          <text class="metric2-unit">{{item.unit}}</text>
+        </view>
+        <text class="metric2-change {{item.up ? 'up' : 'down'}}">{{item.up ? '↑' : '↓'}} {{item.changeAbs}}%</text>
+      </view>
+    </glass-card>
+  </view>
+
+  <glass-card wx:if="{{overview.categories.length}}" padding="normal">
+    <view class="category-row">
+      <view class="donut-wrap">
+        <view class="donut-ring" style="background: conic-gradient({{categoryGradient}});"></view>
+        <view class="donut-hole">
+          <text>{{categoryTotal}}</text>
+          <small>件</small>
+        </view>
+      </view>
+      <view class="category-legend">
+        <view wx:for="{{overview.categories}}" wx:key="name">
+          <i style="background: {{item.color}};"></i>
+          <text>{{item.name}}</text>
+          <b>{{item.value}}</b>
+        </view>
+      </view>
+    </view>
+  </glass-card>
+
+  <glass-card wx:if="{{stockBars.length}}" padding="normal">
+    <view class="chart-title">入出库趋势（近24小时）</view>
+    <view class="stock-trend-chart">
+      <view wx:for="{{stockBars}}" wx:key="time" class="stock-trend-col">
+        <view class="stock-bars">
+          <view class="inbound-bar" style="height: {{item.inboundHeight}}rpx;"></view>
+          <view class="outbound-bar" style="height: {{item.outboundHeight}}rpx;"></view>
+        </view>
+        <text>{{item.time}}</text>
+      </view>
+    </view>
+    <view class="chart-legend">
+      <view><i class="inbound"></i>入库</view>
+      <view><i class="outbound"></i>出库</view>
+    </view>
+    <view class="trend-insight">今日净流入 {{netFlowText}} 件</view>
+  </glass-card>
+
+  <view class="section-head">
     <view class="section-head__title">新鲜度概览</view>
     <button class="section-head__more" bindtap="go" data-url="/pages/inventory/index">查看库存</button>
   </view>
@@ -76,6 +141,24 @@
           <view class="reminder-desc">{{item.description}}</view>
         </view>
       </button>
+    </glass-card>
+  </view>
+
+  <view class="section-head">
+    <view class="section-head__title">最近识别</view>
+    <button class="section-head__more" bindtap="go" data-url="/pages/records/index">全部</button>
+  </view>
+  <view class="recognition-list" wx:if="{{overview.recognitions.length}}">
+    <glass-card wx:for="{{overview.recognitions}}" wx:key="id" padding="small">
+      <view class="recognition-row">
+        <view class="recognition-main">
+          <view class="recognition-name">
+            {{item.name}}
+            <text class="recognition-type {{item.type}}">{{item.type === 'inbound' ? '入库' : '出库'}} ×{{item.quantity}}</text>
+          </view>
+          <view class="recognition-meta">{{item.time}} · 置信度 {{item.confidence}}% · 耗时 {{item.latency}}ms</view>
+        </view>
+      </view>
     </glass-card>
   </view>
 

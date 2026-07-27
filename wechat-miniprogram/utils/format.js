@@ -45,10 +45,21 @@ function deviceStateText(state) {
   return map[state] || '未知'
 }
 
+const INVENTORY_FORM_FIELDS = [
+  { key: 'name', label: '名称', type: 'text', placeholder: '请输入果蔬名称' },
+  { key: 'category', label: '分类', type: 'select', options: ['水果', '蔬菜'] },
+  { key: 'quantity', label: '数量', type: 'stepper' },
+  { key: 'unit', label: '单位', type: 'text', placeholder: '如 个/根/盒' },
+  { key: 'shelfLife', label: '保质期天数', type: 'number', placeholder: '天' },
+  { key: 'location', label: '货位', type: 'text', placeholder: '如 A-01 上层' },
+  { key: 'storageAdvice', label: '温湿度建议', type: 'text', placeholder: '如 0-4°C · 85-90%RH' }
+]
+
 module.exports = {
   formatTime,
   formatDate,
   freshnessText,
   freshnessTone,
-  deviceStateText
+  deviceStateText,
+  INVENTORY_FORM_FIELDS
 }

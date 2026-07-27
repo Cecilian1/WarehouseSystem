@@ -27,22 +27,27 @@
 }
 
 .sheet-title {
+  margin-bottom: 20rpx;
   color: var(--text-1);
   font-size: 34rpx;
   font-weight: 900;
   text-align: center;
 }
 
-.sheet-desc {
-  margin: 16rpx 18rpx 30rpx;
-  color: var(--text-3);
-  font-size: 28rpx;
-  line-height: 1.55;
-  text-align: center;
+.info-body {
+  max-height: 62vh;
 }
 
-.sheet-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18rpx;
+.info-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  margin-top: 20rpx;
+  border: 1rpx solid var(--stroke);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  font-size: 28rpx;
+  font-weight: 800;
+  background: var(--surface-soft);
 }

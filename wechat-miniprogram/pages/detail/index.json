@@ -4,6 +4,7 @@
     "x-icon": "/components/x-icon/index",
     "glass-card": "/components/glass-card/index",
     "status-tag": "/components/status-tag/index",
-    "confirm-sheet": "/components/confirm-sheet/index"
+    "confirm-sheet": "/components/confirm-sheet/index",
+    "form-sheet": "/components/form-sheet/index"
   }
 }
