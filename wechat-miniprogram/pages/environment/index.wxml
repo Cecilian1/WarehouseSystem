@@ -1,4 +1,4 @@
-<view class="page-shell environment-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="page-shell environment-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="custom-nav" style="padding-top: {{statusTop}}px;">
     <button class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></button>
     <view>

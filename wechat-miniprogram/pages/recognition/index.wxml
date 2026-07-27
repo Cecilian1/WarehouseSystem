@@ -1,10 +1,10 @@
-<view class="recognition-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="recognition-page theme-dark" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="recognition-bg"></view>
   <view class="recognition-shell">
     <view class="custom-nav" style="padding-top: {{statusTop}}px;">
       <view>
-        <view class="page-title dark">AI识别</view>
-        <view class="page-subtitle dark-sub">最近一次端侧视觉识别结果</view>
+        <view class="page-title page-title--on-camera">AI识别</view>
+        <view class="page-subtitle page-subtitle--on-camera">最近一次端侧视觉识别结果</view>
       </view>
       <status-tag label="可复核" tone="info" icon="scan" />
     </view>
@@ -49,7 +49,24 @@
       </view>
     </glass-card>
 
-    <view class="section-head dark-head">
+    <glass-card wx:if="{{result}}" padding="normal">
+      <view class="frame-summary">
+        <view class="score-ring">
+          <text>{{avgConfidence}}%</text>
+        </view>
+        <view class="frame-summary-info">
+          <view class="frame-summary-row"><label>识别耗时</label><text>{{result.latency}} ms</text></view>
+          <view class="frame-summary-row"><label>检测模型</label><text>{{result.models.detect}}</text></view>
+          <view class="frame-summary-row"><label>分类模型</label><text>{{result.models.classify}}</text></view>
+        </view>
+      </view>
+      <view class="latency-trend">
+        <view wx:for="{{latencyBars}}" wx:for-index="barIndex" wx:key="barIndex" class="latency-bar" style="height: {{item.height}}rpx;"></view>
+      </view>
+      <view class="latency-caption">端侧推理延迟趋势 · 近12帧</view>
+    </glass-card>
+
+    <view class="section-head section-head--on-camera">
       <view class="section-head__title">识别结果</view>
       <button class="section-head__more" bindtap="addTarget">添加目标</button>
     </view>

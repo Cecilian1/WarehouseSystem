@@ -58,7 +58,7 @@
 
 .metric text {
   display: block;
-  color: #263a34;
+  color: var(--text-1);
   font-size: 32rpx;
   font-weight: 900;
 }
@@ -66,7 +66,7 @@
 .metric small {
   display: block;
   margin-top: 6rpx;
-  color: #879691;
+  color: var(--text-3);
   font-size: 21rpx;
 }
 
@@ -79,23 +79,23 @@
 .range-row button {
   flex: 1;
   height: 64rpx;
-  border-radius: 999rpx;
-  color: #879691;
+  border-radius: var(--radius-pill);
+  color: var(--text-3);
   font-size: 25rpx;
   font-weight: 900;
   text-align: center;
   line-height: 64rpx;
-  background: rgba(255, 255, 255, .72);
+  background: var(--surface);
 }
 
 .range-row .active {
   color: #fff;
-  background: linear-gradient(135deg, #517765, #587f96);
+  background: linear-gradient(135deg, var(--blue), #6c63ff);
 }
 
 .chart-title,
 .analysis-title {
-  color: #263a34;
+  color: var(--text-1);
   font-size: 32rpx;
   font-weight: 900;
 }
@@ -130,16 +130,16 @@
 }
 
 .temp-bar {
-  background: linear-gradient(180deg, #587f96, rgba(88, 127, 150, .18));
+  background: linear-gradient(180deg, #38bdf8, rgba(56, 189, 248, .18));
 }
 
 .humidity-bar {
-  background: linear-gradient(180deg, #517765, rgba(81, 119, 101, .18));
+  background: linear-gradient(180deg, #4f8cff, rgba(79, 140, 255, .18));
 }
 
 .trend-col text {
   margin-top: 12rpx;
-  color: #879691;
+  color: var(--text-3);
   font-size: 22rpx;
 }
 
@@ -147,7 +147,7 @@
   display: flex;
   gap: 26rpx;
   margin-top: 18rpx;
-  color: #879691;
+  color: var(--text-3);
   font-size: 24rpx;
 }
 
@@ -164,16 +164,16 @@
 }
 
 .chart-legend .temp {
-  background: #587f96;
+  background: var(--cyan);
 }
 
 .chart-legend .humidity {
-  background: #517765;
+  background: var(--blue);
 }
 
 .analysis-copy {
   margin-top: 14rpx;
-  color: #4b635d;
+  color: var(--text-2);
   font-size: 28rpx;
   line-height: 1.6;
 }

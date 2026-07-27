@@ -1,4 +1,4 @@
-<view class="page-shell alerts-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="page-shell alerts-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="custom-nav" style="padding-top: {{statusTop}}px;">
     <view>
       <view class="page-title">预警</view>
@@ -15,12 +15,27 @@
     </glass-card>
   </view>
 
+  <view class="search-card">
+    <x-icon type="search" size="{{34}}" />
+    <input value="{{keyword}}" bindinput="inputKeyword" confirm-type="search" bindconfirm="search" placeholder="搜索预警标题或来源" />
+    <button bindtap="search">搜索</button>
+  </view>
+
+  <scroll-view scroll-x class="filter-row status-row" show-scrollbar="{{false}}">
+    <button wx:for="{{statusOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="selectStatus" class="{{statusFilter === item.value ? 'active' : ''}}">{{item.label}}</button>
+  </scroll-view>
+
   <scroll-view scroll-x class="filter-row" show-scrollbar="{{false}}">
     <button data-value="all" bindtap="setFilter" class="{{filter === 'all' ? 'active' : ''}}">全部</button>
     <button data-value="critical" bindtap="setFilter" class="{{filter === 'critical' ? 'active' : ''}}">紧急</button>
     <button data-value="warning" bindtap="setFilter" class="{{filter === 'warning' ? 'active' : ''}}">关注</button>
     <button data-value="info" bindtap="setFilter" class="{{filter === 'info' ? 'active' : ''}}">普通</button>
   </scroll-view>
+
+  <view wx:if="{{selectedIds.length}}" class="batch-bar">
+    <text>已选 {{selectedIds.length}} 项</text>
+    <button class="primary-button" bindtap="batchHandle">批量处理</button>
+  </view>
 
   <view wx:if="{{alerts.length}}" class="group-list">
     <block wx:for="{{groups}}" wx:key="title">
@@ -30,6 +45,7 @@
         </view>
         <glass-card wx:for="{{item.list}}" wx:for-item="alert" wx:key="id" padding="small" hover>
           <view class="alert-row {{alert.level}}">
+            <checkbox class="alert-checkbox" checked="{{alert.selected}}" data-id="{{alert.id}}" catchtap="toggleSelect" />
             <view class="alert-icon {{alert.level}}"><x-icon type="alert" size="{{36}}" /></view>
             <view class="alert-main" bindtap="goDetail" data-id="{{alert.id}}">
               <view class="alert-title">{{alert.title}}</view>
@@ -37,8 +53,11 @@
               <view class="alert-meta">{{alert.source}} · {{alert.time}}</view>
             </view>
             <view class="alert-side">
-              <status-tag label="{{alert.status === 'pending' ? '未读' : '已处理'}}" tone="{{alert.status === 'pending' ? 'warning' : 'success'}}" />
-              <button wx:if="{{alert.status === 'pending'}}" data-id="{{alert.id}}" bindtap="openHandle">处理</button>
+              <status-tag label="{{alert.status === 'pending' ? '待处理' : alert.status === 'ignored' ? '已忽略' : '已处理'}}" tone="{{alert.status === 'pending' ? 'warning' : alert.status === 'ignored' ? 'offline' : 'success'}}" />
+              <view wx:if="{{alert.status === 'pending'}}" class="alert-actions">
+                <button data-id="{{alert.id}}" bindtap="openHandle">处理</button>
+                <button data-id="{{alert.id}}" bindtap="ignoreAlert">忽略</button>
+              </view>
             </view>
           </view>
         </glass-card>

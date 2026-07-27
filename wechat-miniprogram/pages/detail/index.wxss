@@ -1,7 +1,7 @@
 .detail-page {
   min-height: 100vh;
   padding-bottom: calc(138rpx + env(safe-area-inset-bottom));
-  background: linear-gradient(160deg, #f7f6f1, #eef3ef);
+  background: linear-gradient(160deg, var(--bg-0), var(--bg-2));
 }
 
 .detail-hero {
@@ -10,7 +10,7 @@
   overflow: hidden;
   padding: 0 28rpx 42rpx;
   color: #fff;
-  background: linear-gradient(150deg, var(--food-color), #517765 58%, #587f96);
+  background: linear-gradient(150deg, var(--food-color), #4f8cff 58%, #6c63ff);
 }
 
 .detail-hero::after {
@@ -106,7 +106,7 @@
 
 .score-row text {
   display: block;
-  color: #263a34;
+  color: var(--text-1);
   font-size: 44rpx;
   font-weight: 900;
 }
@@ -114,7 +114,7 @@
 .score-row small {
   display: block;
   margin-top: 8rpx;
-  color: #879691;
+  color: var(--text-3);
   font-size: 23rpx;
 }
 
@@ -130,27 +130,27 @@
 }
 
 .info-grid label {
-  color: #879691;
+  color: var(--text-3);
   font-size: 23rpx;
 }
 
 .info-grid text {
   margin-top: 8rpx;
-  color: #263a34;
+  color: var(--text-1);
   font-size: 27rpx;
   font-weight: 800;
   line-height: 1.4;
 }
 
 .section-title {
-  color: #263a34;
+  color: var(--text-1);
   font-size: 32rpx;
   font-weight: 900;
 }
 
 .advice {
   margin-top: 14rpx;
-  color: #4b635d;
+  color: var(--text-2);
   font-size: 29rpx;
   line-height: 1.55;
 }
@@ -158,10 +158,10 @@
 .exposure {
   margin-top: 16rpx;
   padding: 18rpx;
-  border-radius: 22rpx;
-  color: #345f55;
+  border-radius: var(--radius-sm);
+  color: var(--teal);
   font-size: 25rpx;
-  background: rgba(81, 119, 101, .08);
+  background: var(--surface-soft);
 }
 
 .timeline {
@@ -179,7 +179,7 @@
   left: 8rpx;
   top: 12rpx;
   bottom: -20rpx;
-  border-left: 2rpx solid rgba(81, 119, 101, .2);
+  border-left: 2rpx solid var(--stroke);
   content: "";
 }
 
@@ -189,21 +189,21 @@
   top: 28rpx;
   width: 18rpx;
   height: 18rpx;
-  border: 4rpx solid #fff;
+  border: 4rpx solid var(--bg-2);
   border-radius: 50%;
-  background: #517765;
-  box-shadow: 0 0 0 6rpx rgba(81, 119, 101, .12);
+  background: var(--blue);
+  box-shadow: 0 0 0 6rpx rgba(79, 140, 255, .16);
 }
 
 .timeline-title {
-  color: #263a34;
+  color: var(--text-1);
   font-size: 27rpx;
   font-weight: 900;
 }
 
 .timeline-meta {
   margin-top: 8rpx;
-  color: #879691;
+  color: var(--text-3);
   font-size: 23rpx;
 }
 

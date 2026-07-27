@@ -1,4 +1,4 @@
-<view class="page-shell records-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="page-shell records-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="custom-nav" style="padding-top: {{statusTop}}px;">
     <button class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></button>
     <view>
@@ -17,9 +17,9 @@
   </scroll-view>
 
   <view class="timeline">
-    <view wx:for="{{list}}" wx:key="id" class="record-item">
+    <view wx:for="{{list}}" wx:key="id" class="record-item" data-id="{{item.id}}" bindtap="openDetail">
       <view class="record-dot {{item.type}}"><x-icon type="{{item.type === 'manual' ? 'edit' : item.type === 'outbound' ? 'arrow' : 'check'}}" size="{{28}}" /></view>
-      <glass-card padding="small">
+      <glass-card padding="small" hover>
         <view class="record-head">
           <view class="record-title">{{item.action}}</view>
           <view class="record-time">{{item.time}}</view>
@@ -29,4 +29,14 @@
       </glass-card>
     </view>
   </view>
+
+  <info-sheet visible="{{detailVisible}}" title="识别记录详情" bind:close="closeDetail">
+    <view class="record-detail-row"><label>编号</label><text>#{{detailRecord.id}}</text></view>
+    <view class="record-detail-row"><label>果蔬</label><text>{{detailRecord.name}}</text></view>
+    <view class="record-detail-row"><label>类型</label><text>{{detailRecord.type === 'inbound' ? '入库' : detailRecord.type === 'outbound' ? '出库' : '手动修改'}} × {{detailRecord.quantity}}</text></view>
+    <view class="record-detail-row"><label>置信度</label><text>{{detailRecord.confidence}}%</text></view>
+    <view class="record-detail-row"><label>新鲜度</label><text>{{detailRecord.freshnessLabel || '读取中...'}}</text></view>
+    <view class="record-detail-row"><label>耗时</label><text>{{detailRecord.latency}} ms</text></view>
+    <view class="record-detail-row"><label>时间</label><text>{{detailRecord.time}}</text></view>
+  </info-sheet>
 </view>

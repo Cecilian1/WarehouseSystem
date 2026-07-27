@@ -1,10 +1,25 @@
-<view class="page-shell inventory-page" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="page-shell inventory-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="custom-nav" style="padding-top: {{statusTop}}px;">
     <view>
       <view class="page-title">库存</view>
       <view class="page-subtitle">看见冰箱里每一份新鲜</view>
     </view>
     <button class="mode-button" bindtap="toggleMode"><x-icon type="record" size="{{36}}" />{{viewMode === 'card' ? '列表' : '卡片'}}</button>
+  </view>
+
+  <view class="metric-grid">
+    <glass-card padding="small">
+      <view class="metric"><text>{{stats.categories}}</text><small>库存品类</small></view>
+    </glass-card>
+    <glass-card padding="small">
+      <view class="metric"><text>{{stats.total}}</text><small>库存总量</small></view>
+    </glass-card>
+    <glass-card padding="small">
+      <view class="metric"><text>{{stats.fresh}}</text><small>新鲜库存</small></view>
+    </glass-card>
+    <glass-card padding="small">
+      <view class="metric"><text>{{stats.urgent}}</text><small>需优先处理</small></view>
+    </glass-card>
   </view>
 
   <view class="search-card">
@@ -55,5 +70,15 @@
     confirm-text="确认"
     bind:cancel="cancelSheet"
     bind:confirm="confirmSheet"
+  />
+
+  <form-sheet
+    visible="{{formVisible}}"
+    title="手动入库"
+    fields="{{formFields}}"
+    values="{{formValues}}"
+    confirm-text="创建"
+    bind:cancel="cancelForm"
+    bind:confirm="confirmForm"
   />
 </view>

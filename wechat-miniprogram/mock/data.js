@@ -21,7 +21,8 @@ const devices = [
     sensorStatus: '正常',
     firmware: 'v1.0.6',
     model: 'LoongArch 2K0300',
-    storage: '7.6 GB 可用'
+    storage: '7.6 GB 可用',
+    uptime: 99.6
   },
   {
     id: 'fridge-02',
@@ -35,7 +36,8 @@ const devices = [
     sensorStatus: '温度偏高',
     firmware: 'v1.0.5',
     model: 'LoongArch 2K0300',
-    storage: '5.2 GB 可用'
+    storage: '5.2 GB 可用',
+    uptime: 96.2
   },
   {
     id: 'fridge-03',
@@ -49,7 +51,8 @@ const devices = [
     sensorStatus: '离线',
     firmware: 'v0.9.8',
     model: 'LoongArch 2K0300',
-    storage: '未知'
+    storage: '未知',
+    uptime: 82.4
   }
 ]
 
@@ -266,6 +269,10 @@ const inventory = [
   }
 ]
 
+inventory.forEach((item) => {
+  item.storageAdvice = item.ideal
+})
+
 const foodAlerts = [
   ['草莓将在1天后过期', '草莓剩余保质期较短，建议优先食用。', '草莓', 'expiring', 'warning'],
   ['生菜疑似腐败变质', 'AI识别到叶片发黄和边缘软化，建议移出库存。', '生菜', 'spoiled', 'critical'],
@@ -312,7 +319,8 @@ const records = Array.from({ length: 20 }, (_, index) => {
     operator: manual ? '家庭成员' : 'Edge AI',
     status: index === 7 ? 'warning' : 'success',
     confidence: item.confidence,
-    snapshot: item.icon
+    snapshot: item.icon,
+    latency: 180 + (index % 8) * 30
   }
 })
 
@@ -351,20 +359,29 @@ const recognitionResult = {
     { id: 't1', name: '红富士苹果', category: '水果', quantity: 3, freshness: 'fresh', freshnessScore: 96, confidence: 98, x: 14, y: 28, w: 28, h: 26 },
     { id: 't2', name: '西兰花', category: '蔬菜', quantity: 1, freshness: 'fresh', freshnessScore: 91, confidence: 96, x: 56, y: 20, w: 25, h: 30 },
     { id: 't3', name: '西红柿', category: '蔬菜', quantity: 2, freshness: 'mild', freshnessScore: 66, confidence: 95, x: 48, y: 60, w: 30, h: 24 }
-  ]
+  ],
+  latencyTrend: Array.from({ length: 12 }, (_, index) => 360 + Math.round(Math.sin(index / 1.8) * 40 + (index % 3) * 12)),
+  models: {
+    detect: 'YOLOv11n · INT8',
+    classify: 'MobileNetV3-Small'
+  }
 }
 
-const messages = alerts.map((alert) => ({
-  id: alert.id,
-  title: alert.title,
-  type: alert.type,
-  time: alert.time,
-  device: alert.type === 'device' || alert.type === 'temperature' || alert.type === 'storage' ? '客厅智能冰箱' : '',
-  produce: alert.source,
-  reason: alert.description,
-  suggestion: alert.suggestion,
-  status: alert.status
-}))
+const messages = alerts.map((alert) => {
+  const matched = inventory.find((item) => item.name === alert.source)
+  return {
+    id: alert.id,
+    title: alert.title,
+    type: alert.type,
+    time: alert.time,
+    device: alert.type === 'device' || alert.type === 'temperature' || alert.type === 'storage' ? '客厅智能冰箱' : '',
+    produce: alert.source,
+    produceId: matched ? matched.id : null,
+    reason: alert.description,
+    suggestion: alert.suggestion,
+    status: alert.status
+  }
+})
 
 function dashboard() {
   const freshCount = inventory.filter((item) => item.freshness === 'fresh').length
@@ -372,6 +389,16 @@ function dashboard() {
   const expiringCount = inventory.filter((item) => item.freshness === 'expiring').length
   const spoiledCount = inventory.filter((item) => item.freshness === 'spoiled').length
   const pendingAlerts = alerts.filter((item) => item.status === 'pending')
+  const stockTotal = inventory.reduce((sum, item) => sum + item.quantity, 0)
+  const last24h = now.getTime() - day
+  const todayInboundQty = records
+    .filter((record) => record.type === 'inbound' && new Date(record.time.replace(/-/g, '/')).getTime() >= last24h)
+    .reduce((sum, record) => sum + record.quantity, 0)
+  const categoryQty = inventory.reduce((acc, item) => {
+    acc[item.category] = (acc[item.category] || 0) + item.quantity
+    return acc
+  }, {})
+  const categoryColors = { 水果: '#4f8cff', 蔬菜: '#22c55e' }
   return {
     greeting: '晚上好，今天也要记得及时享用新鲜食材',
     device: devices[0],
@@ -399,7 +426,31 @@ function dashboard() {
       { title: '开始识别', path: '/pages/recognition/index', icon: 'scan' },
       { title: '手动入库', path: '/pages/inventory/index', icon: 'add' },
       { title: '查看预警', path: '/pages/alerts/index', icon: 'alert' }
-    ]
+    ],
+    statuses: [
+      { id: 'board', label: '边缘节点', value: devices[0].state === 'online' ? '在线' : devices[0].state === 'warning' ? '需关注' : '离线', state: devices[0].state, detail: devices[0].model },
+      { id: 'camera', label: '摄像头', value: devices[0].cameraStatus, state: devices[0].cameraStatus === '正常采集' ? 'online' : 'offline', detail: '640 × 480' },
+      { id: 'model', label: 'AI 模型', value: '已加载', state: 'online', detail: 'YOLOv11 + MobileNetV3' },
+      { id: 'sqlite', label: '本地存储', value: '正常', state: 'online', detail: devices[0].storage },
+      { id: 'ws', label: '网络', value: '实时', state: 'online', detail: '18 ms' }
+    ],
+    metrics: [
+      { id: 'stock', label: '库存总量', value: stockTotal, unit: '件', change: 8.4, tone: 'blue' },
+      { id: 'today', label: '今日新增', value: todayInboundQty, unit: '件', change: 12.5, tone: 'cyan' },
+      { id: 'expiring', label: '即将过期', value: expiringCount, unit: '件', change: -2.1, tone: 'orange' },
+      { id: 'alerts', label: '异常预警', value: pendingAlerts.length, unit: '项', change: -25, tone: 'red' }
+    ],
+    categories: Object.keys(categoryQty).map((name) => ({
+      name,
+      value: categoryQty[name],
+      color: categoryColors[name] || '#8b7cff'
+    })),
+    stockTrend: Array.from({ length: 8 }, (_, index) => ({
+      time: `${String(index * 3).padStart(2, '0')}:00`,
+      inbound: 4 + Math.round(Math.sin(index / 1.4) * 3 + (index % 3)),
+      outbound: 2 + Math.round(Math.cos(index / 1.8) * 2 + (index % 2))
+    })),
+    recognitions: records.filter((record) => record.type !== 'manual').slice(0, 5)
   }
 }
 
@@ -440,6 +491,12 @@ function getAlertList(query = {}) {
   if (query.level && query.level !== 'all') {
     list = list.filter((item) => item.level === query.level)
   }
+  if (query.status && query.status !== 'all') {
+    list = list.filter((item) => item.status === query.status)
+  }
+  if (query.keyword) {
+    list = list.filter((item) => `${item.title}${item.source}`.includes(query.keyword))
+  }
   return list
 }
 
@@ -467,7 +524,13 @@ const routes = {
   'POST /recognitions/confirm': (data) => ({ success: true, updated: data.targets ? data.targets.length : recognitionResult.targets.length }),
   'PUT /recognitions/target': (data) => ({ success: true, data }),
   'GET /alerts': getAlertList,
-  'POST /alerts/handle': (data) => ({ success: true, id: data.id, action: data.action }),
+  'POST /alerts/handle': (data) => {
+    const target = alerts.find((item) => Number(item.id) === Number(data.id))
+    if (target) target.status = data.action === 'ignored' ? 'ignored' : 'confirmed'
+    const message = messages.find((item) => Number(item.id) === Number(data.id))
+    if (message && target) message.status = target.status
+    return { success: true, id: data.id, action: data.action }
+  },
   'GET /messages': () => messages,
   'GET /messages/detail': (data) => messages.find((item) => Number(item.id) === Number(data.id)) || messages[0],
   'GET /environment/current': () => ({

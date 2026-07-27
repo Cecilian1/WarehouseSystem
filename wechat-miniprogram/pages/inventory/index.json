@@ -5,6 +5,7 @@
     "glass-card": "/components/glass-card/index",
     "produce-card": "/components/produce-card/index",
     "empty-state": "/components/empty-state/index",
-    "confirm-sheet": "/components/confirm-sheet/index"
+    "confirm-sheet": "/components/confirm-sheet/index",
+    "form-sheet": "/components/form-sheet/index"
   }
 }

@@ -1,11 +1,13 @@
 const { authService } = require('../../services/api')
+const { applyThemeClass } = require('../../utils/theme')
 
 Page({
   data: {
     navHeight: 100,
     statusTop: 40,
     deviceCode: 'XXGJ-LS2K-0300-01',
-    loading: false
+    loading: false,
+    themeClass: 'theme-dark'
   },
   onLoad() {
     const app = getApp()
@@ -13,6 +15,10 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
+    applyThemeClass(this)
+  },
+  onShow() {
+    applyThemeClass(this)
   },
   login() {
     this.setData({ loading: true })

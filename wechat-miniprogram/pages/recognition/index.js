@@ -8,7 +8,9 @@ Page({
     result: null,
     targets: [],
     sheetVisible: false,
-    selectedTarget: null
+    selectedTarget: null,
+    avgConfidence: 0,
+    latencyBars: []
   },
   onLoad() {
     const app = getApp()
@@ -31,7 +33,20 @@ Page({
         freshnessLabel: freshnessText(item.freshness),
         tone: freshnessTone(item.freshness)
       }))
-      this.setData({ result: res.data, targets })
+
+      const confidences = targets.map((item) => item.confidence)
+      const avgConfidence = confidences.length
+        ? Math.round(confidences.reduce((sum, value) => sum + value, 0) / confidences.length)
+        : 0
+
+      const latencyTrend = res.data.latencyTrend || []
+      const maxLatency = Math.max(1, ...latencyTrend)
+      const latencyBars = latencyTrend.map((value) => ({
+        value,
+        height: Math.max(10, Math.round((value / maxLatency) * 80))
+      }))
+
+      this.setData({ result: res.data, targets, avgConfidence, latencyBars })
     })
   },
   editTarget(event) {
@@ -63,7 +78,7 @@ Page({
       title: '删除识别目标',
       content: '确认删除这条错误目标吗？',
       confirmText: '删除',
-      confirmColor: '#cb6259',
+      confirmColor: '#ef4444',
       success: (res) => {
         if (res.confirm) {
           this.setData({ targets: this.data.targets.filter((item) => item.id !== id) })

@@ -1,7 +1,7 @@
 .produce-wrap {
   position: relative;
   overflow: hidden;
-  border-radius: 28rpx;
+  border-radius: var(--radius-lg);
 }
 
 .action-rail {
@@ -11,8 +11,8 @@
   align-items: stretch;
   width: 252rpx;
   overflow: hidden;
-  border-radius: 28rpx;
-  background: linear-gradient(135deg, #517765, #587f96);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--blue), #6c63ff);
 }
 
 .action-rail button {
@@ -28,7 +28,7 @@
 }
 
 .action-rail .danger {
-  background: rgba(203, 98, 89, .34);
+  background: rgba(239, 68, 68, .34);
 }
 
 .produce-card {
@@ -38,10 +38,10 @@
   gap: 20rpx;
   min-height: 170rpx;
   padding: 22rpx;
-  border: 1rpx solid rgba(81, 119, 101, .12);
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, .94);
-  box-shadow: 0 10rpx 28rpx rgba(52, 95, 85, .08);
+  border: 1rpx solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
   transition: transform .18s ease;
 }
 
@@ -56,9 +56,9 @@
   height: 130rpx;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 28rpx;
-  background: rgba(81, 119, 101, .07);
-  border: 1rpx solid rgba(81, 119, 101, .1);
+  border-radius: var(--radius-lg);
+  background: var(--surface-soft);
+  border: 1rpx solid var(--stroke);
 }
 
 .produce-visual::after {
@@ -138,14 +138,14 @@
 }
 
 .produce-name {
-  color: #263a34;
+  color: var(--text-1);
   font-size: 31rpx;
   font-weight: 900;
 }
 
 .produce-meta,
 .produce-foot {
-  color: #879691;
+  color: var(--text-3);
   font-size: 23rpx;
 }
 
@@ -158,7 +158,7 @@
   flex-wrap: wrap;
   gap: 12rpx;
   margin-top: 16rpx;
-  color: #4b635d;
+  color: var(--text-2);
   font-size: 24rpx;
   font-weight: 700;
 }
@@ -167,8 +167,8 @@
   height: 10rpx;
   margin-top: 16rpx;
   overflow: hidden;
-  border-radius: 999rpx;
-  background: rgba(81, 119, 101, .1);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
 }
 
 .fresh-line view {
@@ -189,14 +189,14 @@
   height: 76rpx;
   flex: 0 0 auto;
   place-items: center;
-  border: 8rpx solid rgba(52, 95, 85, .08);
+  border: 8rpx solid var(--stroke);
   border-top-color: var(--score-color);
   border-right-color: var(--score-color);
   border-radius: 50%;
 }
 
 .score-ring text {
-  color: #263a34;
+  color: var(--text-1);
   font-size: 22rpx;
   font-weight: 900;
 }
@@ -218,7 +218,7 @@
 .mode-card .produce-visual {
   width: 100%;
   height: 168rpx;
-  border-radius: 26rpx;
+  border-radius: var(--radius-md);
 }
 
 .mode-card .food {
@@ -260,7 +260,7 @@
   position: absolute;
   top: 32rpx;
   right: 32rpx;
-  background: rgba(255, 255, 255, .78);
+  background: var(--surface-strong);
 }
 
 .mode-card .produce-head {
@@ -282,7 +282,7 @@
 .mode-card .produce-info text {
   padding: 5rpx 10rpx;
   border-radius: 12rpx;
-  background: rgba(81, 119, 101, .08);
+  background: var(--surface-soft);
 }
 
 .mode-card .produce-info text:nth-child(3) {
@@ -303,13 +303,13 @@
   min-height: 132rpx;
   padding: 18rpx;
   gap: 16rpx;
-  border-radius: 24rpx;
+  border-radius: var(--radius-md);
 }
 
 .mode-list .produce-visual {
   width: 86rpx;
   height: 86rpx;
-  border-radius: 22rpx;
+  border-radius: var(--radius-sm);
 }
 
 .mode-list .food {

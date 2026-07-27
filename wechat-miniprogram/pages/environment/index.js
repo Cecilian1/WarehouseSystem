@@ -1,9 +1,11 @@
 const { environmentService } = require('../../services/api')
+const { applyThemeClass } = require('../../utils/theme')
 
 Page({
   data: {
     navHeight: 100,
     statusTop: 40,
+    themeClass: 'theme-dark',
     current: null,
     history: [],
     range: '7天',
@@ -15,7 +17,11 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
+    applyThemeClass(this)
     this.load()
+  },
+  onShow() {
+    applyThemeClass(this)
   },
   load() {
     return Promise.all([

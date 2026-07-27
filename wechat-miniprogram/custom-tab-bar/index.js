@@ -1,6 +1,9 @@
+const { getTheme } = require('../utils/theme')
+
 Component({
   data: {
     selected: 0,
+    themeClass: 'theme-dark',
     list: [
       { pagePath: '/pages/home/index', text: '首页', icon: 'home' },
       { pagePath: '/pages/inventory/index', text: '库存', icon: 'box' },
@@ -11,15 +14,28 @@ Component({
   },
   lifetimes: {
     attached() {
+      const app = getApp()
+      if (app && app.globalData) app.globalData.tabBarInstance = this
+      this.syncTheme()
       this.syncRoute()
+    },
+    detached() {
+      const app = getApp()
+      if (app && app.globalData && app.globalData.tabBarInstance === this) {
+        app.globalData.tabBarInstance = null
+      }
     }
   },
   pageLifetimes: {
     show() {
+      this.syncTheme()
       this.syncRoute()
     }
   },
   methods: {
+    syncTheme() {
+      this.setData({ themeClass: 'theme-' + getTheme() })
+    },
     syncRoute() {
       const pages = getCurrentPages()
       const route = pages.length ? `/${pages[pages.length - 1].route}` : ''

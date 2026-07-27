@@ -1,24 +1,58 @@
 page {
-  --primary: #517765;
-  --primary-soft: #dfeae4;
-  --cyan: #86aeb8;
-  --teal: #345f55;
-  --blue: #587f96;
-  --green: #5d9b73;
-  --yellow: #dbc56d;
-  --orange: #d99555;
-  --red: #cb6259;
-  --purple: #7b6cc8;
-  --text-strong: #263a34;
-  --text-main: #4b635d;
-  --text-soft: #879691;
-  --bg-start: #f7f6f1;
-  --bg-end: #eef3ef;
+  --blue: #4f8cff;
+  --cyan: #38bdf8;
+  --teal: #14b8a6;
+  --green: #22c55e;
+  --orange: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b7cff;
+  --radius-lg: 44rpx;
+  --radius-md: 32rpx;
+  --radius-sm: 22rpx;
+  --radius-pill: 999rpx;
   min-height: 100%;
-  color: var(--text-main);
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
-  background: linear-gradient(180deg, var(--bg-start), var(--bg-end));
   font-size: 28rpx;
+}
+
+.theme-dark {
+  --bg-0: #07111f;
+  --bg-1: #0d1728;
+  --bg-2: #111f33;
+  --surface: rgba(16, 31, 52, .68);
+  --surface-strong: rgba(20, 37, 61, .86);
+  --surface-soft: rgba(255, 255, 255, .055);
+  --stroke: rgba(148, 163, 184, .16);
+  --stroke-strong: rgba(148, 163, 184, .28);
+  --text-1: #f4f8ff;
+  --text-2: #a8b7ca;
+  --text-3: #70829a;
+  --shadow: 0 44rpx 140rpx rgba(0, 0, 0, .28);
+  --shadow-soft: 0 20rpx 56rpx rgba(0, 0, 0, .16);
+  display: block;
+  min-height: 100%;
+  color: var(--text-2);
+  background: linear-gradient(140deg, var(--bg-0), var(--bg-1) 48%, var(--bg-2));
+}
+
+.theme-light {
+  --bg-0: #eef4fa;
+  --bg-1: #f6f9fc;
+  --bg-2: #ffffff;
+  --surface: rgba(255, 255, 255, .74);
+  --surface-strong: rgba(255, 255, 255, .94);
+  --surface-soft: rgba(15, 23, 42, .035);
+  --stroke: rgba(100, 116, 139, .18);
+  --stroke-strong: rgba(100, 116, 139, .32);
+  --text-1: #16263d;
+  --text-2: #59708d;
+  --text-3: #8b9bb0;
+  --shadow: 0 44rpx 140rpx rgba(32, 62, 91, .12);
+  --shadow-soft: 0 20rpx 56rpx rgba(32, 62, 91, .08);
+  display: block;
+  min-height: 100%;
+  color: var(--text-2);
+  background: linear-gradient(140deg, var(--bg-0), var(--bg-1) 48%, var(--bg-2));
 }
 
 view,
@@ -68,17 +102,17 @@ button::after {
   height: 68rpx;
   margin-right: 12rpx;
   place-items: center;
-  border: 1rpx solid rgba(255, 255, 255, .72);
-  border-radius: 20rpx;
-  background: rgba(255, 255, 255, .82);
-  box-shadow: 0 10rpx 24rpx rgba(52, 95, 85, .08);
+  border: 1rpx solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
 }
 
 .page-title {
   position: relative;
   z-index: 2;
   margin: 0;
-  color: var(--text-strong);
+  color: var(--text-1);
   font-size: 40rpx;
   font-weight: 800;
   letter-spacing: 0;
@@ -88,7 +122,7 @@ button::after {
   position: relative;
   z-index: 2;
   margin-top: 10rpx;
-  color: var(--text-soft);
+  color: var(--text-3);
   font-size: 26rpx;
   line-height: 1.5;
 }
@@ -102,13 +136,13 @@ button::after {
 }
 
 .section-head__title {
-  color: var(--text-strong);
+  color: var(--text-1);
   font-size: 32rpx;
   font-weight: 800;
 }
 
 .section-head__more {
-  color: var(--teal);
+  color: var(--cyan);
   font-size: 24rpx;
   font-weight: 700;
 }
@@ -121,26 +155,26 @@ button::after {
   justify-content: center;
   min-height: 88rpx;
   gap: 10rpx;
-  border-radius: 24rpx;
+  border-radius: var(--radius-sm);
   font-size: 28rpx;
   font-weight: 800;
 }
 
 .primary-button {
   color: #fff;
-  background: linear-gradient(135deg, var(--primary), var(--blue));
-  box-shadow: 0 14rpx 34rpx rgba(52, 95, 85, .18);
+  background: linear-gradient(135deg, var(--blue), #6c63ff);
+  box-shadow: 0 14rpx 34rpx rgba(79, 140, 255, .22);
 }
 
 .ghost-button {
-  color: var(--teal);
-  background: rgba(255, 255, 255, .88);
-  border: 1rpx solid rgba(81, 119, 101, .14);
+  color: var(--text-1);
+  background: var(--surface-soft);
+  border: 1rpx solid var(--stroke);
 }
 
 .danger-button {
   color: #fff;
-  background: linear-gradient(135deg, #e9a24b, #d96459);
+  background: linear-gradient(135deg, var(--orange), var(--red));
 }
 
 .tap-scale {
@@ -173,10 +207,10 @@ button::after {
 
 @keyframes pulseSoft {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(217, 149, 85, .28);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, .28);
   }
   50% {
-    box-shadow: 0 0 0 18rpx rgba(217, 149, 85, 0);
+    box-shadow: 0 0 0 18rpx rgba(245, 158, 11, 0);
   }
 }
 

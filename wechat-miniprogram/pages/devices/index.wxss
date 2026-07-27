@@ -3,6 +3,109 @@
   align-items: center;
 }
 
+.board-card {
+  margin-top: 24rpx;
+}
+
+.board-head {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.board-chip {
+  display: grid;
+  width: 76rpx;
+  height: 76rpx;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--blue), #6c63ff);
+}
+
+.board-name {
+  color: var(--text-1);
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.board-sub {
+  margin-top: 6rpx;
+  color: var(--text-3);
+  font-size: 23rpx;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.board-grid view {
+  padding: 14rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  background: var(--surface-soft);
+}
+
+.board-grid small {
+  display: block;
+  color: var(--text-3);
+  font-size: 20rpx;
+}
+
+.board-grid text {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--text-1);
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.uptime-card {
+  margin-top: 18rpx;
+}
+
+.uptime-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.score-ring {
+  display: grid;
+  width: 108rpx;
+  height: 108rpx;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 9rpx solid rgba(79, 140, 255, .18);
+  border-top-color: var(--blue);
+  border-right-color: var(--blue);
+  border-radius: 50%;
+}
+
+.score-ring text {
+  color: var(--text-1);
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
+.uptime-title {
+  color: var(--text-1);
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.uptime-desc {
+  margin-top: 6rpx;
+  color: var(--text-3);
+  font-size: 23rpx;
+}
+
 .device-list {
   display: grid;
   gap: 18rpx;
@@ -20,19 +123,19 @@
   height: 82rpx;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 28rpx;
-  color: #345f55;
-  background: rgba(81, 119, 101, .12);
+  border-radius: var(--radius-sm);
+  color: var(--blue);
+  background: rgba(79, 140, 255, .14);
 }
 
 .device-icon.warning {
-  color: #9a6431;
-  background: rgba(217, 149, 85, .16);
+  color: var(--orange);
+  background: rgba(245, 158, 11, .16);
 }
 
 .device-icon.offline {
-  color: #9d443e;
-  background: rgba(203, 98, 89, .16);
+  color: var(--red);
+  background: rgba(239, 68, 68, .16);
 }
 
 .device-main {
@@ -48,7 +151,7 @@
 }
 
 .device-name {
-  color: #263a34;
+  color: var(--text-1);
   font-size: 31rpx;
   font-weight: 900;
 }
@@ -56,7 +159,7 @@
 .device-code,
 .device-meta {
   margin-top: 8rpx;
-  color: #879691;
+  color: var(--text-3);
   font-size: 23rpx;
 }
 
@@ -70,7 +173,7 @@
 .device-data view {
   padding: 14rpx;
   border-radius: 20rpx;
-  background: rgba(81, 119, 101, .08);
+  background: var(--surface-soft);
   text-align: center;
 }
 
@@ -80,14 +183,14 @@
 }
 
 .device-data text {
-  color: #263a34;
+  color: var(--text-1);
   font-size: 27rpx;
   font-weight: 900;
 }
 
 .device-data small {
   margin-top: 4rpx;
-  color: #879691;
+  color: var(--text-3);
   font-size: 20rpx;
 }
 
@@ -101,12 +204,12 @@
 .device-actions button {
   height: 64rpx;
   border-radius: 20rpx;
-  color: #345f55;
+  color: var(--text-2);
   font-size: 24rpx;
   font-weight: 900;
   text-align: center;
   line-height: 64rpx;
-  background: rgba(81, 119, 101, .1);
+  background: var(--surface-soft);
 }
 
 .add-device {

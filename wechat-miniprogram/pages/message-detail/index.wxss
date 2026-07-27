@@ -33,26 +33,26 @@
 }
 
 .detail-grid label {
-  color: #879691;
+  color: var(--text-3);
   font-size: 23rpx;
 }
 
 .detail-grid text {
   margin-top: 8rpx;
-  color: #263a34;
+  color: var(--text-1);
   font-size: 27rpx;
   font-weight: 900;
 }
 
 .section-title {
-  color: #263a34;
+  color: var(--text-1);
   font-size: 32rpx;
   font-weight: 900;
 }
 
 .copy {
   margin-top: 14rpx;
-  color: #4b635d;
+  color: var(--text-2);
   font-size: 28rpx;
   line-height: 1.6;
 }
