@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Camera, Expand, Focus, Lightbulb, Pause, Play, ScanLine, Volume2 } from 'lucide-vue-next'
 import type { DetectionBox } from '@/types'
 import { freshnessLabel } from '@/utils/format'
@@ -13,6 +13,23 @@ const props = defineProps<{
 const playing = ref(true)
 const selectedId = ref(props.detections[0]?.id)
 const selected = computed(() => props.detections.find((item) => item.id === selectedId.value) || props.detections[0])
+const frameReady = ref(false)
+const frameUrl = ref('')
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+let frameRefreshTimer: number | undefined
+
+const refreshFrame = () => {
+  frameUrl.value = `${apiBaseUrl}/frames/latest/image?t=${Date.now()}`
+}
+
+onMounted(() => {
+  refreshFrame()
+  frameRefreshTimer = window.setInterval(refreshFrame, 5000)
+})
+
+onBeforeUnmount(() => {
+  if (frameRefreshTimer !== undefined) window.clearInterval(frameRefreshTimer)
+})
 
 const produce = [
   { class: 'apple apple-1' }, { class: 'apple apple-2' }, { class: 'apple apple-3' },
@@ -26,8 +43,8 @@ const produce = [
   <section class="vision-panel glass-panel glass-panel--strong" :class="{ 'is-compact': compact }">
     <header class="vision-header">
       <div>
-        <div class="vision-title"><span class="realtime-dot" />实时 AI 视觉识别</div>
-        <div class="vision-subtitle">CAM-01 · YOLOv11 + MobileNetV3 · INT8</div>
+        <div class="vision-title"><span class="realtime-dot" />摄像头最新画面</div>
+        <div class="vision-subtitle">CAM-01 · 板端 JPEG · 每 5 秒刷新</div>
       </div>
       <div class="vision-header__actions">
         <span class="vision-mode"><Focus :size="13" /> AUTO TRACKING</span>
@@ -47,6 +64,14 @@ const produce = [
         <div class="crate crate-left" />
         <div class="crate crate-right" />
       </div>
+      <img
+        v-show="frameReady"
+        class="real-camera-frame"
+        :src="frameUrl"
+        alt="开发板摄像头最新画面"
+        @load="frameReady = true"
+        @error="frameReady = false"
+      >
       <div class="camera-vignette" />
       <div class="camera-grid" />
       <div v-if="playing" class="scan-beam" />
@@ -68,7 +93,7 @@ const produce = [
       </button>
 
       <div class="camera-top-overlay">
-        <span><Camera :size="12" /> LIVE</span>
+        <span><Camera :size="12" /> {{ frameReady ? 'REAL FRAME' : 'DEMO' }}</span>
         <span>{{ performance.fps }} FPS</span>
         <span>{{ performance.latency }} ms</span>
       </div>
@@ -109,6 +134,7 @@ const produce = [
 .vision-icon { width: 30px; height: 30px; border-radius: 9px; }
 .camera-stage { position: relative; min-height: 280px; flex: 1; overflow: hidden; border: 1px solid rgba(56, 189, 248, 0.19); border-radius: 15px; background: #0b1621; box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.42); }
 .camera-scene { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(180deg, #dce5e2 0%, #bfcac6 18%, #80918d 100%); filter: saturate(0.74) contrast(1.06) brightness(0.72); }
+.real-camera-frame { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; }
 .fridge-light { position: absolute; top: -20%; left: 21%; width: 58%; height: 70%; background: radial-gradient(ellipse, rgba(237, 255, 250, 0.95), rgba(174, 219, 211, 0.32) 42%, transparent 72%); filter: blur(12px); }
 .shelf { position: absolute; left: 5%; width: 90%; height: 7px; border-radius: 3px; background: linear-gradient(180deg, rgba(245, 255, 255, 0.86), rgba(106, 133, 132, 0.82)); box-shadow: 0 9px 15px rgba(0, 0, 0, 0.18); }
 .shelf::after { position: absolute; top: 7px; left: 2%; width: 96%; height: 4px; border-radius: 50%; background: rgba(9, 30, 31, 0.18); filter: blur(2px); content: ""; }

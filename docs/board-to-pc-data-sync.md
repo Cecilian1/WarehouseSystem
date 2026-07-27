@@ -41,7 +41,10 @@ Windows 本机 SQLite
 游标做增量同步；另外三张状态表每轮上传当前快照。服务端按主键执行幂等
 写入，相同数据重复传输不会产生重复记录。
 
-数据库中的 `image_path` 字段会同步，但图片文件本身不会随数据库记录上传。
+数据库中的 `image_path` 字段会同步，但图片文件本身不会长期复制到 Windows。
+Web 通过本机 `/api/frames/latest/image` 获取最新画面；本机没有对应文件时，
+该接口会代理读取开发板 `/api/frames/{frame_id}/image`，并以 `no-store`
+方式返回 JPEG。这样可以直接查看真实画面，同时避免本机重复保存大量帧文件。
 
 ## 启动本机服务器
 
@@ -67,6 +70,7 @@ powershell -ExecutionPolicy Bypass -File .\deploy\run_server_on_windows.ps1
 http://127.0.0.1:8000/api/health
 http://127.0.0.1:8000/api/sync/status
 http://127.0.0.1:8000/api/dashboard
+http://127.0.0.1:8000/api/frames/latest/image
 ```
 
 Web 前端的 `.env.local` 已配置为访问本机服务：

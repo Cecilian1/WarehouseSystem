@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import asyncio
 import os
+import urllib.error
+import urllib.request
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -21,7 +23,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from backend.common.db import connection_scope
 from backend.sync_service.collector import start_background_collector
@@ -33,6 +35,7 @@ BOARD_SOURCE_URL = os.environ.get("WAREHOUSE_BOARD_SOURCE_URL", "")
 COLLECTOR_STATE_PATH = os.environ.get(
     "WAREHOUSE_COLLECTOR_STATE_PATH", "data/collector-state.json"
 )
+MAX_PROXY_IMAGE_BYTES = 10 * 1024 * 1024
 
 app = FastAPI(title="WarehouseKeeper API", version="1.0.0")
 
@@ -950,13 +953,69 @@ def image_response(image_path: Any) -> FileResponse:
     path = Path(str(image_path))
     if not path.is_file():
         raise HTTPException(status_code=404, detail=f"图片文件不存在: {path}")
-    return FileResponse(path)
+    return FileResponse(path, headers={"Cache-Control": "no-store"})
+
+
+def proxy_board_frame(frame_id: int) -> Response:
+    if not BOARD_SOURCE_URL:
+        raise HTTPException(status_code=404, detail="图片文件不存在，且未配置板端地址")
+
+    url = f"{BOARD_SOURCE_URL.rstrip('/')}/api/frames/{frame_id}/image"
+    request = urllib.request.Request(url, method="GET")
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(request, timeout=10) as upstream:
+            media_type = upstream.headers.get_content_type()
+            content = upstream.read(MAX_PROXY_IMAGE_BYTES + 1)
+    except urllib.error.HTTPError as exc:
+        status_code = 404 if exc.code == 404 else 502
+        raise HTTPException(
+            status_code=status_code,
+            detail=f"读取板端图片失败: HTTP {exc.code}",
+        ) from exc
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise HTTPException(status_code=502, detail=f"无法连接板端图片接口: {exc}") from exc
+
+    if not media_type.startswith("image/"):
+        raise HTTPException(status_code=502, detail="板端返回的内容不是图片")
+    if len(content) > MAX_PROXY_IMAGE_BYTES:
+        raise HTTPException(status_code=502, detail="板端图片超过 10 MB 限制")
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def frame_image_response(frame_id: int, image_path: Any) -> Response:
+    if image_path:
+        path = Path(str(image_path))
+        if path.is_file():
+            return FileResponse(path, headers={"Cache-Control": "no-store"})
+    return proxy_board_frame(frame_id)
+
+
+@app.get("/api/frames/latest/image")
+def latest_frame_image() -> Response:
+    row = query_one(
+        """
+        SELECT id, image_path
+        FROM pending_frames
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+        """
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="暂无摄像头图片")
+    return frame_image_response(int(row["id"]), row.get("image_path"))
 
 
 @app.get("/api/frames/{frame_id}/image")
-def frame_image(frame_id: int) -> FileResponse:
+def frame_image(frame_id: int) -> Response:
     row = query_one("SELECT image_path FROM pending_frames WHERE id = ?", (frame_id,))
-    return image_response(row.get("image_path") if row else None)
+    if not row:
+        raise HTTPException(status_code=404, detail="图片记录不存在")
+    return frame_image_response(frame_id, row.get("image_path"))
 
 
 @app.get("/api/frames/inventory-log/{log_id}/image")
