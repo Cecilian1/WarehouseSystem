@@ -26,12 +26,16 @@ _SYSFS_GPIO_ROOT = "/sys/class/gpio"
 
 
 class LedControl:
-    def __init__(self, gpio_num: int, warmup_sec: float = 0.08):
-        self.gpio_num = gpio_num
+    def __init__(self, gpio_num: int | None, warmup_sec: float = 0.08):
+        self.gpio_num = None if gpio_num is None else int(gpio_num)
         self.warmup_sec = warmup_sec
         self._line = None  # gpiod line，仅gpiod路径使用
         self._chip = None
         self._available = False  # LED是否可用标志
+
+        if self.gpio_num is None or self.gpio_num < 0:
+            logger.info("未配置补光灯GPIO，LED控制已禁用")
+            return
 
         if _HAS_GPIOD:
             try:
@@ -43,13 +47,13 @@ class LedControl:
                     self._init_sysfs()
                     self._available = True
                 except OSError as e2:
-                    logger.warning(f"LED GPIO {gpio_num} 初始化失败（可能被占用或无权限），禁用LED: {e2}")
+                    logger.warning(f"LED GPIO {self.gpio_num} 初始化失败（可能被占用或无权限），禁用LED: {e2}")
         else:
             try:
                 self._init_sysfs()
                 self._available = True
             except OSError as e:
-                logger.warning(f"LED GPIO {gpio_num} 初始化失败（可能被占用或无权限），禁用LED: {e}")
+                logger.warning(f"LED GPIO {self.gpio_num} 初始化失败（可能被占用或无权限），禁用LED: {e}")
 
     # ---------- gpiod 路径 ----------
     def _init_gpiod(self) -> None:

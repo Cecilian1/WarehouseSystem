@@ -10,7 +10,7 @@ capture_interval_sec: 45
 
 # LED补光灯GPIO编号（sysfs方式，/sys/class/gpio/export）
 # 占位值，需开发者按JP7扩展排针实测选定的GPIO编号填写，不要直接采信此默认值
-led_gpio: 74
+led_gpio: null
 
 # 补光灯点亮后等待多久再拍照，保证曝光稳定（秒）
 led_warmup_sec: 0.08

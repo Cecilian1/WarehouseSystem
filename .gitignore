@@ -10,6 +10,7 @@ qt-frontend/*.pro.user
 *.db
 *.db-wal
 *.db-shm
+data/collector-state.json
 
 # 采集图片
 backend/camera_service/frames/

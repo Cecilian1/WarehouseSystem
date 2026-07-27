@@ -6,19 +6,33 @@ response shape without changing any table definition.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import (
+    Body,
+    FastAPI,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from backend.common.db import connection_scope
+from backend.sync_service.collector import start_background_collector
+from backend.sync_service.storage import TABLE_COLUMNS
 
 DEFAULT_DB_PATH = "/data/warehousekeeper/warehousekeeper.db"
 DB_PATH = os.environ.get("WAREHOUSE_DB_PATH", DEFAULT_DB_PATH)
+BOARD_SOURCE_URL = os.environ.get("WAREHOUSE_BOARD_SOURCE_URL", "")
+COLLECTOR_STATE_PATH = os.environ.get(
+    "WAREHOUSE_COLLECTOR_STATE_PATH", "data/collector-state.json"
+)
 
 app = FastAPI(title="WarehouseKeeper API", version="1.0.0")
 
@@ -517,6 +531,84 @@ def alert_rows() -> list[dict[str, Any]]:
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     return ok({"dbPath": DB_PATH, "dbExists": Path(DB_PATH).exists()})
+
+
+@app.get("/api/sync/status")
+def sync_status() -> dict[str, Any]:
+    rows = query_all(
+        """
+        SELECT source_device_id, last_sync_at, last_counts_json
+        FROM sync_source_status
+        ORDER BY last_sync_at DESC
+        """
+    )
+    return ok(rows)
+
+
+@app.get("/api/sync/export")
+def sync_export(
+    inventory_log_after: int = Query(0, ge=0),
+    alert_record_after: int = Query(0, ge=0),
+    env_log_after: int = Query(0, ge=0),
+    pending_frames_after: int = Query(0, ge=0),
+    batch_size: int = Query(200, ge=1, le=1000),
+) -> dict[str, Any]:
+    after_ids = {
+        "inventory_log": inventory_log_after,
+        "alert_record": alert_record_after,
+        "env_log": env_log_after,
+        "pending_frames": pending_frames_after,
+    }
+    tables: dict[str, list[dict[str, Any]]] = {}
+    for table in ("produce_info", "stock_summary", "device_status"):
+        columns = ", ".join(TABLE_COLUMNS[table])
+        tables[table] = query_all(f"SELECT {columns} FROM {table}")
+    for table, last_id in after_ids.items():
+        columns = ", ".join(TABLE_COLUMNS[table])
+        tables[table] = query_all(
+            f"SELECT {columns} FROM {table} "
+            "WHERE id > ? ORDER BY id LIMIT ?",
+            (last_id, batch_size),
+        )
+    return ok({"sourceDeviceId": "fridge-01", "tables": tables})
+
+
+@app.websocket("/ws/notify")
+async def websocket_notify(websocket: WebSocket) -> None:
+    """Push current board data to connected Web dashboards."""
+    await websocket.accept()
+    try:
+        while True:
+            items = inventory_rows()
+            alerts = alert_rows()
+            await websocket.send_json(
+                {"type": "environment:update", "payload": environment_data()}
+            )
+            await websocket.send_json(
+                {
+                    "type": "inventory:update",
+                    "payload": {
+                        "stock": sum(safe_float(item["quantity"]) for item in items),
+                        "alerts": len(
+                            [item for item in alerts if item["status"] == "pending"]
+                        ),
+                    },
+                }
+            )
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        pass
+
+
+if BOARD_SOURCE_URL:
+    @app.on_event("startup")
+    def start_board_collector() -> None:
+        start_background_collector(
+            BOARD_SOURCE_URL,
+            DB_PATH,
+            COLLECTOR_STATE_PATH,
+            int(os.environ.get("WAREHOUSE_SYNC_INTERVAL_SEC", "5")),
+        )
 
 
 @app.get("/api/dashboard")

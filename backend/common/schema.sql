@@ -69,6 +69,12 @@ CREATE TABLE IF NOT EXISTS pending_frames (
     processed_at  TEXT
 );
 
+CREATE TABLE IF NOT EXISTS sync_source_status (
+    source_device_id TEXT PRIMARY KEY,
+    last_sync_at     TEXT NOT NULL,
+    last_counts_json TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_inventory_log_created_at ON inventory_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_alert_record_is_read ON alert_record(is_read);
 CREATE INDEX IF NOT EXISTS idx_env_log_recorded_at ON env_log(recorded_at);
