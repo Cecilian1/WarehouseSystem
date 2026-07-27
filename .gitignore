@@ -35,3 +35,7 @@ web-frontend/vite-plugin-temp-*
 
 # 项目状态文档（本地only，不入库）
 PROJECT_STATUS.md
+
+# Local service logs
+*.out.log
+*.err.log
