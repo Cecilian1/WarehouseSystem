@@ -23,6 +23,15 @@ class PendingFrameWriter:
         self.frame_save_dir = Path(frame_save_dir)
         self.frame_save_dir.mkdir(parents=True, exist_ok=True)
 
+    def save_latest(self, frame: np.ndarray, filename: str = "latest.jpg") -> Path:
+        """原子更新供Web预览的最新帧，不写入pending_frames。"""
+        image_path = self.frame_save_dir / Path(filename).name
+        temp_path = image_path.with_name(f".{image_path.stem}.tmp{image_path.suffix}")
+        if not cv2.imwrite(str(temp_path), frame):
+            raise OSError(f"最新帧写入失败: {temp_path}")
+        temp_path.replace(image_path)
+        return image_path
+
     def save_and_register(self, frame: np.ndarray, change_ratio: float) -> int:
         """保存图片并写入pending_frames，返回新记录id。"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")

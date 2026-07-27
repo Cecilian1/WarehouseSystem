@@ -42,9 +42,12 @@ Windows 本机 SQLite
 写入，相同数据重复传输不会产生重复记录。
 
 数据库中的 `image_path` 字段会同步，但图片文件本身不会长期复制到 Windows。
+摄像头服务每 5 秒清理旧的 UVC 缓冲帧并原子覆盖板端
+`/data/warehousekeeper/frames/latest.jpg`，该预览更新不额外写入数据库。
 Web 通过本机 `/api/frames/latest/image` 获取最新画面；本机没有对应文件时，
-该接口会代理读取开发板 `/api/frames/{frame_id}/image`，并以 `no-store`
-方式返回 JPEG。这样可以直接查看真实画面，同时避免本机重复保存大量帧文件。
+该接口会代理读取开发板的同名最新帧接口，并以 `no-store` 方式返回 JPEG；
+历史变化帧仍可通过 `/api/frames/{frame_id}/image` 获取。这样可以直接查看
+真实画面，同时避免本机重复保存大量帧文件。
 
 ## 启动本机服务器
 

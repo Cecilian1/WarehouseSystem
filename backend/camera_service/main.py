@@ -2,11 +2,12 @@
 
 流程（对应docx 2.3节视觉触发流程）：
 1. 点亮LED补光灯
-2. 采集一帧图像
-3. 熄灭LED补光灯（节能）
-4. 与上一帧做帧间差分，计算变化像素占比
-5. 变化占比超阈值则落盘图片+登记pending_frames，供未来AI服务消费
-6. sleep至下一周期
+2. 清理UVC旧缓冲并采集一帧图像
+3. 原子更新latest.jpg，供Web预览
+4. 熄灭LED补光灯（节能）
+5. 与上一帧做帧间差分，计算变化像素占比
+6. 变化占比超阈值则落盘图片+登记pending_frames，供未来AI服务消费
+7. sleep至下一周期
 """
 
 import logging
@@ -51,6 +52,7 @@ def main() -> None:
     camera = CameraCapture(
         device=config["camera_device"],
         resolution=tuple(config["resolution"]),
+        discard_frames_before_capture=config.get("discard_frames_before_capture", 4),
     )
     led = LedControl(
         gpio_num=config["led_gpio"],
@@ -71,6 +73,7 @@ def main() -> None:
 
     change_ratio_threshold = config["change_ratio_threshold"]
     interval_sec = config["capture_interval_sec"]
+    latest_frame_name = config.get("latest_frame_name", "latest.jpg")
 
     try:
         camera.open()
@@ -92,6 +95,7 @@ def main() -> None:
                 if frame is None:
                     status_reporter.report(camera_ok=False)
                 else:
+                    frame_writer.save_latest(frame, latest_frame_name)
                     status_reporter.report(camera_ok=True)
                     change_ratio = diff_detector.compute_change_ratio(frame)
                     if change_ratio >= change_ratio_threshold:

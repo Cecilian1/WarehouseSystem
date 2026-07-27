@@ -5,8 +5,11 @@ camera_device: /dev/video0
 # 采集分辨率（与官方QCamera示例一致，控制单核CPU负载）
 resolution: [640, 480]
 
-# 每隔多少秒采集一次（补光→取帧→熄灯的完整周期），对应docx"30秒~1分钟"，此处默认45秒
-capture_interval_sec: 45
+# Web预览每5秒刷新一次；变化触发记录仍由change_ratio_threshold控制
+capture_interval_sec: 5
+
+# 低频读取UVC设备时，正式取帧前丢弃的旧缓冲帧数量
+discard_frames_before_capture: 4
 
 # LED补光灯GPIO编号（sysfs方式，/sys/class/gpio/export）
 # 占位值，需开发者按JP7扩展排针实测选定的GPIO编号填写，不要直接采信此默认值
@@ -24,6 +27,9 @@ diff_downsample: [320, 240]
 
 # 采集图片保存目录
 frame_save_dir: /data/warehousekeeper/frames
+
+# 每轮采集都会原子覆盖该文件，专门供Web最新画面接口读取
+latest_frame_name: latest.jpg
 
 # SQLite数据库文件路径（与env_service、Qt前端共用同一个文件）
 db_path: /data/warehousekeeper/warehousekeeper.db

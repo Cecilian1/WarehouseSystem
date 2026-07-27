@@ -36,6 +36,10 @@ COLLECTOR_STATE_PATH = os.environ.get(
     "WAREHOUSE_COLLECTOR_STATE_PATH", "data/collector-state.json"
 )
 MAX_PROXY_IMAGE_BYTES = 10 * 1024 * 1024
+LATEST_FRAME_PATH = os.environ.get(
+    "WAREHOUSE_LATEST_FRAME_PATH",
+    "/data/warehousekeeper/frames/latest.jpg",
+)
 
 app = FastAPI(title="WarehouseKeeper API", version="1.0.0")
 
@@ -956,11 +960,11 @@ def image_response(image_path: Any) -> FileResponse:
     return FileResponse(path, headers={"Cache-Control": "no-store"})
 
 
-def proxy_board_frame(frame_id: int) -> Response:
+def proxy_board_image(path: str) -> Response:
     if not BOARD_SOURCE_URL:
         raise HTTPException(status_code=404, detail="图片文件不存在，且未配置板端地址")
 
-    url = f"{BOARD_SOURCE_URL.rstrip('/')}/api/frames/{frame_id}/image"
+    url = f"{BOARD_SOURCE_URL.rstrip('/')}{path}"
     request = urllib.request.Request(url, method="GET")
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     try:
@@ -987,6 +991,10 @@ def proxy_board_frame(frame_id: int) -> Response:
     )
 
 
+def proxy_board_frame(frame_id: int) -> Response:
+    return proxy_board_image(f"/api/frames/{frame_id}/image")
+
+
 def frame_image_response(frame_id: int, image_path: Any) -> Response:
     if image_path:
         path = Path(str(image_path))
@@ -997,6 +1005,12 @@ def frame_image_response(frame_id: int, image_path: Any) -> Response:
 
 @app.get("/api/frames/latest/image")
 def latest_frame_image() -> Response:
+    latest_path = Path(LATEST_FRAME_PATH)
+    if latest_path.is_file():
+        return FileResponse(latest_path, headers={"Cache-Control": "no-store"})
+    if BOARD_SOURCE_URL:
+        return proxy_board_image("/api/frames/latest/image")
+
     row = query_one(
         """
         SELECT id, image_path
