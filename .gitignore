@@ -39,3 +39,9 @@ PROJECT_STATUS.md
 # Local service logs
 *.out.log
 *.err.log
+
+# env
+.env
+
+# claude
+.claude/

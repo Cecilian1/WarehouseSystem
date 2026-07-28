@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { Bell, CircleUserRound, Database, KeyRound, Link2, LockKeyhole, Moon, Network, Save, ShieldCheck, SlidersHorizontal, Sun, UserPlus, Webhook } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -35,6 +35,11 @@ const users = [
 ]
 
 watch(() => form.theme, (value) => appStore.applyTheme(value))
+
+onMounted(async () => {
+  const response = await settingsApi.get()
+  Object.assign(form, response.data)
+})
 
 const save = async () => {
   saving.value = true

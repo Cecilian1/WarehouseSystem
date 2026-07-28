@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import {
-  BellRing, Boxes, ChartNoAxesCombined, ChevronLeft, ChevronRight, Cpu, History, LayoutDashboard, Leaf, Radar, ScanSearch, Settings2, Thermometer,
+  BellRing, Boxes, ChartNoAxesCombined, ChevronLeft, ChevronRight, Cpu, History, LayoutDashboard, Leaf, ListPlus, Radar, ScanSearch, Settings2, Thermometer,
 } from 'lucide-vue-next'
 import { useAppStore } from '@/stores/app'
 
@@ -18,6 +18,7 @@ const items = [
   { path: '/devices', label: '设备管理', icon: Cpu },
   { path: '/history', label: '历史记录', icon: History },
   { path: '/analytics', label: '统计分析', icon: ChartNoAxesCombined },
+  { path: '/produce-info', label: '信息录入', icon: ListPlus },
   { path: '/settings', label: '系统设置', icon: Settings2 },
 ]
 
