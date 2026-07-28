@@ -29,6 +29,7 @@ from backend.api_service.alerts_engine import router as alerts_router
 from backend.api_service.alerts_engine import start_alert_scan_task
 from backend.api_service.auth import router as auth_router
 from backend.api_service.helpers import (
+    allocate_local_id,
     alert_rows,
     category_stats,
     device_statuses,
@@ -49,6 +50,7 @@ from backend.api_service.helpers import (
     stock_trend,
 )
 from backend.api_service.inventory_ops import router as inventory_ops_router
+from backend.api_service.miniprogram_compat import router as miniprogram_compat_router
 from backend.api_service.records import router as records_router
 from backend.api_service.settings_store import router as settings_router
 from backend.common.db import connection_scope
@@ -85,6 +87,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(alerts_router)
 app.include_router(inventory_ops_router)
+app.include_router(miniprogram_compat_router)
 app.include_router(settings_router)
 app.include_router(records_router)
 
@@ -281,12 +284,15 @@ def produce_create(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     if not name:
         raise HTTPException(status_code=400, detail="果蔬名称不能为空")
     with connection_scope(DB_PATH) as conn:
-        cursor = conn.execute(
+        produce_id = allocate_local_id(conn, "produce_info")
+        conn.execute(
             """
-            INSERT INTO produce_info (name, category, shelf_life_days, ideal_temp_range, icon_url)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO produce_info
+                (id, name, category, shelf_life_days, ideal_temp_range, icon_url)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
+                produce_id,
                 name,
                 payload.get("category") or "",
                 safe_int(payload.get("shelfLifeDays")),
@@ -294,7 +300,6 @@ def produce_create(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
                 payload.get("iconUrl") or "",
             ),
         )
-        produce_id = cursor.lastrowid
     return ok(get_produce_item(int(produce_id)))
 
 
@@ -325,10 +330,19 @@ def produce_update(produce_id: int, payload: dict[str, Any] = Body(...)) -> dict
 
 
 @app.get("/api/alerts")
-def alerts(status: str = "") -> dict[str, Any]:
+def alerts(status: str = "", level: str = "", keyword: str = "") -> dict[str, Any]:
     items = alert_rows()
-    if status:
+    if status and status != "all":
         items = [item for item in items if item["status"] == status]
+    if level and level != "all":
+        items = [item for item in items if item["level"] == level]
+    if keyword:
+        lowered = keyword.lower()
+        items = [
+            item
+            for item in items
+            if lowered in f"{item['title']}{item['source']}{item['description']}".lower()
+        ]
     return ok(items)
 
 

@@ -1,5 +1,21 @@
 const { authService } = require('../../services/api')
+const config = require('../../config/index')
 const { applyThemeClass } = require('../../utils/theme')
+
+function getWechatLoginCode() {
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success(result) {
+        if (result.code) {
+          resolve(result.code)
+          return
+        }
+        reject(new Error('微信登录未返回 code'))
+      },
+      fail: reject
+    })
+  })
+}
 
 Page({
   data: {
@@ -22,13 +38,22 @@ Page({
   },
   login() {
     this.setData({ loading: true })
-    authService.loginByWechat({ scene: 'demo' }).then((res) => {
+    getWechatLoginCode().then((code) => authService.loginByWechat({
+      code,
+      scene: config.enableDemoLogin ? 'demo' : 'wechat'
+    })).then((res) => {
       wx.setStorageSync('token', res.data.token)
       wx.setStorageSync('userInfo', res.data.userInfo)
       return authService.bindDevice({ deviceCode: this.data.deviceCode })
     }).then(() => {
       wx.showToast({ title: '设备已绑定', icon: 'success' })
       setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 500)
+    }).catch((error) => {
+      wx.showToast({
+        title: error.message || '登录失败',
+        icon: 'none',
+        duration: 2600
+      })
     }).finally(() => {
       this.setData({ loading: false })
     })

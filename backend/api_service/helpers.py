@@ -19,6 +19,7 @@ from backend.common.db import connection_scope
 
 DEFAULT_DB_PATH = "/data/warehousekeeper/warehousekeeper.db"
 DB_PATH = os.environ.get("WAREHOUSE_DB_PATH", DEFAULT_DB_PATH)
+SERVER_LOCAL_ID_BASE = 1_000_000_000
 
 
 def ok(data: Any) -> dict[str, Any]:
@@ -34,6 +35,17 @@ def query_all(sql: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
 def query_one(sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
     rows = query_all(sql, params)
     return rows[0] if rows else None
+
+
+def allocate_local_id(conn: Any, table: str) -> int:
+    """Allocate IDs outside the development board's normal autoincrement range."""
+    if table not in {"produce_info", "inventory_log", "alert_record"}:
+        raise ValueError(f"unsupported local-id table: {table}")
+    row = conn.execute(
+        f"SELECT COALESCE(MAX(id), ?) AS max_id FROM {table} WHERE id >= ?",
+        (SERVER_LOCAL_ID_BASE - 1, SERVER_LOCAL_ID_BASE),
+    ).fetchone()
+    return int(row["max_id"]) + 1
 
 
 def parse_dt(value: Any) -> datetime | None:

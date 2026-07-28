@@ -103,6 +103,62 @@ def _upsert_rows(conn: Any, table: str, rows: list[dict[str, Any]]) -> int:
     return len(values)
 
 
+def _reapply_local_inventory(
+    conn: Any, board_stock_rows: list[dict[str, Any]]
+) -> None:
+    """Keep server-side manual operations on top of the board stock snapshot."""
+    board_quantities = {
+        int(row["produce_id"]): float(row.get("current_qty") or 0)
+        for row in board_stock_rows
+        if isinstance(row, dict) and row.get("produce_id") is not None
+    }
+    local_deltas = conn.execute(
+        """
+        SELECT
+            produce_id,
+            SUM(
+                CASE action_type
+                    WHEN 'IN' THEN COALESCE(quantity, 0)
+                    WHEN 'OUT' THEN -COALESCE(quantity, 0)
+                    ELSE 0
+                END
+            ) AS quantity_delta
+        FROM inventory_log
+        WHERE
+            sync_status = 'local'
+            AND id >= 1000000000
+            AND produce_id IS NOT NULL
+        GROUP BY produce_id
+        """
+    ).fetchall()
+    for row in local_deltas:
+        produce_id = int(row["produce_id"])
+        base_quantity = board_quantities.get(produce_id, 0.0)
+        combined_quantity = max(
+            0.0, base_quantity + float(row["quantity_delta"] or 0)
+        )
+        existing = conn.execute(
+            """
+            SELECT earliest_expire_date
+            FROM stock_summary
+            WHERE produce_id = ?
+            """,
+            (produce_id,),
+        ).fetchone()
+        expire_date = existing["earliest_expire_date"] if existing else ""
+        conn.execute(
+            """
+            INSERT INTO stock_summary
+                (produce_id, current_qty, earliest_expire_date, last_updated)
+            VALUES (?, ?, ?, datetime('now', 'localtime'))
+            ON CONFLICT(produce_id) DO UPDATE SET
+                current_qty = excluded.current_qty,
+                last_updated = excluded.last_updated
+            """,
+            (produce_id, combined_quantity, expire_date or ""),
+        )
+
+
 def apply_sync_payload(db_path: str, payload: dict[str, Any]) -> dict[str, int]:
     init_db(db_path)
     source_device_id = str(payload.get("sourceDeviceId") or "unknown").strip()
@@ -117,6 +173,8 @@ def apply_sync_payload(db_path: str, payload: dict[str, Any]) -> dict[str, int]:
             if not isinstance(rows, list):
                 raise ValueError(f"{table} must be a list")
             counts[table] = _upsert_rows(conn, table, rows)
+
+        _reapply_local_inventory(conn, tables.get("stock_summary", []))
 
         conn.execute(
             """

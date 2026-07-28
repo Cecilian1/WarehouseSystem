@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from datetime import date, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -15,6 +16,7 @@ from backend.api_service import ws_hub
 from backend.api_service.auth import get_current_user
 from backend.api_service.helpers import (
     DB_PATH,
+    allocate_local_id,
     connection_scope,
     ok,
     query_one,
@@ -61,32 +63,84 @@ def _decrement_stock_after_outbound(conn, produce_id: int, quantity: float) -> N
     )
 
 
+def _resolve_inbound_produce(payload: dict[str, Any]) -> int:
+    produce_id = payload.get("produceId") or payload.get("id")
+    if produce_id:
+        produce_id = int(produce_id)
+        if not query_one("SELECT id FROM produce_info WHERE id = ?", (produce_id,)):
+            raise HTTPException(status_code=404, detail="果蔬信息不存在")
+        return produce_id
+
+    name = str(payload.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="缺少 produceId 或果蔬名称")
+    category = str(payload.get("category") or "").strip()
+    existing = query_one(
+        "SELECT id FROM produce_info WHERE name = ? AND category = ? ORDER BY id LIMIT 1",
+        (name, category),
+    )
+    if existing:
+        return int(existing["id"])
+
+    shelf_life = int(payload.get("shelfLife") or payload.get("shelfLifeDays") or 0)
+    storage_advice = str(
+        payload.get("storageAdvice") or payload.get("idealTempRange") or ""
+    )
+    with connection_scope(DB_PATH) as conn:
+        produce_id = allocate_local_id(conn, "produce_info")
+        conn.execute(
+            """
+            INSERT INTO produce_info
+                (id, name, category, shelf_life_days, ideal_temp_range, icon_url)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                produce_id,
+                name,
+                category,
+                shelf_life,
+                storage_advice,
+                str(payload.get("iconUrl") or ""),
+            ),
+        )
+    return produce_id
+
+
 @router.post("/api/inventory/inbound")
 async def inventory_inbound(
     payload: dict[str, Any] = Body(...),
     user_id: int = Depends(get_current_user),
 ) -> dict[str, Any]:
-    produce_id = payload.get("produceId")
+    produce_id = _resolve_inbound_produce(payload)
     quantity = safe_float(payload.get("quantity"), 0)
     expire_date = payload.get("expireDate")
-    if not produce_id or quantity <= 0:
-        raise HTTPException(status_code=400, detail="缺少 produceId 或 quantity 非法")
-    if not query_one("SELECT id FROM produce_info WHERE id = ?", (produce_id,)):
-        raise HTTPException(status_code=404, detail="果蔬信息不存在")
+    if not expire_date:
+        shelf_life = int(payload.get("shelfLife") or payload.get("shelfLifeDays") or 0)
+        if shelf_life > 0:
+            expire_date = (date.today() + timedelta(days=shelf_life)).isoformat()
+    if quantity <= 0:
+        raise HTTPException(status_code=400, detail="quantity 必须大于 0")
 
     with connection_scope(DB_PATH) as conn:
-        cursor = conn.execute(
+        log_id = allocate_local_id(conn, "inventory_log")
+        conn.execute(
             """
-            INSERT INTO inventory_log (produce_id, action_type, quantity, sync_status)
-            VALUES (?, 'IN', ?, 'local')
+            INSERT INTO inventory_log
+                (id, produce_id, action_type, quantity, sync_status)
+            VALUES (?, ?, 'IN', ?, 'local')
             """,
-            (produce_id, quantity),
+            (log_id, produce_id, quantity),
         )
-        log_id = int(cursor.lastrowid)
         _upsert_stock_after_inbound(conn, produce_id, quantity, expire_date)
 
     await _broadcast_recognition(log_id)
-    return ok({"success": True, "data": recognition_row_by_id(log_id)})
+    return ok(
+        {
+            "success": True,
+            "produceId": produce_id,
+            "data": recognition_row_by_id(log_id),
+        }
+    )
 
 
 @router.post("/api/inventory/outbound")
@@ -94,22 +148,24 @@ async def inventory_outbound(
     payload: dict[str, Any] = Body(...),
     user_id: int = Depends(get_current_user),
 ) -> dict[str, Any]:
-    produce_id = payload.get("produceId")
+    produce_id = payload.get("produceId") or payload.get("id")
     quantity = safe_float(payload.get("quantity"), 0)
     if not produce_id or quantity <= 0:
         raise HTTPException(status_code=400, detail="缺少 produceId 或 quantity 非法")
+    produce_id = int(produce_id)
     if not query_one("SELECT id FROM produce_info WHERE id = ?", (produce_id,)):
         raise HTTPException(status_code=404, detail="果蔬信息不存在")
 
     with connection_scope(DB_PATH) as conn:
-        cursor = conn.execute(
+        log_id = allocate_local_id(conn, "inventory_log")
+        conn.execute(
             """
-            INSERT INTO inventory_log (produce_id, action_type, quantity, sync_status)
-            VALUES (?, 'OUT', ?, 'local')
+            INSERT INTO inventory_log
+                (id, produce_id, action_type, quantity, sync_status)
+            VALUES (?, ?, 'OUT', ?, 'local')
             """,
-            (produce_id, quantity),
+            (log_id, produce_id, quantity),
         )
-        log_id = int(cursor.lastrowid)
         _decrement_stock_after_outbound(conn, produce_id, quantity)
 
     await _broadcast_recognition(log_id)
@@ -121,7 +177,7 @@ def recognitions_confirm(
     payload: dict[str, Any] = Body(...),
     user_id: int = Depends(get_current_user),
 ) -> dict[str, Any]:
-    log_id = payload.get("id")
+    log_id = payload.get("id") or payload.get("frameId")
     if log_id is None:
         raise HTTPException(status_code=400, detail="缺少识别记录 id")
     row = recognition_row_by_id(int(log_id))

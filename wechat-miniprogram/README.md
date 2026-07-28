@@ -12,7 +12,7 @@
 
 ## 数据接入
 
-默认使用 `mock/data.js`，覆盖：
+`mock/data.js` 可用于纯前端演示，覆盖：
 
 - 10 种果蔬库存
 - 20 条出入库记录
@@ -22,15 +22,22 @@
 - 3 台设备
 - 1 组完整 AI 识别结果
 
-后续接入开发板 FastAPI 时，修改 `config/index.js`：
+当前联调架构由 Windows 后端统一服务 Web 和小程序，并由 Windows 后端每
+5 秒从开发板拉取数据。修改 `config/index.js`：
 
 ```js
 module.exports = {
   enableMock: false,
-  baseUrl: 'http://开发板IP:8000/api',
-  wsUrl: 'ws://开发板IP:8000/ws'
+  enableDemoLogin: true,
+  baseUrl: 'http://Windows局域网IP:8000/api',
+  wsUrl: 'ws://Windows局域网IP:8000/ws/notify'
 }
 ```
+
+本地联调脚本 `deploy/run_server_on_windows.ps1` 会显式启用受控演示登录。
+正式环境必须把 `WAREHOUSE_ALLOW_DEMO_LOGIN` 关闭，并配置
+`WAREHOUSE_WECHAT_APPID`、`WAREHOUSE_WECHAT_APP_SECRET`，小程序登录页
+会通过 `wx.login()` 获取临时 code。
 
 正式小程序发布需把接口改为 HTTPS 合法域名。
 

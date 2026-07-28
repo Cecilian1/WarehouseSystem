@@ -41,6 +41,11 @@ Windows 本机 SQLite
 游标做增量同步；另外三张状态表每轮上传当前快照。服务端按主键执行幂等
 写入，相同数据重复传输不会产生重复记录。
 
+小程序/服务端产生的手工出入库记录使用 `sync_status=local` 和
+`1000000000` 以上的保留 ID，避免与开发板自增 ID 冲突。每轮同步板端
+`stock_summary` 快照后，本机会自动重放这些本地出入库增量，因此小程序
+写入不会在下一轮同步时被板端库存快照覆盖。
+
 数据库中的 `image_path` 字段会同步，但图片文件本身不会长期复制到 Windows。
 摄像头服务每 5 秒清理旧的 UVC 缓冲帧并原子覆盖板端
 `/data/warehousekeeper/frames/latest.jpg`，该预览更新不额外写入数据库。
@@ -64,6 +69,9 @@ powershell -ExecutionPolicy Bypass -File .\deploy\run_server_on_windows.ps1
 2. 启动本机 FastAPI 服务（端口 8000）；
 3. 每 5 秒从开发板读取新增数据；
 4. 把数据写入本机 SQLite，供 Web 前端读取。
+
+脚本还会为同一局域网内的小程序联调启用受控演示登录。正式部署时应关闭
+`WAREHOUSE_ALLOW_DEMO_LOGIN`，并通过环境变量配置微信 AppID/AppSecret。
 
 ## 验证
 

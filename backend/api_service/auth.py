@@ -20,6 +20,11 @@ from backend.api_service.helpers import connection_scope, ok, query_one, DB_PATH
 
 WECHAT_APPID = os.environ.get("WAREHOUSE_WECHAT_APPID", "")
 WECHAT_APP_SECRET = os.environ.get("WAREHOUSE_WECHAT_APP_SECRET", "")
+ALLOW_DEMO_LOGIN = os.environ.get("WAREHOUSE_ALLOW_DEMO_LOGIN", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 SESSION_TTL_DAYS = int(os.environ.get("WAREHOUSE_SESSION_TTL_DAYS", "7"))
 WECHAT_CODE2SESSION_URL = "https://api.weixin.qq.com/sns/jscode2session"
 
@@ -78,12 +83,18 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> int:
 @router.post("/api/auth/wechat-login")
 def wechat_login(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     code = str(payload.get("code") or "").strip()
-    if not code:
-        raise HTTPException(status_code=400, detail="缺少微信登录 code")
-
-    session = wechat_code2session(code)
+    demo_requested = str(payload.get("scene") or "").strip().lower() == "demo"
+    if demo_requested and ALLOW_DEMO_LOGIN:
+        session = {"openid": "warehouse-local-demo-user"}
+    else:
+        if not code:
+            raise HTTPException(status_code=400, detail="缺少微信登录 code")
+        session = wechat_code2session(code)
     openid = session["openid"]
-    nickname = str(payload.get("nickName") or "")
+    nickname = str(
+        payload.get("nickName")
+        or ("本地演示用户" if demo_requested and ALLOW_DEMO_LOGIN else "")
+    )
     avatar_url = str(payload.get("avatarUrl") or "")
 
     with connection_scope(DB_PATH) as conn:
@@ -119,6 +130,7 @@ def wechat_login(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
             "userInfo": {
                 "nickName": user_row["nickname"] or "",
                 "avatarUrl": user_row["avatar_url"] or "",
+                "familyName": "本地联调环境" if demo_requested and ALLOW_DEMO_LOGIN else "",
             },
         }
     )

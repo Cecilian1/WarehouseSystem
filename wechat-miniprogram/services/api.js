@@ -1,5 +1,70 @@
 const { request } = require('../utils/request')
 
+function mapResponse(task, mapper) {
+  return task.then((res) => ({ ...res, data: mapper(res.data) }))
+}
+
+function toPercent(value) {
+  const number = Number(value || 0)
+  return Math.max(0, Math.min(100, Math.round(number <= 1 ? number * 100 : number)))
+}
+
+function normalizeFreshness(value) {
+  return value === 'warning' ? 'expiring' : value
+}
+
+function normalizeInventoryItem(item) {
+  return {
+    ...item,
+    freshness: normalizeFreshness(item.freshness),
+    freshnessScore: toPercent(item.freshnessScore),
+    confidence: toPercent(item.confidence),
+    storageAdvice: item.storageAdvice || item.ideal || '',
+    ideal: item.ideal || item.storageAdvice || '',
+    advice: item.advice || item.storageAdvice || '',
+    updatedAt: item.updatedAt || item.inboundAt || ''
+  }
+}
+
+function normalizeDashboard(data) {
+  const freshness = { fresh: 0, mild: 0, expiring: 0, spoiled: 0 }
+  if (Array.isArray(data.freshness)) {
+    data.freshness.forEach((item) => {
+      if (item.name.includes('新鲜')) freshness.fresh += Number(item.value || 0)
+      else if (item.name.includes('腐败')) freshness.spoiled += Number(item.value || 0)
+      else freshness.expiring += Number(item.value || 0)
+    })
+  } else if (data.freshness) {
+    Object.assign(freshness, data.freshness)
+  }
+
+  const statuses = data.statuses || []
+  const board = statuses.find((item) => item.id === 'board') || {}
+  const camera = statuses.find((item) => item.id === 'camera') || {}
+  const sensor = statuses.find((item) => item.id === 'sensor') || {}
+  return {
+    ...data,
+    device: data.device || {
+      id: 'fridge-01',
+      code: 'fridge-01',
+      name: 'ATK-DL2K0300 开发板',
+      state: board.state || 'offline',
+      cameraStatus: camera.value || '未上报',
+      sensorStatus: sensor.value || '未上报',
+      lastSync: camera.detail || board.detail || '暂无'
+    },
+    environment: {
+      ...data.environment,
+      state: data.environment && data.environment.temperatureState === 'warning' ? '异常' : '适宜',
+      description: '数据来自开发板环境采集服务'
+    },
+    freshness,
+    reminders: data.reminders || [],
+    suggestions: data.suggestions || [],
+    quickActions: data.quickActions || []
+  }
+}
+
 const authService = {
   loginByWechat(data) {
     return request({ url: '/auth/wechat-login', method: 'POST', data })
@@ -11,7 +76,10 @@ const authService = {
 
 const dashboardService = {
   getOverview(deviceId) {
-    return request({ url: '/dashboard', data: { deviceId } })
+    return mapResponse(
+      request({ url: '/dashboard', data: { deviceId } }),
+      normalizeDashboard
+    )
   }
 }
 
@@ -26,16 +94,32 @@ const deviceService = {
 
 const inventoryService = {
   getList(query = {}) {
-    return request({ url: '/inventory', data: query })
+    const params = {
+      ...query,
+      category: query.category === '全部' ? '' : query.category,
+      freshness: query.freshness === '全部' ? '' : query.freshness,
+      pageSize: 100
+    }
+    return mapResponse(request({ url: '/inventory', data: params }), (data) => {
+      const list = Array.isArray(data) ? data : data.list || []
+      return list.map(normalizeInventoryItem)
+    })
   },
   getDetail(id) {
-    return request({ url: '/inventory/detail', data: { id } })
+    return mapResponse(
+      request({ url: '/inventory/detail', data: { id } }),
+      normalizeInventoryItem
+    )
   },
   inbound(data) {
     return request({ url: '/inventory/inbound', method: 'POST', data })
   },
   outbound(data) {
-    return request({ url: '/inventory/outbound', method: 'POST', data })
+    return request({
+      url: '/inventory/outbound',
+      method: 'POST',
+      data: { ...data, produceId: data.produceId || data.id }
+    })
   }
 }
 
@@ -77,7 +161,12 @@ const environmentService = {
 
 const recordService = {
   getList(query = {}) {
-    return request({ url: '/records', data: query })
+    return mapResponse(request({ url: '/records', data: query }), (items) => (
+      (items || []).map((item) => ({
+        ...item,
+        confidence: toPercent(item.confidence)
+      }))
+    ))
   }
 }
 

@@ -20,6 +20,7 @@ from backend.api_service import ws_hub
 from backend.api_service.auth import get_current_user
 from backend.api_service.helpers import (
     DB_PATH,
+    allocate_local_id,
     alert_rows,
     connection_scope,
     ok,
@@ -67,11 +68,15 @@ def scan_once() -> list[int]:
         if existing:
             continue
         with connection_scope(DB_PATH) as conn:
-            cursor = conn.execute(
-                "INSERT INTO alert_record (produce_id, alert_type, expire_date) VALUES (?, ?, ?)",
-                (produce_id, alert_type, row.get("earliest_expire_date")),
+            alert_id = allocate_local_id(conn, "alert_record")
+            conn.execute(
+                """
+                INSERT INTO alert_record (id, produce_id, alert_type, expire_date)
+                VALUES (?, ?, ?, ?)
+                """,
+                (alert_id, produce_id, alert_type, row.get("earliest_expire_date")),
             )
-            new_ids.append(int(cursor.lastrowid))
+            new_ids.append(alert_id)
 
     heartbeat_row = query_one(
         "SELECT last_heartbeat FROM device_status ORDER BY last_heartbeat DESC LIMIT 1"
@@ -84,10 +89,15 @@ def scan_once() -> list[int]:
             )
             if not existing:
                 with connection_scope(DB_PATH) as conn:
-                    cursor = conn.execute(
-                        "INSERT INTO alert_record (produce_id, alert_type, expire_date) VALUES (NULL, 'device_abnormal', NULL)"
+                    alert_id = allocate_local_id(conn, "alert_record")
+                    conn.execute(
+                        """
+                        INSERT INTO alert_record (id, produce_id, alert_type, expire_date)
+                        VALUES (?, NULL, 'device_abnormal', NULL)
+                        """,
+                        (alert_id,),
                     )
-                    new_ids.append(int(cursor.lastrowid))
+                    new_ids.append(alert_id)
 
     return new_ids
 

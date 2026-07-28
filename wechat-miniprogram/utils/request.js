@@ -38,7 +38,8 @@ function request(options) {
           resolve(res.data)
           return
         }
-        reject(new Error(res.data && res.data.message ? res.data.message : '请求失败'))
+        const message = res.data && (res.data.detail || res.data.message)
+        reject(new Error(message || `请求失败（HTTP ${res.statusCode}）`))
       },
       fail(error) {
         wx.showToast({
