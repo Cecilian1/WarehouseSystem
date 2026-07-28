@@ -79,3 +79,40 @@ CREATE INDEX IF NOT EXISTS idx_inventory_log_created_at ON inventory_log(created
 CREATE INDEX IF NOT EXISTS idx_alert_record_is_read ON alert_record(is_read);
 CREATE INDEX IF NOT EXISTS idx_env_log_recorded_at ON env_log(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_pending_frames_status ON pending_frames(status);
+
+-- 以下为 Web/小程序客户端业务接口所需的表，均为服务端(api_service)新增，
+-- 与开发板采集/同步链路（camera_service/env_service/sync_service）无关。
+
+-- 微信用户（openid 唯一）
+CREATE TABLE IF NOT EXISTS app_user (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    openid       TEXT NOT NULL UNIQUE,
+    nickname     TEXT,
+    avatar_url   TEXT,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+-- 登录会话：一个不透明 token 对应一个用户，供 Bearer 鉴权使用
+CREATE TABLE IF NOT EXISTS auth_session (
+    token       TEXT PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES app_user(id),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    expires_at  TEXT NOT NULL
+);
+
+-- 用户与设备编号的绑定关系
+CREATE TABLE IF NOT EXISTS user_device (
+    user_id     INTEGER NOT NULL REFERENCES app_user(id),
+    device_id   TEXT NOT NULL,
+    bound_at    TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    PRIMARY KEY (user_id, device_id)
+);
+
+-- 系统设置：key/value，POST /api/settings 落库，GET /api/settings 回显
+CREATE TABLE IF NOT EXISTS app_setting (
+    key         TEXT PRIMARY KEY,
+    value       TEXT NOT NULL,
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_session_user_id ON auth_session(user_id);

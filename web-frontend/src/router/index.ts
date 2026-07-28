@@ -11,6 +11,7 @@ export const routes = [
   { path: '/devices', name: 'devices', component: () => import('@/views/devices/Index.vue'), meta: { title: '设备管理', icon: 'Cpu' } },
   { path: '/history', name: 'history', component: () => import('@/views/history/Index.vue'), meta: { title: '历史记录', icon: 'History' } },
   { path: '/analytics', name: 'analytics', component: () => import('@/views/analytics/Index.vue'), meta: { title: '统计分析', icon: 'ChartNoAxesCombined' } },
+  { path: '/produce-info', name: 'produce-info', component: () => import('@/views/produce-info/Index.vue'), meta: { title: '信息录入', icon: 'Leaf' } },
   { path: '/settings', name: 'settings', component: () => import('@/views/settings/Index.vue'), meta: { title: '系统设置', icon: 'Settings2' } },
 ]
 

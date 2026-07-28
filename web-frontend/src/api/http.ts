@@ -27,6 +27,42 @@ const mockAdapter: AxiosAdapter = async (config) => {
   if (url === '/devices') return ok(config, structuredClone(devices))
   if (url === '/analytics') return ok(config, structuredClone(analyticsData))
   if (url === '/environment') return ok(config, structuredClone(dashboardData.environment))
+  if (url === '/environment/latest') {
+    return ok(config, {
+      valid: true,
+      temperature: dashboardData.environment.temperature,
+      humidity: dashboardData.environment.humidity,
+      isAbnormal: dashboardData.environment.temperatureState !== 'online',
+      recordedAt: new Date().toISOString(),
+    })
+  }
+  if (url === '/produce' && (!config.method || config.method === 'get')) {
+    return ok(
+      config,
+      structuredClone(
+        inventoryItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          shelfLifeDays: item.shelfLife,
+          idealTempRange: item.storageAdvice,
+          iconUrl: item.color,
+          currentQty: item.quantity,
+          earliestExpireDate: '',
+        })),
+      ),
+    )
+  }
+  if (url === '/produce' && config.method === 'post') {
+    const payload = JSON.parse(config.data || '{}')
+    return ok(config, { id: Date.now(), currentQty: 0, earliestExpireDate: '', ...payload })
+  }
+  if (url?.startsWith('/produce/') && config.method === 'put') {
+    const payload = JSON.parse(config.data || '{}')
+    const id = Number(url.split('/').pop())
+    return ok(config, { id, currentQty: 0, earliestExpireDate: '', ...payload })
+  }
+  if (url === '/settings' && (!config.method || config.method === 'get')) return ok(config, {})
   if (url === '/settings' && config.method === 'post') return ok(config, JSON.parse(config.data || '{}'))
 
   if (url === '/inventory') {

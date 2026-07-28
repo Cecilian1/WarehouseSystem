@@ -58,6 +58,7 @@ export const analyticsApi = {
 }
 
 export const settingsApi = {
+  get: () => http.get<never, ApiResponse<Record<string, unknown>>>('/settings'),
   save: (payload: Record<string, unknown>) =>
     http.post<never, ApiResponse<Record<string, unknown>>>('/settings', payload),
 }
