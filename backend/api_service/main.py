@@ -7,6 +7,7 @@ response shape without changing any table definition.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import urllib.error
 import urllib.request
@@ -56,6 +57,12 @@ from backend.api_service.settings_store import router as settings_router
 from backend.common.db import connection_scope
 from backend.sync_service.collector import start_background_collector
 from backend.sync_service.storage import TABLE_COLUMNS
+
+# uvicorn 不会给根logger配置handler，不加这行 sync_collector 等模块的 INFO 日志
+# （比如"板端数据已写入本机"）会被默默丢弃、终端上看不到任何输出。
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
 
 DEFAULT_DB_PATH = "/data/warehousekeeper/warehousekeeper.db"
 DB_PATH = os.environ.get("WAREHOUSE_DB_PATH", DEFAULT_DB_PATH)

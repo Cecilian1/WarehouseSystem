@@ -3,10 +3,13 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  // 统一环境配置：读取仓库根目录的 .env（与后端/小程序共用同一份配置文件）
+  const envDir = fileURLToPath(new URL('..', import.meta.url))
+  const env = loadEnv(mode, envDir, '')
 
   return {
     plugins: [vue()],
+    envDir,
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

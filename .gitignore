@@ -15,6 +15,11 @@ data/collector-state.json
 # 采集图片
 backend/camera_service/frames/
 
+# 统一环境配置（根目录 .env，包含微信AppSecret等敏感信息，不入库）
+/.env
+/.env.local
+/.env.*.local
+
 # Web前端 (Vue 3 + Vite)
 web-frontend/node_modules/
 web-frontend/dist/
@@ -40,8 +45,6 @@ PROJECT_STATUS.md
 *.out.log
 *.err.log
 
-# env
-.env
 
 # claude
 .claude/

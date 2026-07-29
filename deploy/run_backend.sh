@@ -8,7 +8,21 @@ SCRIPT_DIR="$(cd "$(dirname "${0}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-DB_PATH="$PROJECT_ROOT/data/warehousekeeper-server.db"
+# 从仓库根目录的 .env 加载配置（复制 .env.example 为 .env 后按需修改）
+if [ -f "$PROJECT_ROOT/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$PROJECT_ROOT/.env"
+  set +a
+else
+  echo ".env 不存在，使用内置默认值（可复制 .env.example 为 .env 后自定义）"
+fi
+
+DB_PATH="${WAREHOUSE_DB_PATH:-$PROJECT_ROOT/data/warehousekeeper-server.db}"
+case "$DB_PATH" in
+  /*) ;;
+  *) DB_PATH="$PROJECT_ROOT/$DB_PATH" ;;
+esac
 
 echo "Installing dependencies..."
 python3 -m pip install -r backend/requirements.txt
@@ -19,8 +33,9 @@ python3 -m backend.common.init_db --db-path "$DB_PATH"
 echo "Starting server..."
 export WAREHOUSE_DB_PATH="$DB_PATH"
 # 微信登录 (code2Session) 所需；不设置时除 /api/auth/wechat-login 外的接口仍可正常使用。
-# 请通过 shell 环境变量或本地未入库的 .env 文件覆盖，不要把真实 AppSecret 写死在此脚本中。
-export WAREHOUSE_WECHAT_APPID="${WAREHOUSE_WECHAT_APPID:-your-appid}"
-export WAREHOUSE_WECHAT_APP_SECRET="${WAREHOUSE_WECHAT_APP_SECRET:-your-app-secret}"
+# 在仓库根目录的 .env 中配置 WAREHOUSE_WECHAT_APPID / WAREHOUSE_WECHAT_APP_SECRET，
+# 不要把真实 AppSecret 写死在此脚本中。
+export WAREHOUSE_WECHAT_APPID="${WAREHOUSE_WECHAT_APPID:-}"
+export WAREHOUSE_WECHAT_APP_SECRET="${WAREHOUSE_WECHAT_APP_SECRET:-}"
 
 python3 -m uvicorn backend.api_service.main:app --host 0.0.0.0 --port 8000 --reload

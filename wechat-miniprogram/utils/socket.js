@@ -22,11 +22,13 @@ function connectRealtime(options = {}) {
 
   task = wx.connectSocket({
     url: config.wsUrl,
-    success: () => {}
+    success: () => {},
+    fail: () => listeners.close && listeners.close()
   })
 
   task.onOpen(() => listeners.open && listeners.open())
   task.onClose(() => listeners.close && listeners.close())
+  task.onError(() => listeners.close && listeners.close())
   task.onMessage((message) => {
     try {
       const event = JSON.parse(message.data)

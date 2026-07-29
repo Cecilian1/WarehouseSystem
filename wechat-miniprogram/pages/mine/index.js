@@ -57,6 +57,11 @@ Page({
       wsUrl: config.wsUrl,
       token: '••••••••',
       syncInterval: 15
+    },
+    serviceStatus: {
+      sqlite: { label: 'SQLite · 检测中', tone: 'info' },
+      api: { label: 'FastAPI · 检测中', tone: 'info' },
+      ws: { label: 'WebSocket · 检测中', tone: 'info' }
     }
   },
   onLoad() {
@@ -74,6 +79,52 @@ Page({
   onShow() {
     this.syncTheme()
     if (this.getTabBar) this.getTabBar().syncRoute()
+    this.refreshServiceStatus()
+    this._statusTimer = setInterval(() => this.refreshServiceStatus(), 8000)
+  },
+  onHide() {
+    if (this._statusTimer) clearInterval(this._statusTimer)
+  },
+  onUnload() {
+    if (this._statusTimer) clearInterval(this._statusTimer)
+  },
+  refreshServiceStatus() {
+    this.refreshRealtimeStatus()
+    wx.request({
+      url: `${config.baseUrl}/health`,
+      method: 'GET',
+      timeout: config.timeout,
+      success: (res) => {
+        const ok = res.statusCode >= 200 && res.statusCode < 300 && res.data && res.data.code === 0
+        const dbExists = ok && res.data.data && res.data.data.dbExists
+        this.setData({
+          'serviceStatus.sqlite': dbExists
+            ? { label: 'SQLite 正常', tone: 'success' }
+            : { label: 'SQLite 异常', tone: 'offline' },
+          'serviceStatus.api': config.enableMock
+            ? { label: 'FastAPI · Mock 模式', tone: 'info' }
+            : ok
+              ? { label: 'FastAPI · 已连接', tone: 'success' }
+              : { label: 'FastAPI · 响应异常', tone: 'offline' }
+        })
+      },
+      fail: () => {
+        this.setData({
+          'serviceStatus.sqlite': { label: 'SQLite 未知', tone: 'offline' },
+          'serviceStatus.api': config.enableMock
+            ? { label: 'FastAPI · Mock 模式', tone: 'info' }
+            : { label: 'FastAPI · 未连接', tone: 'offline' }
+        })
+      }
+    })
+  },
+  refreshRealtimeStatus() {
+    const connected = getApp().globalData.realtimeConnected
+    this.setData({
+      'serviceStatus.ws': connected
+        ? { label: 'WebSocket · 已连接', tone: 'success' }
+        : { label: 'WebSocket · 未连接', tone: 'offline' }
+    })
   },
   syncTheme() {
     applyThemeClass(this)

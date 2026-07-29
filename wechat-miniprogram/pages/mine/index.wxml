@@ -159,9 +159,9 @@
         </view>
       </view>
       <view class="connection-status">
-        <status-tag label="SQLite 正常" tone="success" />
-        <status-tag label="FastAPI · Mock 模式" tone="info" />
-        <status-tag label="WebSocket · 未连接" tone="offline" />
+        <status-tag label="{{serviceStatus.sqlite.label}}" tone="{{serviceStatus.sqlite.tone}}" />
+        <status-tag label="{{serviceStatus.api.label}}" tone="{{serviceStatus.api.tone}}" />
+        <status-tag label="{{serviceStatus.ws.label}}" tone="{{serviceStatus.ws.tone}}" />
       </view>
       <button class="primary-button" bindtap="saveConnection">保存连接设置</button>
     </glass-card>
