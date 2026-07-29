@@ -55,7 +55,9 @@ from backend.api_service.miniprogram_compat import router as miniprogram_compat_
 from backend.api_service.records import router as records_router
 from backend.api_service.settings_store import router as settings_router
 from backend.common.db import connection_scope
+from backend.common.init_db import init_db
 from backend.sync_service.collector import start_background_collector
+from backend.sync_service.push import apply_remote_operation
 from backend.sync_service.storage import TABLE_COLUMNS
 
 # uvicorn 不会给根logger配置handler，不加这行 sync_collector 等模块的 INFO 日志
@@ -113,7 +115,16 @@ def sync_status() -> dict[str, Any]:
         ORDER BY last_sync_at DESC
         """
     )
-    return ok(rows)
+    outbox = query_one(
+        """
+        SELECT
+            SUM(CASE WHEN status = 'synced' THEN 1 ELSE 0 END) AS synced,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed
+        FROM board_sync_outbox
+        """
+    )
+    return ok({"sources": rows, "outbox": outbox or {}})
 
 
 @app.get("/api/sync/export")
@@ -144,6 +155,15 @@ def sync_export(
     return ok({"sourceDeviceId": "fridge-01", "tables": tables})
 
 
+@app.post("/api/sync/import")
+def sync_import(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    try:
+        result = apply_remote_operation(DB_PATH, payload)
+    except (TypeError, ValueError, KeyError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ok(result)
+
+
 @app.websocket("/ws/notify")
 async def websocket_notify(websocket: WebSocket) -> None:
     """Push current board data to connected Web dashboards."""
@@ -172,6 +192,11 @@ async def websocket_notify(websocket: WebSocket) -> None:
         pass
     finally:
         ws_hub.unregister(websocket)
+
+
+@app.on_event("startup")
+def ensure_database_schema() -> None:
+    init_db(DB_PATH)
 
 
 if BOARD_SOURCE_URL:
@@ -295,8 +320,9 @@ def produce_create(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
         conn.execute(
             """
             INSERT INTO produce_info
-                (id, name, category, shelf_life_days, ideal_temp_range, icon_url)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (id, name, category, shelf_life_days, ideal_temp_range, icon_url,
+                 unit, location)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 produce_id,
@@ -305,6 +331,8 @@ def produce_create(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
                 safe_int(payload.get("shelfLifeDays")),
                 payload.get("idealTempRange") or "",
                 payload.get("iconUrl") or "",
+                payload.get("unit") or "件",
+                payload.get("location") or "本地库存",
             ),
         )
     return ok(get_produce_item(int(produce_id)))
@@ -319,7 +347,8 @@ def produce_update(produce_id: int, payload: dict[str, Any] = Body(...)) -> dict
         cursor = conn.execute(
             """
             UPDATE produce_info
-            SET name = ?, category = ?, shelf_life_days = ?, ideal_temp_range = ?, icon_url = ?
+            SET name = ?, category = ?, shelf_life_days = ?,
+                ideal_temp_range = ?, icon_url = ?, unit = ?, location = ?
             WHERE id = ?
             """,
             (
@@ -328,6 +357,8 @@ def produce_update(produce_id: int, payload: dict[str, Any] = Body(...)) -> dict
                 safe_int(payload.get("shelfLifeDays")),
                 payload.get("idealTempRange") or "",
                 payload.get("iconUrl") or "",
+                payload.get("unit") or "件",
+                payload.get("location") or "本地库存",
                 produce_id,
             ),
         )
@@ -543,6 +574,13 @@ def frame_image(frame_id: int) -> Response:
 
 
 @app.get("/api/frames/inventory-log/{log_id}/image")
-def inventory_log_image(log_id: int) -> FileResponse:
+def inventory_log_image(log_id: int) -> Response:
     row = query_one("SELECT image_path FROM inventory_log WHERE id = ?", (log_id,))
-    return image_response(row.get("image_path") if row else None)
+    image_path = row.get("image_path") if row else None
+    if image_path:
+        path = Path(str(image_path))
+        if path.is_file():
+            return FileResponse(path, headers={"Cache-Control": "no-store"})
+    if BOARD_SOURCE_URL:
+        return proxy_board_image(f"/api/frames/inventory-log/{log_id}/image")
+    return image_response(image_path)

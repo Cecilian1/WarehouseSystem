@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from backend.sync_service.storage import apply_sync_payload
+from backend.sync_service.push import push_pending_operations
 
 INCREMENTAL_TABLES = ("inventory_log", "alert_record", "env_log", "pending_frames")
 logger = logging.getLogger("sync_collector")
@@ -104,6 +105,9 @@ def run_collector(
     logger.info("本机数据采集器启动: board=%s", board_url)
     while True:
         try:
+            push_counts = push_pending_operations(board_url, local_db_path)
+            if push_counts["pushed"] or push_counts["failed"]:
+                logger.info("电脑端库存操作回传开发板: %s", push_counts)
             counts = collect_once(board_url, local_db_path, state_path)
             logger.info("板端数据已写入本机: %s", counts)
         except Exception as exc:

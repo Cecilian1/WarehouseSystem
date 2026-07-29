@@ -46,6 +46,12 @@ void MainWindow::buildUi()
 
     connect(m_navigationBar, &NavigationBar::pageRequested,
             m_stackedWidget, &QStackedWidget::setCurrentIndex);
+    connect(m_navigationBar, &NavigationBar::pageRequested, this, [this](int pageIndex) {
+        if (pageIndex == 2)
+            m_produceInfoPage->refresh();
+        else if (pageIndex == 3)
+            m_historyPage->refresh();
+    });
 
     auto *central = new QWidget(this);
     auto *layout = new QVBoxLayout(central);
@@ -68,8 +74,7 @@ void MainWindow::connectPolling()
     connect(m_pollingTimer, &PollingTimer::dataMayHaveChanged, m_historyPage, &HistoryPage::refresh);
     connect(m_pollingTimer, &PollingTimer::dataMayHaveChanged, m_alertPage, &AlertPage::refresh);
     connect(m_pollingTimer, &PollingTimer::dataMayHaveChanged, m_envStatusCard, &EnvStatusCard::refresh);
-    // ProduceInfoPage不订阅轮询：编辑表单期间不希望被后台刷新打断用户输入，
-    // 该页面数据在切换到本页/保存后手动refresh()
+    // ProduceInfoPage不订阅轮询：编辑表单期间不打断输入；进入页面时刷新。
 
     m_pollingTimer->start();
 }

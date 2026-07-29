@@ -1,5 +1,17 @@
 const { recognitionService } = require('../../services/api')
 const { freshnessText, freshnessTone } = require('../../utils/format')
+const config = require('../../config/index')
+
+function imageUrl(path) {
+  if (/^https?:\/\//.test(path || '')) {
+    const separator = path.includes('?') ? '&' : '?'
+    return `${path}${separator}t=${Date.now()}`
+  }
+  const apiOrigin = config.baseUrl.replace(/\/api\/?$/, '')
+  const normalizedPath = path && path.startsWith('/') ? path : `/${path || 'api/frames/latest/image'}`
+  const separator = normalizedPath.includes('?') ? '&' : '?'
+  return `${apiOrigin}${normalizedPath}${separator}t=${Date.now()}`
+}
 
 Page({
   data: {
@@ -10,7 +22,10 @@ Page({
     sheetVisible: false,
     selectedTarget: null,
     avgConfidence: 0,
-    latencyBars: []
+    latencyBars: [],
+    imageLoading: false,
+    imageError: false,
+    usingLatestFrame: false
   },
   onLoad() {
     const app = getApp()
@@ -28,7 +43,8 @@ Page({
   },
   load() {
     return recognitionService.getResult().then((res) => {
-      const targets = res.data.targets.map((item) => ({
+      const hasInference = res.data.hasInference === true
+      const targets = (hasInference ? (res.data.targets || []) : []).map((item) => ({
         ...item,
         freshnessLabel: freshnessText(item.freshness),
         tone: freshnessTone(item.freshness)
@@ -46,15 +62,56 @@ Page({
         height: Math.max(10, Math.round((value / maxLatency) * 80))
       }))
 
-      this.setData({ result: res.data, targets, avgConfidence, latencyBars })
+      const result = {
+        ...res.data,
+        hasInference,
+        imageUrl: imageUrl(res.data.image || '/api/frames/latest/image')
+      }
+
+      this.setData({
+        result,
+        targets,
+        avgConfidence,
+        latencyBars,
+        imageLoading: true,
+        imageError: false,
+        usingLatestFrame: !hasInference
+      })
+    })
+  },
+  handleImageLoad() {
+    this.setData({ imageLoading: false, imageError: false })
+  },
+  handleImageError() {
+    if (!this.data.result) return
+    if (!this.data.usingLatestFrame) {
+      this.setData({
+        'result.imageUrl': imageUrl('/api/frames/latest/image'),
+        imageLoading: true,
+        imageError: false,
+        usingLatestFrame: true
+      })
+      return
+    }
+    this.setData({ imageLoading: false, imageError: true })
+  },
+  refreshFrame() {
+    if (!this.data.result) return
+    this.setData({
+      'result.imageUrl': imageUrl('/api/frames/latest/image'),
+      imageLoading: true,
+      imageError: false,
+      usingLatestFrame: true
     })
   },
   editTarget(event) {
+    if (!this.data.result || !this.data.result.hasInference) return
     const id = event.currentTarget.dataset.id
     const selectedTarget = this.data.targets.find((item) => item.id === id)
     this.setData({ selectedTarget, sheetVisible: true })
   },
   addTarget() {
+    if (!this.data.result || !this.data.result.hasInference) return
     const next = {
       id: `manual-${Date.now()}`,
       name: '未识别果蔬',
@@ -105,6 +162,10 @@ Page({
     this.setData({ targets, sheetVisible: false })
   },
   confirmRecognition() {
+    if (!this.data.result || !this.data.result.hasInference) {
+      wx.showToast({ title: '尚无识别结果', icon: 'none' })
+      return
+    }
     recognitionService.confirm({ frameId: this.data.result.id, targets: this.data.targets }).then(() => {
       wx.showToast({ title: '库存已更新', icon: 'success' })
     })

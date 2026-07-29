@@ -59,14 +59,20 @@
 }
 
 .live-dot {
+  margin: 0;
   height: 48rpx;
   padding: 0 16rpx;
+  border: 0;
   border-radius: var(--radius-pill);
   color: #86efac;
   font-size: 23rpx;
   font-weight: 800;
   line-height: 48rpx;
   background: rgba(34, 197, 94, .16);
+}
+
+.live-dot::after {
+  border: 0;
 }
 
 .camera-stage {
@@ -76,59 +82,49 @@
   background: #050d1a;
 }
 
-.fridge-scene {
+.camera-frame {
   position: relative;
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(180deg, #dbe4f0, #8b9db0);
+  background: #050d1a;
 }
 
-.shelf {
+.camera-image {
+  width: 100%;
+  height: 100%;
+  background: #050d1a;
+}
+
+.image-state {
   position: absolute;
-  left: 7%;
-  width: 86%;
-  height: 8rpx;
-  border-radius: 99rpx;
-  background: rgba(255, 255, 255, .72);
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18rpx;
+  color: rgba(244, 248, 255, .74);
+  font-size: 23rpx;
+  background: rgba(5, 13, 26, .78);
 }
 
-.shelf-top {
-  top: 38%;
+.image-state--error {
+  color: #fca5a5;
 }
 
-.shelf-mid {
-  top: 70%;
-}
-
-.food-dot {
-  position: absolute;
+.image-spinner {
+  width: 44rpx;
+  height: 44rpx;
+  border: 5rpx solid rgba(148, 215, 255, .18);
+  border-top-color: #38bdf8;
   border-radius: 50%;
-  filter: drop-shadow(0 8rpx 10rpx rgba(0, 0, 0, .2));
+  animation: spin .8s linear infinite;
 }
 
-.apple {
-  left: 16%;
-  top: 26%;
-  width: 70rpx;
-  height: 70rpx;
-  background: #cb6259;
-}
-
-.broccoli {
-  right: 18%;
-  top: 22%;
-  width: 100rpx;
-  height: 84rpx;
-  border-radius: 50%;
-  background: #4f835e;
-}
-
-.tomato {
-  left: 52%;
-  top: 64%;
-  width: 78rpx;
-  height: 70rpx;
-  background: #cb6259;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .detect-box {

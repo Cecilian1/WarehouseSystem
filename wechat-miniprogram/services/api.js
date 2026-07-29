@@ -42,6 +42,11 @@ function normalizeDashboard(data) {
   const board = statuses.find((item) => item.id === 'board') || {}
   const camera = statuses.find((item) => item.id === 'camera') || {}
   const sensor = statuses.find((item) => item.id === 'sensor') || {}
+  const environmentValid = Boolean(
+    data.environment &&
+    data.environment.valid !== false &&
+    data.environment.temperatureState !== 'offline'
+  )
   return {
     ...data,
     device: data.device || {
@@ -55,8 +60,13 @@ function normalizeDashboard(data) {
     },
     environment: {
       ...data.environment,
-      state: data.environment && data.environment.temperatureState === 'warning' ? '异常' : '适宜',
-      description: '数据来自开发板环境采集服务'
+      valid: environmentValid,
+      state: !environmentValid
+        ? '未上报'
+        : data.environment.temperatureState === 'warning' ? '异常' : '适宜',
+      description: environmentValid
+        ? '数据来自开发板环境采集服务'
+        : '温湿度传感器尚未连接'
     },
     freshness,
     reminders: data.reminders || [],
@@ -114,12 +124,18 @@ const inventoryService = {
   inbound(data) {
     return request({ url: '/inventory/inbound', method: 'POST', data })
   },
+  update(id, data) {
+    return request({ url: `/inventory/${id}`, method: 'PUT', data })
+  },
   outbound(data) {
     return request({
       url: '/inventory/outbound',
       method: 'POST',
       data: { ...data, produceId: data.produceId || data.id }
     })
+  },
+  remove(id) {
+    return request({ url: `/inventory/${id}`, method: 'DELETE' })
   }
 }
 

@@ -83,6 +83,17 @@ const mockAdapter: AxiosAdapter = async (config) => {
     }
     return ok(config, structuredClone(result))
   }
+  if (url === '/inventory/inbound' && config.method === 'post') {
+    const payload = JSON.parse(config.data || '{}')
+    return ok(config, { success: true, item: { id: Date.now(), ...payload } })
+  }
+  if (url?.startsWith('/inventory/') && config.method === 'put') {
+    const payload = JSON.parse(config.data || '{}')
+    return ok(config, { success: true, item: { id: Number(url.split('/').pop()), ...payload } })
+  }
+  if (url?.startsWith('/inventory/') && config.method === 'delete') {
+    return ok(config, { success: true, produceId: Number(url.split('/').pop()) })
+  }
 
   if (url === '/alerts') {
     const status = String(params.status || '')

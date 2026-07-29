@@ -80,6 +80,15 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> int:
     return int(row["user_id"])
 
 
+def get_current_user_or_demo(
+    authorization: Optional[str] = Header(None),
+) -> int:
+    """Allow the local Web admin to write only when demo mode is enabled."""
+    if not authorization and ALLOW_DEMO_LOGIN:
+        return 0
+    return get_current_user(authorization)
+
+
 @router.post("/api/auth/wechat-login")
 def wechat_login(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     code = str(payload.get("code") or "").strip()

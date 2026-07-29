@@ -5,6 +5,7 @@ import { Boxes, Grid2X2, List, Pencil, Plus, Search, SlidersHorizontal, Trash2 }
 import PageHeader from '@/components/common/PageHeader.vue'
 import GlassPanel from '@/components/common/GlassPanel.vue'
 import ProduceVisual from '@/components/common/ProduceVisual.vue'
+import { inventoryApi } from '@/api'
 import { useInventoryStore } from '@/stores/inventory'
 import type { InventoryItem } from '@/types'
 import { freshnessLabel, freshnessTone } from '@/utils/format'
@@ -13,6 +14,7 @@ const store = useInventoryStore()
 const viewMode = ref<'list' | 'card'>('list')
 const dialogVisible = ref(false)
 const previewVisible = ref(false)
+const saving = ref(false)
 const editingItem = ref<InventoryItem | null>(null)
 const previewItem = ref<InventoryItem | null>(null)
 const form = reactive({ name: '', category: '水果', quantity: 1, unit: '件', shelfLife: 7, remainingDays: 7, storageAdvice: '2-5°C · 85-95%RH', location: 'A-01 上层' })
@@ -41,14 +43,52 @@ const openEdit = (item: InventoryItem) => {
   dialogVisible.value = true
 }
 
-const submit = () => {
-  ElMessage.success(editingItem.value ? '库存信息已更新' : '库存记录已创建')
-  dialogVisible.value = false
+const submit = async () => {
+  if (!form.name.trim()) {
+    ElMessage.warning('请输入库存名称')
+    return
+  }
+  if (form.quantity <= 0) {
+    ElMessage.warning('库存数量必须大于 0')
+    return
+  }
+
+  saving.value = true
+  try {
+    const payload = {
+      name: form.name.trim(),
+      category: form.category,
+      quantity: form.quantity,
+      unit: form.unit,
+      shelfLife: form.shelfLife,
+      storageAdvice: form.storageAdvice,
+      location: form.location,
+      iconUrl: editingItem.value?.color,
+    }
+    if (editingItem.value) {
+      await inventoryApi.update(editingItem.value.id, payload)
+    } else {
+      await inventoryApi.create(payload)
+    }
+    dialogVisible.value = false
+    await store.fetchList()
+    ElMessage.success(editingItem.value ? '库存信息已更新并进入板端同步队列' : '库存记录已创建并进入板端同步队列')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '保存库存失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 const removeItem = async (item: InventoryItem) => {
   await ElMessageBox.confirm(`确认删除“${item.name}”的库存记录？`, '删除确认', { type: 'warning' })
-  ElMessage.success('库存记录已删除')
+  try {
+    await inventoryApi.remove(item.id)
+    await store.fetchList()
+    ElMessage.success('库存已清零并进入板端同步队列')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '删除库存失败')
+  }
 }
 
 const preview = (item: InventoryItem) => {
@@ -165,7 +205,7 @@ onMounted(store.fetchList)
         </div>
         <el-form-item label="温湿度建议"><el-input v-model="form.storageAdvice" /></el-form-item>
       </el-form>
-      <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="submit">保存</el-button></template>
+      <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" :loading="saving" @click="submit">保存</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="previewVisible" title="库存图片预览" width="420px" align-center>

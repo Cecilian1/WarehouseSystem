@@ -13,6 +13,20 @@ from backend.common.db import get_connection
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
 
+def _ensure_column(
+    conn: sqlite3.Connection,
+    table: str,
+    column: str,
+    definition: str,
+) -> None:
+    columns = {
+        str(row["name"])
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def init_db(db_path: str) -> None:
     db_file = Path(db_path)
     db_file.parent.mkdir(parents=True, exist_ok=True)
@@ -21,6 +35,13 @@ def init_db(db_path: str) -> None:
     try:
         schema_sql = SCHEMA_PATH.read_text(encoding="utf-8")
         conn.executescript(schema_sql)
+        _ensure_column(conn, "produce_info", "unit", "TEXT DEFAULT '件'")
+        _ensure_column(
+            conn,
+            "produce_info",
+            "location",
+            "TEXT DEFAULT '本地库存'",
+        )
         conn.commit()
     finally:
         conn.close()

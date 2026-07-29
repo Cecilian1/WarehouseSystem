@@ -2,9 +2,11 @@
 
 #include "../databasemanager.h"
 
+#include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QVariant>
+#include <QtGlobal>
 
 ProduceModel::ProduceModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -109,9 +111,30 @@ const ProduceRow &ProduceModel::rowAt(int row) const
 
 bool ProduceModel::upsertProduce(const ProduceRow &row)
 {
-    QSqlQuery query(DatabaseManager::database());
+    QSqlDatabase db = DatabaseManager::database();
+    if (!db.transaction()) {
+        qWarning("ProduceModel::upsertProduce 无法开始事务: %s", qPrintable(db.lastError().text()));
+        return false;
+    }
 
-    if (row.id > 0) {
+    double oldQuantity = 0.0;
+    if (row.id != 0) {
+        QSqlQuery stockQuery(db);
+        stockQuery.prepare("SELECT COALESCE(current_qty, 0) FROM stock_summary WHERE produce_id=?");
+        stockQuery.addBindValue(row.id);
+        if (!stockQuery.exec()) {
+            qWarning("ProduceModel::upsertProduce 查询旧库存失败: %s",
+                     qPrintable(stockQuery.lastError().text()));
+            db.rollback();
+            return false;
+        }
+        if (stockQuery.next())
+            oldQuantity = stockQuery.value(0).toDouble();
+    }
+
+    QSqlQuery query(db);
+    int produceId = row.id;
+    if (row.id != 0) {
         query.prepare(
             "UPDATE produce_info SET name=?, category=?, shelf_life_days=?, "
             "ideal_temp_range=?, icon_url=? WHERE id=?");
@@ -133,7 +156,59 @@ bool ProduceModel::upsertProduce(const ProduceRow &row)
     }
 
     if (!query.exec()) {
-        qWarning("ProduceModel::upsertProduce 失败: %s", qPrintable(query.lastError().text()));
+        qWarning("ProduceModel::upsertProduce 保存商品失败: %s", qPrintable(query.lastError().text()));
+        db.rollback();
+        return false;
+    }
+
+    if (row.id == 0)
+        produceId = query.lastInsertId().toInt();
+    if (produceId == 0) {
+        qWarning("ProduceModel::upsertProduce 未获得有效商品ID");
+        db.rollback();
+        return false;
+    }
+
+    QSqlQuery stockQuery(db);
+    stockQuery.prepare(
+        "INSERT INTO stock_summary "
+        "(produce_id, current_qty, earliest_expire_date, last_updated) "
+        "VALUES (?, ?, ?, datetime('now', 'localtime')) "
+        "ON CONFLICT(produce_id) DO UPDATE SET "
+        "current_qty=excluded.current_qty, "
+        "earliest_expire_date=excluded.earliest_expire_date, "
+        "last_updated=excluded.last_updated");
+    stockQuery.addBindValue(produceId);
+    stockQuery.addBindValue(row.currentQty);
+    stockQuery.addBindValue(row.earliestExpireDate);
+    if (!stockQuery.exec()) {
+        qWarning("ProduceModel::upsertProduce 保存库存失败: %s",
+                 qPrintable(stockQuery.lastError().text()));
+        db.rollback();
+        return false;
+    }
+
+    const double quantityDelta = row.currentQty - oldQuantity;
+    if (!qFuzzyIsNull(quantityDelta)) {
+        QSqlQuery logQuery(db);
+        logQuery.prepare(
+            "INSERT INTO inventory_log "
+            "(produce_id, action_type, quantity, sync_status) "
+            "VALUES (?, ?, ?, 'local')");
+        logQuery.addBindValue(produceId);
+        logQuery.addBindValue(quantityDelta > 0 ? QStringLiteral("IN") : QStringLiteral("OUT"));
+        logQuery.addBindValue(qAbs(quantityDelta));
+        if (!logQuery.exec()) {
+            qWarning("ProduceModel::upsertProduce 写入库存历史失败: %s",
+                     qPrintable(logQuery.lastError().text()));
+            db.rollback();
+            return false;
+        }
+    }
+
+    if (!db.commit()) {
+        qWarning("ProduceModel::upsertProduce 提交事务失败: %s", qPrintable(db.lastError().text()));
+        db.rollback();
         return false;
     }
 

@@ -18,6 +18,8 @@ TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "shelf_life_days",
         "ideal_temp_range",
         "icon_url",
+        "unit",
+        "location",
     ),
     "inventory_log": (
         "id",
@@ -126,7 +128,7 @@ def _reapply_local_inventory(
         FROM inventory_log
         WHERE
             sync_status = 'local'
-            AND id >= 1000000000
+            AND (id < 0 OR id >= 1000000000)
             AND produce_id IS NOT NULL
         GROUP BY produce_id
         """

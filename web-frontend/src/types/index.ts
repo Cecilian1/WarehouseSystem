@@ -46,6 +46,8 @@ export interface DetectionBox {
 export interface RecognitionRecord {
   id: number
   time: string
+  createdAt?: string
+  produceId?: number
   name: string
   category: string
   quantity: number
@@ -67,6 +69,7 @@ export interface DashboardData {
   statuses: StatusItem[]
   metrics: MetricItem[]
   environment: {
+    valid?: boolean
     temperature: number
     humidity: number
     temperatureState: DeviceState
@@ -119,6 +122,19 @@ export interface ProducePayload {
   shelfLifeDays: number
   idealTempRange: string
   iconUrl: string
+  unit?: string
+  location?: string
+}
+
+export interface InventoryMutationPayload {
+  name: string
+  category: string
+  quantity: number
+  unit: string
+  shelfLife: number
+  storageAdvice: string
+  location: string
+  iconUrl?: string
 }
 
 export interface AlertItem {

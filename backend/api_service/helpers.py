@@ -38,14 +38,17 @@ def query_one(sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
 
 
 def allocate_local_id(conn: Any, table: str) -> int:
-    """Allocate IDs outside the development board's normal autoincrement range."""
+    """Allocate negative IDs reserved for computer-originated records.
+
+    SQLite AUTOINCREMENT only advances from positive row IDs, so negative IDs can
+    be copied to the board without colliding with future board-native records.
+    """
     if table not in {"produce_info", "inventory_log", "alert_record"}:
         raise ValueError(f"unsupported local-id table: {table}")
     row = conn.execute(
-        f"SELECT COALESCE(MAX(id), ?) AS max_id FROM {table} WHERE id >= ?",
-        (SERVER_LOCAL_ID_BASE - 1, SERVER_LOCAL_ID_BASE),
+        f"SELECT COALESCE(MIN(id), 0) AS min_id FROM {table} WHERE id < 0",
     ).fetchone()
-    return int(row["max_id"]) + 1
+    return int(row["min_id"]) - 1
 
 
 def parse_dt(value: Any) -> datetime | None:
@@ -177,6 +180,8 @@ def inventory_rows() -> list[dict[str, Any]]:
             p.shelf_life_days,
             p.ideal_temp_range,
             p.icon_url,
+            COALESCE(p.unit, '件') AS unit,
+            COALESCE(p.location, '本地库存') AS location,
             COALESCE(s.current_qty, 0) AS current_qty,
             s.earliest_expire_date,
             (
@@ -202,6 +207,7 @@ def inventory_rows() -> list[dict[str, Any]]:
             ) AS freshness_score
         FROM produce_info p
         LEFT JOIN stock_summary s ON s.produce_id = p.id
+        WHERE COALESCE(s.current_qty, 0) > 0
         ORDER BY p.name
         """
     )
@@ -223,14 +229,14 @@ def inventory_rows() -> list[dict[str, Any]]:
                 "name": row.get("name") or "未命名果蔬",
                 "category": category,
                 "quantity": safe_float(row.get("current_qty")),
-                "unit": "件",
+                "unit": row.get("unit") or "件",
                 "shelfLife": shelf_life,
                 "remainingDays": days_left,
                 "freshness": freshness,
                 "freshnessScore": max(0.0, min(1.0, freshness_score)),
                 "storageAdvice": row.get("ideal_temp_range") or "按果蔬适宜温湿度储存",
                 "inboundAt": format_dt(row.get("inbound_at"), "暂无入库记录"),
-                "location": "本地库存",
+                "location": row.get("location") or "本地库存",
                 "color": row.get("icon_url") or color_for(row.get("name") or "", category),
             }
         )
@@ -247,6 +253,8 @@ def produce_rows() -> list[dict[str, Any]]:
             p.shelf_life_days,
             p.ideal_temp_range,
             p.icon_url,
+            COALESCE(p.unit, '件') AS unit,
+            COALESCE(p.location, '本地库存') AS location,
             COALESCE(s.current_qty, 0) AS current_qty,
             COALESCE(s.earliest_expire_date, '') AS earliest_expire_date
         FROM produce_info p
@@ -262,6 +270,8 @@ def produce_rows() -> list[dict[str, Any]]:
             "shelfLifeDays": safe_int(row.get("shelf_life_days")),
             "idealTempRange": row.get("ideal_temp_range") or "",
             "iconUrl": row.get("icon_url") or "",
+            "unit": row.get("unit") or "件",
+            "location": row.get("location") or "本地库存",
             "currentQty": safe_float(row.get("current_qty")),
             "earliestExpireDate": row.get("earliest_expire_date") or "",
         }
@@ -358,11 +368,13 @@ def environment_data() -> dict[str, Any]:
         for row in reversed(trend_rows)
     ]
     is_abnormal = bool(latest and latest.get("is_abnormal"))
+    valid = latest is not None
     return {
         "temperature": safe_float(latest.get("temperature") if latest else None),
         "humidity": safe_float(latest.get("humidity") if latest else None),
-        "temperatureState": "warning" if is_abnormal else "online",
-        "humidityState": "online",
+        "valid": valid,
+        "temperatureState": "offline" if not valid else "warning" if is_abnormal else "online",
+        "humidityState": "offline" if not valid else "warning" if is_abnormal else "online",
         "trend": trend,
     }
 

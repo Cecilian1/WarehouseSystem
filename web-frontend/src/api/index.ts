@@ -7,6 +7,7 @@ import type {
   EnvironmentPoint,
   HistoryItem,
   InventoryItem,
+  InventoryMutationPayload,
   PageResult,
   ProduceItem,
   ProducePayload,
@@ -20,6 +21,12 @@ export const dashboardApi = {
 export const inventoryApi = {
   getList: (params: Record<string, unknown>) =>
     http.get<never, ApiResponse<PageResult<InventoryItem>>>('/inventory', { params }),
+  create: (payload: InventoryMutationPayload) =>
+    http.post<never, ApiResponse<{ success: boolean; item: InventoryItem }>>('/inventory/inbound', payload),
+  update: (id: number, payload: InventoryMutationPayload) =>
+    http.put<never, ApiResponse<{ success: boolean; item: InventoryItem }>>(`/inventory/${id}`, payload),
+  remove: (id: number) =>
+    http.delete<never, ApiResponse<{ success: boolean; produceId: number }>>(`/inventory/${id}`),
 }
 
 export const recognitionApi = {

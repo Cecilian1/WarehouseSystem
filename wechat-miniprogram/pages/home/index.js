@@ -32,11 +32,11 @@ Page({
       statusTop: app.globalData.statusBarHeight
     })
     applyThemeClass(this)
-    this.load()
   },
   onShow() {
     applyThemeClass(this)
     if (this.getTabBar) this.getTabBar().syncRoute()
+    this.load()
   },
   onPullDownRefresh() {
     this.load().finally(() => wx.stopPullDownRefresh())

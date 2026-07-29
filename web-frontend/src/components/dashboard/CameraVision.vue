@@ -7,6 +7,7 @@ import { freshnessLabel } from '@/utils/format'
 const props = defineProps<{
   detections: DetectionBox[]
   performance: { fps: number; latency: number; model: string; power: number }
+  captureTime?: string
   compact?: boolean
 }>()
 
@@ -103,7 +104,7 @@ const produce = [
           <Play v-else :size="15" />
         </button>
         <div class="timeline"><span :class="{ paused: !playing }" /></div>
-        <span>20:29:42</span>
+        <span>{{ captureTime || '--:--:--' }}</span>
       </div>
     </div>
 

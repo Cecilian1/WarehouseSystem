@@ -113,7 +113,7 @@ Page({
     if (!pendingAction || !pendingItem) return
     const task = pendingAction.type === 'outbound'
       ? inventoryService.outbound({ id: pendingItem.id, quantity: 1 })
-      : Promise.resolve({ data: { success: true } })
+      : inventoryService.remove(pendingItem.id)
     task.then(() => {
       wx.showToast({ title: pendingAction.type === 'delete' ? '已删除' : '已出库', icon: 'success' })
       this.setData({ sheetVisible: false })
@@ -137,6 +137,7 @@ Page({
     inventoryService.inbound(values).then(() => {
       this.setData({ formVisible: false })
       wx.showToast({ title: '库存记录已创建', icon: 'success' })
+      return this.load()
     })
   }
 })

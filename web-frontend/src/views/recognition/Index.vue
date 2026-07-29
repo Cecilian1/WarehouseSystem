@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Expand, Image, Pause, Play, Search, SlidersHorizontal, ZoomIn } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import GlassPanel from '@/components/common/GlassPanel.vue'
@@ -16,13 +16,16 @@ const selected = ref<RecognitionRecord | null>(null)
 const autoRefresh = ref(true)
 const searchText = ref('')
 const previewVisible = ref(false)
+let refreshTimer: number | undefined
 
 const filtered = computed(() => records.value.filter((item) => !searchText.value || item.name.includes(searchText.value)))
+const hasInference = computed(() => Boolean(selected.value && selected.value.confidence > 0))
+const resultStatus = computed(() => hasInference.value ? '真实识别记录' : selected.value ? '真实库存记录' : '暂无记录')
 
 const load = async () => {
   const response = await recognitionApi.getList()
   records.value = response.data
-  selected.value ||= records.value[0]
+  if (!previewVisible.value) selected.value = records.value[0] || null
 }
 
 const inspect = (record: RecognitionRecord) => {
@@ -30,7 +33,21 @@ const inspect = (record: RecognitionRecord) => {
   previewVisible.value = true
 }
 
-onMounted(load)
+const openOriginal = () => {
+  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+  window.open(`${apiBaseUrl}/frames/latest/image?t=${Date.now()}`, '_blank', 'noopener')
+}
+
+onMounted(() => {
+  load()
+  refreshTimer = window.setInterval(() => {
+    if (autoRefresh.value) load()
+  }, 5000)
+})
+
+onBeforeUnmount(() => {
+  if (refreshTimer !== undefined) window.clearInterval(refreshTimer)
+})
 </script>
 
 <template>
@@ -43,29 +60,29 @@ onMounted(load)
     </PageHeader>
 
     <div class="recognition-workspace">
-      <CameraVision compact :detections="dashboard.data.detections" :performance="dashboard.data.performance" />
+      <CameraVision compact :detections="dashboard.data.detections" :performance="dashboard.data.performance" :capture-time="selected?.time" />
       <GlassPanel class="current-result">
         <div class="result-head">
-          <div><h2>识别结果</h2><span>Frame #003018 · 20:29:42</span></div>
-          <span class="status-chip is-online">处理完成</span>
+          <div><h2>{{ hasInference ? '识别结果' : '最新业务记录' }}</h2><span>Frame #{{ selected?.id || '--' }} · {{ selected?.time || '--:--:--' }}</span></div>
+          <span class="status-chip is-online">{{ resultStatus }}</span>
         </div>
         <div class="result-score">
-          <div class="score-ring"><strong>98.2</strong><span>置信度</span></div>
-          <div class="score-copy"><span>识别类别</span><h3>红富士苹果</h3><p>Apple · Fruit · 3 个目标</p></div>
+          <div class="score-ring"><strong>{{ hasInference ? ((selected?.confidence || 0) * 100).toFixed(1) : '--' }}</strong><span>置信度</span></div>
+          <div class="score-copy"><span>{{ hasInference ? '识别类别' : '库存对象' }}</span><h3>{{ selected?.name || '暂无记录' }}</h3><p>{{ selected ? `${selected.category} · ${selected.action === 'IN' ? '入库' : '出库'} ${selected.quantity} 件` : '等待板端或人工库存操作' }}</p></div>
         </div>
         <div class="result-grid">
-          <div><span>Freshness</span><strong class="is-fresh">新鲜</strong></div>
-          <div><span>新鲜度评分</span><strong>96.1</strong></div>
-          <div><span>检测耗时</span><strong>248 ms</strong></div>
-          <div><span>分类耗时</span><strong>96 ms</strong></div>
+          <div><span>Freshness</span><strong class="is-fresh">{{ selected ? freshnessLabel[selected.freshness] : '未上报' }}</strong></div>
+          <div><span>新鲜度评分</span><strong>{{ selected && selected.freshnessScore > 0 ? (selected.freshnessScore * 100).toFixed(1) : '未上报' }}</strong></div>
+          <div><span>处理耗时</span><strong>{{ selected && selected.latency > 0 ? `${selected.latency} ms` : '未上报' }}</strong></div>
+          <div><span>记录来源</span><strong>{{ hasInference ? '板端推理' : '库存操作' }}</strong></div>
         </div>
         <div class="model-meta">
-          <div><span>检测模型</span><strong>YOLOv11n · INT8</strong></div>
-          <div><span>分类模型</span><strong>MobileNetV3-Small</strong></div>
+          <div><span>检测模型</span><strong>{{ dashboard.data.performance.model || '未接入' }}</strong></div>
+          <div><span>分类模型</span><strong>{{ hasInference ? '结果已上报' : '未接入' }}</strong></div>
         </div>
         <div class="result-actions">
-          <el-button><Pause v-if="autoRefresh" :size="14" /><Play v-else :size="14" />{{ autoRefresh ? '暂停识别' : '继续识别' }}</el-button>
-          <el-button type="primary"><Expand :size="14" />查看原图</el-button>
+          <el-button @click="autoRefresh = !autoRefresh"><Pause v-if="autoRefresh" :size="14" /><Play v-else :size="14" />{{ autoRefresh ? '暂停刷新' : '继续刷新' }}</el-button>
+          <el-button type="primary" @click="openOriginal"><Expand :size="14" />查看原图</el-button>
         </div>
       </GlassPanel>
     </div>

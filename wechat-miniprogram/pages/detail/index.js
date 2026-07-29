@@ -50,6 +50,7 @@ Page({
     inventoryService.outbound({ id: this.data.item.id, quantity: 1 }).then(() => {
       wx.showToast({ title: '已手动出库', icon: 'success' })
       this.setData({ sheetVisible: false })
+      return this.load(this.data.item.id, false)
     })
   },
   edit() {
@@ -70,9 +71,12 @@ Page({
   cancelForm() {
     this.setData({ formVisible: false })
   },
-  confirmForm() {
-    this.setData({ formVisible: false })
-    wx.showToast({ title: '库存信息已更新', icon: 'success' })
+  confirmForm(event) {
+    inventoryService.update(this.data.item.id, event.detail.values).then(() => {
+      this.setData({ formVisible: false })
+      wx.showToast({ title: '库存信息已更新', icon: 'success' })
+      return this.load(this.data.item.id, false)
+    })
   },
   markHandled() {
     wx.showToast({ title: '已标记处理', icon: 'success' })

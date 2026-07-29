@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS produce_info (
     category         TEXT,
     shelf_life_days  INTEGER,
     ideal_temp_range TEXT,
-    icon_url         TEXT
+    icon_url         TEXT,
+    unit             TEXT DEFAULT '件',
+    location         TEXT DEFAULT '本地库存'
 );
 
 CREATE TABLE IF NOT EXISTS inventory_log (
@@ -75,10 +77,32 @@ CREATE TABLE IF NOT EXISTS sync_source_status (
     last_counts_json TEXT NOT NULL
 );
 
+-- 电脑端写操作回传开发板的可靠队列。断网时保留 pending/failed，重连后重试。
+CREATE TABLE IF NOT EXISTS board_sync_outbox (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    operation_id     TEXT NOT NULL UNIQUE,
+    operation_type   TEXT NOT NULL,
+    payload_json     TEXT NOT NULL,
+    inventory_log_id INTEGER,
+    status           TEXT NOT NULL DEFAULT 'pending',
+    attempts         INTEGER NOT NULL DEFAULT 0,
+    last_error       TEXT DEFAULT '',
+    created_at       TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    synced_at        TEXT
+);
+
+-- 开发板记录已应用的电脑端操作，保证网络重试不会重复加减库存。
+CREATE TABLE IF NOT EXISTS applied_remote_operation (
+    operation_id   TEXT PRIMARY KEY,
+    operation_type TEXT NOT NULL,
+    applied_at     TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_inventory_log_created_at ON inventory_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_alert_record_is_read ON alert_record(is_read);
 CREATE INDEX IF NOT EXISTS idx_env_log_recorded_at ON env_log(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_pending_frames_status ON pending_frames(status);
+CREATE INDEX IF NOT EXISTS idx_board_sync_outbox_status ON board_sync_outbox(status, id);
 
 -- 以下为 Web/小程序客户端业务接口所需的表，均为服务端(api_service)新增，
 -- 与开发板采集/同步链路（camera_service/env_service/sync_service）无关。

@@ -47,12 +47,12 @@
     <view class="env-values">
       <view>
         <small>温度</small>
-        <text>{{overview.environment.temperature}}</text>
+        <text>{{overview.environment.valid ? overview.environment.temperature : '--'}}</text>
         <small>°C</small>
       </view>
       <view>
         <small>湿度</small>
-        <text>{{overview.environment.humidity}}</text>
+        <text>{{overview.environment.valid ? overview.environment.humidity : '--'}}</text>
         <small>%RH</small>
       </view>
     </view>

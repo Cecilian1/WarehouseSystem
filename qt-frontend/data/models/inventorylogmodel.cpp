@@ -83,19 +83,19 @@ void InventoryLogModel::refresh(const QString &filterCategory, const QString &st
     if (!filterCategory.isEmpty())
         sql += "AND p.category = :category ";
     if (!startDate.isEmpty())
-        sql += "AND l.created_at >= :startDate ";
+        sql += "AND datetime(l.created_at) >= datetime(:startDate) ";
     if (!endDate.isEmpty())
-        sql += "AND l.created_at <= :endDate ";
-    sql += "ORDER BY l.created_at DESC";
+        sql += "AND datetime(l.created_at) <= datetime(:endDate) ";
+    sql += "ORDER BY datetime(l.created_at) DESC, l.id DESC";
 
     QSqlQuery query(DatabaseManager::database());
     query.prepare(sql);
     if (!filterCategory.isEmpty())
         query.bindValue(":category", filterCategory);
     if (!startDate.isEmpty())
-        query.bindValue(":startDate", startDate);
+        query.bindValue(":startDate", startDate + QStringLiteral(" 00:00:00"));
     if (!endDate.isEmpty())
-        query.bindValue(":endDate", endDate);
+        query.bindValue(":endDate", endDate + QStringLiteral(" 23:59:59"));
 
     if (!query.exec()) {
         qWarning("InventoryLogModel::refresh 查询失败: %s", qPrintable(query.lastError().text()));
@@ -107,9 +107,14 @@ void InventoryLogModel::refresh(const QString &filterCategory, const QString &st
         InventoryLogRow row;
         row.id = query.value(0).toInt();
         row.produceName = query.value(1).toString();
-        row.actionType = query.value(2).toString();
+        const QString actionType = query.value(2).toString();
+        row.actionType = actionType == QStringLiteral("IN")
+            ? QStringLiteral("入库")
+            : actionType == QStringLiteral("OUT") ? QStringLiteral("出库") : actionType;
         row.quantity = query.value(3).toDouble();
         row.freshnessLevel = query.value(4).toString();
+        if (row.freshnessLevel.isEmpty())
+            row.freshnessLevel = QStringLiteral("未上报");
         row.createdAt = query.value(5).toString();
         m_rows.append(row);
     }

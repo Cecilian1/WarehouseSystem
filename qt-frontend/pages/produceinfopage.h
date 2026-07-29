@@ -7,6 +7,8 @@ class ProduceModel;
 class QTableView;
 class QLineEdit;
 class QSpinBox;
+class QDoubleSpinBox;
+class QDateEdit;
 class OnScreenKeyboardWidget;
 
 // 触摸信息查询与录入：点击列表中的果蔬查看/编辑详情（名称、分类、保质期天数、
@@ -35,6 +37,8 @@ private:
     QLineEdit *m_categoryEdit;
     QSpinBox *m_shelfLifeSpin;
     QLineEdit *m_idealTempEdit;
+    QDoubleSpinBox *m_quantitySpin;
+    QDateEdit *m_expireDateEdit;
 
     OnScreenKeyboardWidget *m_keyboard;
 
