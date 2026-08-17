@@ -25,6 +25,10 @@ from backend.camera_service.frame_diff import FrameDiffDetector
 from backend.camera_service.led_control import LedControl
 from backend.camera_service.pending_frame_writer import PendingFrameWriter
 from backend.common.config import load_yaml
+from backend.common.frame_cleanup import (
+    FrameRetentionCleaner,
+    FrameRetentionPolicy,
+)
 from backend.common.init_db import init_db
 from backend.common.logging_setup import setup_logging
 
@@ -65,15 +69,54 @@ def main() -> None:
     frame_writer = PendingFrameWriter(
         db_path=config["db_path"],
         frame_save_dir=config["frame_save_dir"],
+        max_pending_frames=int(config.get("max_pending_frames", 1000)),
     )
     status_reporter = DeviceStatusReporter(
         db_path=config["db_path"],
         device_id=config["device_id"],
     )
+    cleanup_interval_sec = max(
+        60,
+        int(config.get("frame_cleanup_interval_sec", 3600)),
+    )
+    startup_frame_cleaner = FrameRetentionCleaner(
+        db_path=config["db_path"],
+        frame_root=config["frame_save_dir"],
+        latest_frame_name=config.get("latest_frame_name", "latest.jpg"),
+        policy=FrameRetentionPolicy(
+            completed_retention_days=int(
+                config.get("completed_frame_retention_days", 7)
+            ),
+            pending_retention_days=int(
+                config.get("pending_frame_retention_days", 7)
+            ),
+            max_completed_frames=int(config.get("max_completed_frames", 1000)),
+            max_pending_frames=int(config.get("max_pending_frames", 1000)),
+        ),
+    )
+    periodic_frame_cleaner = FrameRetentionCleaner(
+        db_path=config["db_path"],
+        frame_root=config["frame_save_dir"],
+        latest_frame_name=config.get("latest_frame_name", "latest.jpg"),
+        policy=FrameRetentionPolicy(
+            completed_retention_days=int(
+                config.get("completed_frame_retention_days", 7)
+            ),
+            pending_retention_days=0,
+            max_completed_frames=int(config.get("max_completed_frames", 1000)),
+            max_pending_frames=0,
+        ),
+    )
 
     change_ratio_threshold = config["change_ratio_threshold"]
     interval_sec = config["capture_interval_sec"]
     latest_frame_name = config.get("latest_frame_name", "latest.jpg")
+
+    try:
+        startup_frame_cleaner.cleanup()
+    except Exception:
+        logger.exception("启动时清理历史图片失败，继续启动摄像头服务")
+    next_cleanup_at = time.monotonic() + cleanup_interval_sec
 
     try:
         camera.open()
@@ -88,6 +131,12 @@ def main() -> None:
         while _running:
             cycle_start = time.monotonic()
             try:
+                if cycle_start >= next_cleanup_at:
+                    next_cleanup_at = cycle_start + cleanup_interval_sec
+                    try:
+                        periodic_frame_cleaner.cleanup()
+                    except Exception:
+                        logger.exception("定时清理历史图片失败，本轮继续采集")
                 led.turn_on()
                 frame = camera.read_frame()
                 led.turn_off()

@@ -42,7 +42,7 @@ sh deploy/install_on_device.sh
 ```
 
 该脚本会依次完成：安装Python依赖（`backend/requirements.txt`）、创建
-`/data/warehousekeeper`数据目录、初始化SQLite数据库、安装并启动两个
+`/data/warehousekeeper`数据目录、初始化SQLite数据库、安装并启动三个
 systemd服务。详见 `deploy/install_on_device.sh` 源码。
 
 ## 4. systemd常用操作
@@ -65,4 +65,19 @@ journalctl -u env-service -f
 
 ```bash
 sqlite3 /data/warehousekeeper/warehousekeeper.db "SELECT * FROM env_log ORDER BY id DESC LIMIT 5;"
+```
+
+## 6. 图片保留与清理
+
+`camera-service`启动前会先清理超过7天或超过数量上限的历史变化帧。运行中
+每小时只清理`processed`/`discarded`图片，不删除AI可能正在读取的`pending`
+图片；待处理队列达到1000条后暂停新增变化帧，队列下降后自动恢复。
+
+策略可在`backend/camera_service/config/camera_service.yaml`中调整。部署更新后
+执行：
+
+```bash
+systemctl daemon-reload
+systemctl restart camera-service
+journalctl -u camera-service -n 100 --no-pager
 ```

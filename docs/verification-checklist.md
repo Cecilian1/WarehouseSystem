@@ -28,6 +28,11 @@
 - [ ] `led_gpio`配置的GPIO编号确认对应物理LED能正确点亮/熄灭
 - [ ] `systemctl daemon-reload && systemctl enable --now camera-service`，
       `systemctl status camera-service`确认Active(running)
+- [ ] 重启`camera-service`，确认日志出现图片清理结果，且`latest.jpg`仍可访问
+- [ ] 将`max_pending_frames`临时设为2并制造3次变化，确认数据库最多保留2条
+      `pending`，日志提示暂停新增；将其中一条改为`processed`后能继续新增
+- [ ] 构造一条`status='processing'`记录并执行定时清理，确认其数据库记录和
+      图片文件均未被删除
 
 ## env_service
 

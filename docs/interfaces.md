@@ -13,7 +13,9 @@ CREATE TABLE pending_frames (
     change_ratio  REAL,
     status        TEXT NOT NULL DEFAULT 'pending',  -- pending / processed / discarded
     created_at    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-    processed_at  TEXT
+    processed_at  TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    last_error    TEXT DEFAULT ''
 );
 ```
 
@@ -21,7 +23,7 @@ CREATE TABLE pending_frames (
 - camera_service检测到画面变化超过阈值时，保存图片到`frame_save_dir`配置目录，
   并`INSERT`一条`status='pending'`的记录。camera_service**只负责INSERT**，
   不会再修改这条记录。
-- 未来AI服务模块应定期执行：
+- AI服务模块定期执行：
   ```sql
   SELECT * FROM pending_frames WHERE status = 'pending' ORDER BY id;
   ```
@@ -34,6 +36,9 @@ CREATE TABLE pending_frames (
      ```
 - Qt前端的`RecognitionPage`会展示`pending_frames`最新一条记录的图片与
   `status`字段，`status='pending'`时显示"等待AI识别服务接入"占位文本。
+- camera_service启动前按保留策略清理旧`pending`，运行中只清理
+  `processed`/`discarded`；待处理队列达到配置上限后暂停新增，避免与AI读取
+  图片发生删除竞争。
 
 ## inventory_log 表（AI服务模块预期写入，本次任务已建表但不写入）
 

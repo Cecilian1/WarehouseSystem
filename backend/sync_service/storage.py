@@ -30,6 +30,14 @@ TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "freshness_score",
         "confidence",
         "image_path",
+        "source_frame_id",
+        "detector_label",
+        "detector_confidence",
+        "freshness_confidence",
+        "bbox_json",
+        "freshness_probabilities_json",
+        "inference_latency_ms",
+        "model_version",
         "created_at",
         "sync_status",
     ),
@@ -68,6 +76,8 @@ TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "status",
         "created_at",
         "processed_at",
+        "attempt_count",
+        "last_error",
     ),
 }
 

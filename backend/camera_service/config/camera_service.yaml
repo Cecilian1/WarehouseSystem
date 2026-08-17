@@ -31,6 +31,15 @@ frame_save_dir: /data/warehousekeeper/frames
 # 每轮采集都会原子覆盖该文件，专门供Web最新画面接口读取
 latest_frame_name: latest.jpg
 
+# 历史变化帧清理：启动时整理全部状态，运行中每小时只清理已处理/已丢弃帧。
+# pending达到上限后停止新增，避免AI服务停机时无限增长，也避免误删推理中的图片。
+# latest.jpg和被inventory_log直接引用的识别图片不会删除。
+frame_cleanup_interval_sec: 3600
+completed_frame_retention_days: 7
+pending_frame_retention_days: 7
+max_completed_frames: 1000
+max_pending_frames: 1000
+
 # SQLite数据库文件路径（与env_service、Qt前端共用同一个文件）
 db_path: /data/warehousekeeper/warehousekeeper.db
 

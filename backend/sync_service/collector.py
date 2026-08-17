@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sqlite3
 import threading
 import time
@@ -12,6 +13,10 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from backend.common.frame_cleanup import (
+    FrameRetentionCleaner,
+    FrameRetentionPolicy,
+)
 from backend.sync_service.storage import apply_sync_payload
 from backend.sync_service.push import push_pending_operations
 
@@ -103,6 +108,28 @@ def run_collector(
     interval_sec: int = 5,
 ) -> None:
     logger.info("本机数据采集器启动: board=%s", board_url)
+    cleanup_interval_sec = max(
+        60,
+        int(os.environ.get("WAREHOUSE_FRAME_CLEANUP_INTERVAL_SEC", "3600")),
+    )
+    frame_cleaner = FrameRetentionCleaner(
+        db_path=local_db_path,
+        policy=FrameRetentionPolicy(
+            completed_retention_days=int(
+                os.environ.get("WAREHOUSE_COMPLETED_FRAME_RETENTION_DAYS", "7")
+            ),
+            pending_retention_days=int(
+                os.environ.get("WAREHOUSE_PENDING_FRAME_RETENTION_DAYS", "7")
+            ),
+            max_completed_frames=int(
+                os.environ.get("WAREHOUSE_MAX_COMPLETED_FRAMES", "1000")
+            ),
+            max_pending_frames=int(
+                os.environ.get("WAREHOUSE_MAX_PENDING_FRAMES", "1000")
+            ),
+        ),
+    )
+    next_cleanup_at = 0.0
     while True:
         try:
             push_counts = push_pending_operations(board_url, local_db_path)
@@ -110,6 +137,13 @@ def run_collector(
                 logger.info("电脑端库存操作回传开发板: %s", push_counts)
             counts = collect_once(board_url, local_db_path, state_path)
             logger.info("板端数据已写入本机: %s", counts)
+            now = time.monotonic()
+            if now >= next_cleanup_at:
+                next_cleanup_at = now + cleanup_interval_sec
+                try:
+                    frame_cleaner.cleanup()
+                except Exception:
+                    logger.exception("本机历史图片记录清理失败，稍后重试")
         except Exception as exc:
             logger.warning("拉取板端数据失败，稍后重试: %s", exc)
         time.sleep(max(2, interval_sec))

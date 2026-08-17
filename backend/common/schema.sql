@@ -24,6 +24,14 @@ CREATE TABLE IF NOT EXISTS inventory_log (
     freshness_score  REAL,
     confidence       REAL,
     image_path       TEXT,
+    source_frame_id  INTEGER,
+    detector_label   TEXT,
+    detector_confidence REAL,
+    freshness_confidence REAL,
+    bbox_json        TEXT,
+    freshness_probabilities_json TEXT,
+    inference_latency_ms REAL,
+    model_version    TEXT,
     created_at       TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     sync_status      TEXT DEFAULT 'local'
 );
@@ -68,7 +76,9 @@ CREATE TABLE IF NOT EXISTS pending_frames (
     change_ratio  REAL,
     status        TEXT NOT NULL DEFAULT 'pending',
     created_at    TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
-    processed_at  TEXT
+    processed_at  TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    last_error    TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS sync_source_status (

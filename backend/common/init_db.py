@@ -42,6 +42,30 @@ def init_db(db_path: str) -> None:
             "location",
             "TEXT DEFAULT '本地库存'",
         )
+        inventory_columns = {
+            "source_frame_id": "INTEGER",
+            "detector_label": "TEXT",
+            "detector_confidence": "REAL",
+            "freshness_confidence": "REAL",
+            "bbox_json": "TEXT",
+            "freshness_probabilities_json": "TEXT",
+            "inference_latency_ms": "REAL",
+            "model_version": "TEXT",
+        }
+        for column, definition in inventory_columns.items():
+            _ensure_column(conn, "inventory_log", column, definition)
+        _ensure_column(
+            conn,
+            "pending_frames",
+            "attempt_count",
+            "INTEGER NOT NULL DEFAULT 0",
+        )
+        _ensure_column(
+            conn,
+            "pending_frames",
+            "last_error",
+            "TEXT DEFAULT ''",
+        )
         conn.commit()
     finally:
         conn.close()

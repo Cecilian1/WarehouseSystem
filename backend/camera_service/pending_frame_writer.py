@@ -18,10 +18,39 @@ logger = logging.getLogger("camera_service.pending_frame_writer")
 
 
 class PendingFrameWriter:
-    def __init__(self, db_path: str, frame_save_dir: str):
+    def __init__(
+        self,
+        db_path: str,
+        frame_save_dir: str,
+        max_pending_frames: int = 1000,
+    ):
         self.db_path = db_path
         self.frame_save_dir = Path(frame_save_dir)
+        self.max_pending_frames = max(0, max_pending_frames)
+        self._queue_full_reported = False
         self.frame_save_dir.mkdir(parents=True, exist_ok=True)
+
+    def _has_pending_capacity(self) -> bool:
+        if self.max_pending_frames == 0:
+            return True
+        with connection_scope(self.db_path) as conn:
+            pending_count = int(
+                conn.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM pending_frames
+                    WHERE status = 'pending'
+                    """
+                ).fetchone()[0]
+            )
+        has_capacity = pending_count < self.max_pending_frames
+        if not has_capacity and not self._queue_full_reported:
+            logger.warning(
+                "待识别图片已达上限%d，暂停新增变化帧；AI处理或服务重启清理后自动恢复",
+                self.max_pending_frames,
+            )
+        self._queue_full_reported = not has_capacity
+        return has_capacity
 
     def save_latest(self, frame: np.ndarray, filename: str = "latest.jpg") -> Path:
         """原子更新供Web预览的最新帧，不写入pending_frames。"""
@@ -32,8 +61,14 @@ class PendingFrameWriter:
         temp_path.replace(image_path)
         return image_path
 
-    def save_and_register(self, frame: np.ndarray, change_ratio: float) -> int:
+    def save_and_register(
+        self,
+        frame: np.ndarray,
+        change_ratio: float,
+    ) -> int | None:
         """保存图片并写入pending_frames，返回新记录id。"""
+        if not self._has_pending_capacity():
+            return None
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         filename = f"frame_{timestamp}.jpg"
         image_path = str(self.frame_save_dir / filename)
