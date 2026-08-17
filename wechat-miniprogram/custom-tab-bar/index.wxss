@@ -2,18 +2,24 @@
    so it has no page ancestor carrying .theme-dark/.theme-light to inherit
    CSS variables from — the token blocks are duplicated here from app.wxss. */
 .theme-dark {
+  --bg-0: #07111f;
+  --bg-1: #0d1728;
+  --bg-2: #111f33;
   --blue: #4f8cff;
   --cyan: #38bdf8;
-  --surface-strong: rgba(20, 37, 61, .86);
+  --surface-strong: #111f33;
   --stroke: rgba(148, 163, 184, .16);
   --text-3: #70829a;
   --radius-lg: 44rpx;
 }
 
 .theme-light {
+  --bg-0: #eef4fa;
+  --bg-1: #f6f9fc;
+  --bg-2: #ffffff;
   --blue: #4f8cff;
   --cyan: #38bdf8;
-  --surface-strong: rgba(255, 255, 255, .94);
+  --surface-strong: #ffffff;
   --stroke: rgba(100, 116, 139, .18);
   --text-3: #8b9bb0;
   --radius-lg: 44rpx;
@@ -35,15 +41,8 @@
   min-height: 104rpx;
   padding: 8rpx 16rpx calc(10rpx + env(safe-area-inset-bottom));
   border-top: 1rpx solid var(--stroke);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--surface-strong);
-  box-shadow: 0 -20rpx 56rpx rgba(0, 0, 0, .08);
-  backdrop-filter: blur(12px);
+  background: var(--bg-2);
   pointer-events: auto;
-}
-
-.theme-light .tab-bar {
-  box-shadow: 0 -20rpx 56rpx rgba(32, 62, 91, .08);
 }
 
 .tab-item {
@@ -53,9 +52,6 @@
   flex-direction: column;
   justify-content: center;
   gap: 6rpx;
-  /* WeChat's default button style is `display:block; margin-left:auto;
-     margin-right:auto; padding:0 14px`, which shrink-wraps each button and
-     lets it absorb free space. Reset it so all five tabs share the bar evenly. */
   min-width: 0;
   min-height: 82rpx;
   margin: 0;
@@ -93,7 +89,7 @@
   height: 54rpx;
   border-radius: 20rpx;
   color: #fff;
-  background: linear-gradient(135deg, var(--blue), #6c63ff);
+  background: linear-gradient(135deg, #38bdf8, #4f8cff);
   box-shadow: 0 8rpx 20rpx rgba(79, 140, 255, .28);
 }
 

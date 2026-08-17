@@ -1,5 +1,5 @@
 const { inventoryService } = require('../../services/api')
-const { applyThemeClass } = require('../../utils/theme')
+const { applyPageTheme } = require('../../utils/theme')
 const { INVENTORY_FORM_FIELDS } = require('../../utils/format')
 
 Page({
@@ -12,7 +12,7 @@ Page({
     category: '全部',
     freshness: '全部',
     sort: '保质期',
-    viewMode: 'card',
+    viewMode: 'list',
     categories: ['全部', '水果', '蔬菜'],
     freshnessOptions: [
       { label: '全部', value: '全部' },
@@ -36,12 +36,11 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
-    applyThemeClass(this)
+    applyPageTheme(this)
     this.load()
   },
   onShow() {
-    applyThemeClass(this)
-    if (this.getTabBar) this.getTabBar().syncRoute()
+    applyPageTheme(this)
   },
   onPullDownRefresh() {
     this.load().finally(() => wx.stopPullDownRefresh())
@@ -56,18 +55,26 @@ Page({
       freshness: this.data.freshness,
       sort: this.data.sort
     }).then((res) => {
-      const list = res.data
+      const list = Array.isArray(res.data) ? res.data : []
       const stats = {
-        categories: new Set(list.map((item) => item.category)).size,
-        total: list.reduce((sum, item) => sum + item.quantity, 0),
+        categories: new Set(list.map((item) => item.category).filter(Boolean)).size,
+        total: list.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
         fresh: list.filter((item) => item.freshness === 'fresh').length,
         urgent: list.filter((item) => item.freshness === 'expiring' || item.freshness === 'spoiled').length
       }
       this.setData({ list, stats })
+    }).catch(() => {
+      this.setData({
+        list: [],
+        stats: { categories: 0, total: 0, fresh: 0, urgent: 0 }
+      })
     })
   },
   inputKeyword(event) {
     this.setData({ keyword: event.detail.value })
+  },
+  clearKeyword() {
+    this.setData({ keyword: '' }, () => this.load())
   },
   search() {
     this.load()

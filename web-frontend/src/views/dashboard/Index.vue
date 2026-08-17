@@ -21,7 +21,6 @@ const refreshedAt = computed(() => store.lastUpdated.toLocaleTimeString('zh-CN',
     <PageHeader
       eyebrow="EDGE AI CONTROL CENTER"
       title="芯鲜管家"
-      description="基于 LoongArch 的端侧 AI 智能果蔬仓储管理系统"
     >
       <template #actions>
         <div class="updated-label"><span class="realtime-dot" />最后刷新 {{ refreshedAt }}</div>

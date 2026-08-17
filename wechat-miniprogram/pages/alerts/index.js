@@ -1,11 +1,18 @@
 const { alertService } = require('../../services/api')
-const { applyThemeClass } = require('../../utils/theme')
+const { applyPageTheme } = require('../../utils/theme')
 
 const STATUS_OPTIONS = [
   { label: '全部', value: 'all' },
   { label: '待处理', value: 'pending' },
   { label: '已确认', value: 'confirmed' },
   { label: '已忽略', value: 'ignored' }
+]
+
+const LEVEL_OPTIONS = [
+  { label: '全部', value: 'all' },
+  { label: '紧急', value: 'critical' },
+  { label: '关注', value: 'warning' },
+  { label: '普通', value: 'info' }
 ]
 
 Page({
@@ -18,6 +25,7 @@ Page({
     filter: 'all',
     statusFilter: 'all',
     statusOptions: STATUS_OPTIONS,
+    levelOptions: LEVEL_OPTIONS,
     keyword: '',
     selectedIds: [],
     sheetVisible: false,
@@ -30,12 +38,11 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
-    applyThemeClass(this)
+    applyPageTheme(this)
     this.load()
   },
   onShow() {
-    applyThemeClass(this)
-    if (this.getTabBar) this.getTabBar().syncRoute()
+    applyPageTheme(this)
   },
   onPullDownRefresh() {
     this.load().finally(() => wx.stopPullDownRefresh())
@@ -72,6 +79,9 @@ Page({
   },
   inputKeyword(event) {
     this.setData({ keyword: event.detail.value })
+  },
+  clearKeyword() {
+    this.setData({ keyword: '' }, () => this.load())
   },
   search() {
     this.load()

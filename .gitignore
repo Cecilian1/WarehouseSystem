@@ -6,14 +6,10 @@ __pycache__/
 qt-frontend/build-*/
 qt-frontend/*.pro.user
 
-# SQLite数据库文件与WAL/SHM辅助文件（部署时生成，不应入库）
-*.db
-*.db-wal
-*.db-shm
-data/collector-state.json
-
-# 采集图片
+# 采集图片（数据库可入库，帧文件仍只留本地）
 backend/camera_service/frames/
+data/warehousekeeper/frames/
+data-old-before-current-import/
 
 # Web前端 (Vue 3 + Vite)
 web-frontend/node_modules/

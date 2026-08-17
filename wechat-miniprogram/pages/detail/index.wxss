@@ -10,7 +10,7 @@
   overflow: hidden;
   padding: 0 28rpx 42rpx;
   color: #fff;
-  background: linear-gradient(150deg, var(--food-color), #4f8cff 58%, #6c63ff);
+  background: linear-gradient(150deg, var(--food-color), #4f8cff 58%, #38bdf8);
 }
 
 .detail-hero::after {

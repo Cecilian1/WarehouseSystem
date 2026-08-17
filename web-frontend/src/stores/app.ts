@@ -1,9 +1,10 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { ThemeMode } from '@/types'
+import { applyDomTheme, persistTheme, readStoredTheme } from '@/utils/theme'
 
 export const useAppStore = defineStore('app', () => {
-  const theme = ref<ThemeMode>((localStorage.getItem('xin-theme') as ThemeMode) || 'dark')
+  const theme = ref<ThemeMode>(readStoredTheme())
   const sidebarCollapsed = ref(localStorage.getItem('xin-sidebar-collapsed') === 'true')
   const notificationCount = ref(3)
 
@@ -11,8 +12,8 @@ export const useAppStore = defineStore('app', () => {
 
   const applyTheme = (next: ThemeMode) => {
     theme.value = next
-    document.documentElement.dataset.theme = next
-    localStorage.setItem('xin-theme', next)
+    applyDomTheme(next)
+    persistTheme(next)
   }
 
   const toggleTheme = () => applyTheme(isDark.value ? 'light' : 'dark')

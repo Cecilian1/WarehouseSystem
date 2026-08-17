@@ -36,7 +36,7 @@
     </view>
   </glass-card>
 
-  <glass-card wx:if="{{overview}}" tone="{{overview.environment.state === '适宜' ? 'deep' : 'warn'}}" padding="normal" hover bindtap="goEnvironment">
+  <glass-card wx:if="{{overview}}" tone="{{overview.environment.state === '适宜' ? 'env' : overview.environment.state === '异常' ? 'warn' : 'offline'}}" padding="normal" hover bindtap="goEnvironment">
     <view class="env-card">
       <view>
         <view class="env-title">冰箱环境</view>
@@ -113,7 +113,7 @@
 
   <view class="section-head">
     <view class="section-head__title">新鲜度概览</view>
-    <button class="section-head__more" bindtap="go" data-url="/pages/inventory/index">查看库存</button>
+    <view class="section-head__more" bindtap="go" data-url="/pages/inventory/index">查看库存</view>
   </view>
   <glass-card wx:if="{{overview}}" padding="normal">
     <view class="fresh-stack">
@@ -130,23 +130,23 @@
 
   <view class="section-head">
     <view class="section-head__title">今日提醒</view>
-    <button class="section-head__more" bindtap="go" data-url="/pages/alerts/index">全部</button>
+    <view class="section-head__more" bindtap="go" data-url="/pages/alerts/index">全部</view>
   </view>
   <view class="reminder-list">
     <glass-card wx:for="{{overview.reminders}}" wx:key="id" padding="small" hover>
-      <button class="reminder-item" bindtap="goMessage" data-id="{{item.id}}">
+      <view class="reminder-item" bindtap="goMessage" data-id="{{item.id}}">
         <view class="reminder-icon {{item.level}}"><x-icon type="alert" size="{{34}}" /></view>
-        <view>
+        <view class="reminder-copy">
           <view class="reminder-title">{{item.title}}</view>
           <view class="reminder-desc">{{item.description}}</view>
         </view>
-      </button>
+      </view>
     </glass-card>
   </view>
 
   <view class="section-head">
     <view class="section-head__title">最近识别</view>
-    <button class="section-head__more" bindtap="go" data-url="/pages/records/index">全部</button>
+    <view class="section-head__more" bindtap="go" data-url="/pages/records/index">全部</view>
   </view>
   <view class="recognition-list" wx:if="{{overview.recognitions.length}}">
     <glass-card wx:for="{{overview.recognitions}}" wx:key="id" padding="small">
@@ -173,9 +173,9 @@
   </glass-card>
 
   <view class="quick-grid">
-    <button wx:for="{{overview.quickActions}}" wx:key="title" class="quick-card tap-scale" bindtap="go" data-url="{{item.path}}">
+    <view wx:for="{{overview.quickActions}}" wx:key="title" class="quick-card tap-scale" bindtap="go" data-url="{{item.path}}">
       <x-icon type="{{item.icon}}" size="{{42}}" />
       <text>{{item.title}}</text>
-    </button>
+    </view>
   </view>
 </view>

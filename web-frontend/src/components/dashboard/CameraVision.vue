@@ -16,27 +16,25 @@ const selectedId = ref(props.detections[0]?.id)
 const selected = computed(() => props.detections.find((item) => item.id === selectedId.value) || props.detections[0])
 const frameReady = ref(false)
 const frameUrl = ref('')
-const frameLoadedAt = ref('')
-const displayedCaptureTime = computed(() => props.captureTime || frameLoadedAt.value || '--:--:--')
+const databaseCaptureTime = ref('')
+const displayedCaptureTime = computed(() => databaseCaptureTime.value || props.captureTime || '--:--:--')
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 let frameRefreshTimer: number | undefined
 
-const formatBeijingTime = (date: Date) =>
-  new Intl.DateTimeFormat('zh-CN', {
-    timeZone: 'Asia/Shanghai',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(date)
-
-const refreshFrame = () => {
+const refreshFrame = async () => {
   frameUrl.value = `${apiBaseUrl}/frames/latest/image?t=${Date.now()}`
+  try {
+    const response = await fetch(`${apiBaseUrl}/frames/latest/info`, { cache: 'no-store' })
+    if (!response.ok) return
+    const result = await response.json()
+    databaseCaptureTime.value = result?.data?.captureTime || ''
+  } catch {
+    // 接口短暂不可用时保留上一次数据库时间或由 captureTime 属性兜底。
+  }
 }
 
 const handleFrameLoad = () => {
   frameReady.value = true
-  frameLoadedAt.value = formatBeijingTime(new Date())
 }
 
 onMounted(() => {

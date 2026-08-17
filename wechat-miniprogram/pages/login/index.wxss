@@ -8,7 +8,7 @@
   min-height: 620rpx;
   overflow: hidden;
   color: #fff;
-  background: linear-gradient(145deg, #4f8cff, #6c63ff);
+  background: linear-gradient(145deg, #4f8cff, #38bdf8);
 }
 
 .login-hero::before,

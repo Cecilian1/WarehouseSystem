@@ -31,7 +31,7 @@
     }
   },
   "compileType": "miniprogram",
-  "libVersion": "3.17.0",
+  "libVersion": "3.16.2",
   "appid": "wx0ebaedfc301b36a4",
   "projectname": "xin-xian-keeper-miniprogram",
   "condition": {},

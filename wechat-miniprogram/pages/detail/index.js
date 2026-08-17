@@ -1,6 +1,6 @@
 const { inventoryService } = require('../../services/api')
 const { freshnessText, freshnessTone, INVENTORY_FORM_FIELDS } = require('../../utils/format')
-const { applyThemeClass } = require('../../utils/theme')
+const { applyPageTheme } = require('../../utils/theme')
 
 Page({
   data: {
@@ -21,11 +21,11 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
-    applyThemeClass(this)
+    applyPageTheme(this)
     this.load(query.id, query.edit === '1')
   },
   onShow() {
-    applyThemeClass(this)
+    applyPageTheme(this)
   },
   load(id, openEdit) {
     inventoryService.getDetail(id).then((res) => {

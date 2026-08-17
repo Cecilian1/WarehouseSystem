@@ -1,5 +1,4 @@
-const { applyThemeClass, getTheme, toggleTheme } = require('../../utils/theme')
-const config = require('../../config/index')
+const { applyPageTheme, getTheme, toggleTheme } = require('../../utils/theme')
 
 const DEFAULT_NOTIFY_SWITCHES = { alert: true, device: true, sound: false }
 const DEFAULT_THRESHOLDS = { expireDays: 2, tempHigh: 8, humidityHigh: 95, abnormalDuration: 10 }
@@ -16,7 +15,7 @@ Page({
     },
     sync: {
       state: 'online',
-      text: '本地数据已同步',
+      text: '已同步',
       time: '刚刚'
     },
     groupsBefore: [
@@ -51,18 +50,7 @@ Page({
     accountsVisible: false,
     rolesVisible: false,
     notifySwitches: DEFAULT_NOTIFY_SWITCHES,
-    thresholds: DEFAULT_THRESHOLDS,
-    connection: {
-      apiUrl: config.baseUrl,
-      wsUrl: config.wsUrl,
-      token: '••••••••',
-      syncInterval: 15
-    },
-    serviceStatus: {
-      sqlite: { label: 'SQLite · 检测中', tone: 'info' },
-      api: { label: 'FastAPI · 检测中', tone: 'info' },
-      ws: { label: 'WebSocket · 检测中', tone: 'info' }
-    }
+    thresholds: DEFAULT_THRESHOLDS
   },
   onLoad() {
     const app = getApp()
@@ -78,56 +66,9 @@ Page({
   },
   onShow() {
     this.syncTheme()
-    if (this.getTabBar) this.getTabBar().syncRoute()
-    this.refreshServiceStatus()
-    this._statusTimer = setInterval(() => this.refreshServiceStatus(), 8000)
-  },
-  onHide() {
-    if (this._statusTimer) clearInterval(this._statusTimer)
-  },
-  onUnload() {
-    if (this._statusTimer) clearInterval(this._statusTimer)
-  },
-  refreshServiceStatus() {
-    this.refreshRealtimeStatus()
-    wx.request({
-      url: `${config.baseUrl}/health`,
-      method: 'GET',
-      timeout: config.timeout,
-      success: (res) => {
-        const ok = res.statusCode >= 200 && res.statusCode < 300 && res.data && res.data.code === 0
-        const dbExists = ok && res.data.data && res.data.data.dbExists
-        this.setData({
-          'serviceStatus.sqlite': dbExists
-            ? { label: 'SQLite 正常', tone: 'success' }
-            : { label: 'SQLite 异常', tone: 'offline' },
-          'serviceStatus.api': config.enableMock
-            ? { label: 'FastAPI · Mock 模式', tone: 'info' }
-            : ok
-              ? { label: 'FastAPI · 已连接', tone: 'success' }
-              : { label: 'FastAPI · 响应异常', tone: 'offline' }
-        })
-      },
-      fail: () => {
-        this.setData({
-          'serviceStatus.sqlite': { label: 'SQLite 未知', tone: 'offline' },
-          'serviceStatus.api': config.enableMock
-            ? { label: 'FastAPI · Mock 模式', tone: 'info' }
-            : { label: 'FastAPI · 未连接', tone: 'offline' }
-        })
-      }
-    })
-  },
-  refreshRealtimeStatus() {
-    const connected = getApp().globalData.realtimeConnected
-    this.setData({
-      'serviceStatus.ws': connected
-        ? { label: 'WebSocket · 已连接', tone: 'success' }
-        : { label: 'WebSocket · 未连接', tone: 'offline' }
-    })
   },
   syncTheme() {
-    applyThemeClass(this)
+    applyPageTheme(this)
     this.setData({ isDark: getTheme() === 'dark' })
   },
   onThemeToggle() {
@@ -179,16 +120,5 @@ Page({
   saveThresholds() {
     wx.setStorageSync('thresholds', this.data.thresholds)
     wx.showToast({ title: '预警阈值已保存', icon: 'success' })
-  },
-  decreaseSyncInterval() {
-    const next = Math.max(5, this.data.connection.syncInterval - 5)
-    this.setData({ 'connection.syncInterval': next })
-  },
-  increaseSyncInterval() {
-    const next = Math.min(60, this.data.connection.syncInterval + 5)
-    this.setData({ 'connection.syncInterval': next })
-  },
-  saveConnection() {
-    wx.showToast({ title: '连接设置已保存', icon: 'success' })
   }
 })

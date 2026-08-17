@@ -1,5 +1,5 @@
 const { alertService, inventoryService } = require('../../services/api')
-const { applyThemeClass } = require('../../utils/theme')
+const { applyPageTheme } = require('../../utils/theme')
 
 Page({
   data: {
@@ -14,13 +14,13 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
-    applyThemeClass(this)
+    applyPageTheme(this)
     alertService.getMessageDetail(query.id).then((res) => {
       this.setData({ message: res.data })
     })
   },
   onShow() {
-    applyThemeClass(this)
+    applyPageTheme(this)
   },
   back() {
     wx.navigateBack()

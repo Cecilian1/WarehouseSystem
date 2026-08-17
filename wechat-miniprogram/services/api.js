@@ -177,12 +177,22 @@ const environmentService = {
 
 const recordService = {
   getList(query = {}) {
-    return mapResponse(request({ url: '/records', data: query }), (items) => (
-      (items || []).map((item) => ({
+    return mapResponse(request({ url: '/records', data: query }), (data) => {
+      const rows = Array.isArray(data) ? data : (data && data.list) || []
+      const list = rows.map((item) => ({
         ...item,
         confidence: toPercent(item.confidence)
       }))
-    ))
+      if (Array.isArray(data)) {
+        return { list, total: list.length, page: 1, pageSize: list.length }
+      }
+      return {
+        list,
+        total: Number(data && data.total) || list.length,
+        page: Number(data && data.page) || 1,
+        pageSize: Number(data && data.pageSize) || list.length
+      }
+    })
   }
 }
 

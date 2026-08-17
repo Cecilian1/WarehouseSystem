@@ -1,5 +1,5 @@
 const { dashboardService } = require('../../services/api')
-const { applyThemeClass, FRESHNESS_COLORS } = require('../../utils/theme')
+const { applyPageTheme, FRESHNESS_COLORS } = require('../../utils/theme')
 
 Page({
   data: {
@@ -31,11 +31,10 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
-    applyThemeClass(this)
+    applyPageTheme(this)
   },
   onShow() {
-    applyThemeClass(this)
-    if (this.getTabBar) this.getTabBar().syncRoute()
+    applyPageTheme(this)
     this.load()
   },
   onPullDownRefresh() {

@@ -1,45 +1,88 @@
 <view class="page-shell inventory-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="custom-nav" style="padding-top: {{statusTop}}px;">
-    <view>
+    <view class="nav-copy">
       <view class="page-title">库存</view>
       <view class="page-subtitle">看见冰箱里每一份新鲜</view>
     </view>
-    <button class="mode-button" bindtap="toggleMode"><x-icon type="record" size="{{36}}" />{{viewMode === 'card' ? '列表' : '卡片'}}</button>
+    <view class="mode-button" bindtap="toggleMode">
+      <x-icon type="record" size="{{32}}" />
+      <text>{{viewMode === 'card' ? '列表' : '卡片'}}</text>
+    </view>
   </view>
 
-  <view class="metric-grid">
-    <glass-card padding="small">
-      <view class="metric"><text>{{stats.categories}}</text><small>库存品类</small></view>
-    </glass-card>
-    <glass-card padding="small">
-      <view class="metric"><text>{{stats.total}}</text><small>库存总量</small></view>
-    </glass-card>
-    <glass-card padding="small">
-      <view class="metric"><text>{{stats.fresh}}</text><small>新鲜库存</small></view>
-    </glass-card>
-    <glass-card padding="small">
-      <view class="metric"><text>{{stats.urgent}}</text><small>需优先处理</small></view>
-    </glass-card>
+  <view class="kpi-panel">
+    <view class="kpi-item">
+      <text class="kpi-label">库存品类</text>
+      <text class="kpi-value">{{stats.categories}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">库存总量</text>
+      <text class="kpi-value">{{stats.total}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">新鲜库存</text>
+      <text class="kpi-value">{{stats.fresh}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">需优先处理</text>
+      <text class="kpi-value urgent">{{stats.urgent}}</text>
+    </view>
   </view>
 
   <view class="search-card">
-    <x-icon type="search" size="{{34}}" />
-    <input value="{{keyword}}" bindinput="inputKeyword" confirm-type="search" bindconfirm="search" placeholder="搜索果蔬、分类或货位" />
-    <button bindtap="search">搜索</button>
+    <view class="search-icon"><x-icon type="search" size="{{32}}" /></view>
+    <input
+      class="search-input"
+      value="{{keyword}}"
+      bindinput="inputKeyword"
+      confirm-type="search"
+      bindconfirm="search"
+      placeholder="搜索果蔬、分类或货位"
+      placeholder-class="search-placeholder"
+    />
+    <view wx:if="{{keyword}}" class="search-clear" bindtap="clearKeyword">×</view>
+    <view class="search-submit" bindtap="search">搜索</view>
   </view>
 
-  <scroll-view scroll-x class="chip-scroll" show-scrollbar="{{false}}">
-    <button wx:for="{{categories}}" wx:key="*this" data-value="{{item}}" bindtap="selectCategory" class="chip {{category === item ? 'active' : ''}}">{{item}}</button>
-  </scroll-view>
-
-  <scroll-view scroll-x class="chip-scroll compact" show-scrollbar="{{false}}">
-    <button wx:for="{{freshnessOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="selectFreshness" class="chip {{freshness === item.value ? 'active' : ''}}">{{item.label}}</button>
-    <button wx:for="{{sortOptions}}" wx:key="*this" data-value="{{item}}" bindtap="selectSort" class="chip sort {{sort === item ? 'active' : ''}}">按{{item}}</button>
-  </scroll-view>
+  <view class="filter-panel">
+    <view class="filter-segment">
+      <view
+        wx:for="{{categories}}"
+        wx:key="*this"
+        class="filter-item {{category === item ? 'active' : ''}}"
+        data-value="{{item}}"
+        bindtap="selectCategory"
+      >{{item}}</view>
+    </view>
+    <view class="filter-segment">
+      <view
+        wx:for="{{freshnessOptions}}"
+        wx:key="value"
+        class="filter-item {{freshness === item.value ? 'active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="selectFreshness"
+      >{{item.label}}</view>
+    </view>
+    <view class="filter-segment">
+      <view
+        wx:for="{{sortOptions}}"
+        wx:key="*this"
+        class="filter-item {{sort === item ? 'active' : ''}}"
+        data-value="{{item}}"
+        bindtap="selectSort"
+      >{{item}}</view>
+    </view>
+  </view>
 
   <view class="inventory-actions">
-    <button class="ghost-button" bindtap="manualInbound"><x-icon type="add" size="{{34}}" />手动入库</button>
-    <button class="primary-button" bindtap="startRecognition"><x-icon type="scan" size="{{34}}" />开始识别</button>
+    <view class="action-btn ghost" bindtap="manualInbound">
+      <x-icon type="add" size="{{32}}" />
+      <text>手动入库</text>
+    </view>
+    <view class="action-btn primary" bindtap="startRecognition">
+      <x-icon type="scan" size="{{32}}" />
+      <text>开始识别</text>
+    </view>
   </view>
 
   <view wx:if="{{list.length}}" class="inventory-list {{viewMode}}">

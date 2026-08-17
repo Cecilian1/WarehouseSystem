@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from backend.api_service.helpers import ok, recognition_rows
 
@@ -32,12 +32,26 @@ def _to_record(item: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("/api/records")
-def records(type: str = "", keyword: str = "") -> dict[str, Any]:
-    items = [_to_record(item) for item in recognition_rows(200)]
+def records(
+    type: str = "",
+    keyword: str = "",
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(20, ge=1, le=100),
+) -> dict[str, Any]:
+    items = [_to_record(item) for item in recognition_rows(500)]
     if type and type != "全部":
         items = [item for item in items if item["type"] == type]
     if keyword:
         items = [
             item for item in items if keyword.lower() in f"{item['name']}{item['detail']}".lower()
         ]
-    return ok(items)
+    total = len(items)
+    start = (page - 1) * pageSize
+    return ok(
+        {
+            "list": items[start : start + pageSize],
+            "total": total,
+            "page": page,
+            "pageSize": pageSize,
+        }
+    )

@@ -37,7 +37,7 @@ onMounted(async () => { devices.value = (await deviceApi.getList()).data })
 
 <template>
   <div class="devices-page">
-    <PageHeader eyebrow="EDGE DEVICE FLEET" title="设备管理" description="LoongArch 端侧节点、传感器与执行器统一运维">
+    <PageHeader eyebrow="EDGE DEVICE FLEET" title="设备管理">
       <template #actions><el-button><RefreshCw :size="15" />刷新状态</el-button><el-button type="primary"><RadioTower :size="15" />添加设备</el-button></template>
     </PageHeader>
 

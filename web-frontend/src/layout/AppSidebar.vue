@@ -14,7 +14,7 @@ const items = [
   { path: '/inventory', label: '库存管理', icon: Boxes },
   { path: '/recognition', label: 'AI 识别记录', icon: ScanSearch },
   { path: '/environment', label: '环境监测', icon: Thermometer },
-  { path: '/alerts', label: '预警中心', icon: BellRing, badge: 3 },
+  { path: '/alerts', label: '预警中心', icon: BellRing },
   { path: '/devices', label: '设备管理', icon: Cpu },
   { path: '/history', label: '历史记录', icon: History },
   { path: '/analytics', label: '统计分析', icon: ChartNoAxesCombined },

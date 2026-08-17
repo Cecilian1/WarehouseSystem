@@ -223,14 +223,18 @@ def environment_current(deviceId: str = Query("fridge-01")) -> dict[str, Any]:
         "points": current["trend"],
     }
     warning = current["temperatureState"] == "warning"
+    offline = current["temperatureState"] == "offline"
     return ok(
         {
             "temperature": current["temperature"],
             "humidity": current["humidity"],
-            "state": "异常" if warning else "适宜",
+            "valid": current.get("valid", not offline),
+            "state": "未上报" if offline else "异常" if warning else "适宜",
             "today": today,
             "analysis": (
-                "检测到环境异常，请检查传感器或制冷状态。"
+                "暂无环境采集数据，请检查开发板连接。"
+                if offline
+                else "检测到环境异常，请检查传感器或制冷状态。"
                 if warning
                 else "当前数据来自开发板环境采集服务。"
             ),

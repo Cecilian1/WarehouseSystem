@@ -536,6 +536,7 @@ const routes = {
   'GET /environment/current': () => ({
     temperature: 3.6,
     humidity: 88,
+    valid: true,
     state: '适宜',
     today: envTrend[6],
     analysis: '过去24小时温度整体稳定，但18:20至18:45出现短时升高，可能与冰箱门开启有关。'
@@ -545,7 +546,15 @@ const routes = {
     let list = records.slice()
     if (query.type && query.type !== '全部') list = list.filter((item) => item.type === query.type)
     if (query.keyword) list = list.filter((item) => `${item.name}${item.detail}`.includes(query.keyword))
-    return list
+    const page = Math.max(1, Number(query.page) || 1)
+    const pageSize = Math.max(1, Number(query.pageSize) || 20)
+    const start = (page - 1) * pageSize
+    return {
+      list: list.slice(start, start + pageSize),
+      total: list.length,
+      page,
+      pageSize
+    }
   }
 }
 

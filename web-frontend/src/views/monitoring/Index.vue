@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { Camera, CircleGauge, Maximize2, RefreshCw, ScanLine, Settings2, Video } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { Camera, CircleGauge, RefreshCw, ScanLine, Video } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import GlassPanel from '@/components/common/GlassPanel.vue'
 import CameraVision from '@/components/dashboard/CameraVision.vue'
 import BaseChart from '@/components/common/BaseChart.vue'
 import { useDashboardStore } from '@/stores/dashboard'
-import { useAppStore } from '@/stores/app'
 
 const store = useDashboardStore()
-const appStore = useAppStore()
-const autoRefresh = ref(true)
 const data = computed(() => store.data)
 const latencyOption = computed(() => ({
   animationDuration: 900,
@@ -23,16 +20,15 @@ const latencyOption = computed(() => ({
 
 <template>
   <div v-if="data" class="monitor-page">
-    <PageHeader eyebrow="LIVE VISION PIPELINE" title="实时监控" description="摄像头采集、目标检测与新鲜度推理全链路观测">
-      <template #actions>
-        <el-switch v-model="autoRefresh" inline-prompt active-text="自动" inactive-text="手动" />
-        <el-button><Settings2 :size="15" />识别参数</el-button>
-        <el-button type="primary"><Maximize2 :size="15" />全屏监控</el-button>
-      </template>
-    </PageHeader>
+    <PageHeader eyebrow="LIVE VISION PIPELINE" title="实时监控" />
 
     <div class="monitor-grid">
-      <CameraVision compact :detections="data.detections" :performance="data.performance" />
+      <CameraVision
+        compact
+        :detections="data.detections"
+        :performance="data.performance"
+        :capture-time="data.recognitions[0]?.time"
+      />
       <aside class="monitor-side">
         <GlassPanel class="pipeline-panel">
           <div class="panel-title"><div><h2>AI Pipeline</h2><span>端侧实时推理链路</span></div><ScanLine :size="18" /></div>

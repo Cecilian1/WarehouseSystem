@@ -13,11 +13,8 @@ const temperature = ref(3.6)
 const humidity = ref(88)
 const trend = ref<EnvironmentPoint[]>([])
 const range = ref<'6h' | '24h' | '7d'>('24h')
-const simulateAlert = ref(false)
 
-const effectiveTemperature = computed(() => simulateAlert.value ? 9.4 : temperature.value)
-const effectiveHumidity = computed(() => simulateAlert.value ? 96.8 : humidity.value)
-const severity = computed(() => effectiveTemperature.value >= 9 || effectiveHumidity.value >= 96 ? 'critical' : effectiveTemperature.value >= 7 || effectiveHumidity.value >= 94 ? 'warning' : 'normal')
+const severity = computed(() => temperature.value >= 9 || humidity.value >= 96 ? 'critical' : temperature.value >= 7 || humidity.value >= 94 ? 'warning' : 'normal')
 
 const lineOption = computed(() => {
   const axisColor = appStore.isDark ? 'rgba(148,163,184,.18)' : 'rgba(100,116,139,.18)'
@@ -51,8 +48,8 @@ const createGauge = (value: number, max: number, color: string, suffix: string) 
   }],
 })
 
-const tempGauge = computed(() => createGauge(effectiveTemperature.value, 12, severity.value === 'critical' ? '#ef4444' : severity.value === 'warning' ? '#f59e0b' : '#38bdf8', '°'))
-const humidityGauge = computed(() => createGauge(effectiveHumidity.value, 100, severity.value === 'critical' ? '#ef4444' : severity.value === 'warning' ? '#f59e0b' : '#14b8a6', '%'))
+const tempGauge = computed(() => createGauge(temperature.value, 12, severity.value === 'critical' ? '#ef4444' : severity.value === 'warning' ? '#f59e0b' : '#38bdf8', '°'))
+const humidityGauge = computed(() => createGauge(humidity.value, 100, severity.value === 'critical' ? '#ef4444' : severity.value === 'warning' ? '#f59e0b' : '#14b8a6', '%'))
 
 onMounted(async () => {
   const response = await environmentApi.getCurrent()
@@ -64,9 +61,8 @@ onMounted(async () => {
 
 <template>
   <div class="environment-page">
-    <PageHeader eyebrow="ENVIRONMENT SENSING" title="环境监测" description="温湿度实时感知、趋势分析与异常阈值联动">
+    <PageHeader eyebrow="ENVIRONMENT SENSING" title="环境监测">
       <template #actions>
-        <el-switch v-model="simulateAlert" active-text="异常态演示" />
         <el-button><Settings2 :size="15" />阈值设置</el-button>
       </template>
     </PageHeader>
@@ -84,10 +80,10 @@ onMounted(async () => {
       </GlassPanel>
       <GlassPanel class="environment-health">
         <div class="health-head"><div><h2>环境健康指数</h2><span>多指标综合评估</span></div><Gauge :size="20" /></div>
-        <div class="health-score"><strong>{{ simulateAlert ? 62 : 96 }}</strong><span>/ 100</span></div>
+        <div class="health-score"><strong>96</strong><span>/ 100</span></div>
         <div class="health-bars">
-          <div><span>温度稳定度</span><b>{{ simulateAlert ? 58 : 98 }}%</b><i><em :style="{ width: `${simulateAlert ? 58 : 98}%` }" /></i></div>
-          <div><span>湿度稳定度</span><b>{{ simulateAlert ? 64 : 94 }}%</b><i><em :style="{ width: `${simulateAlert ? 64 : 94}%` }" /></i></div>
+          <div><span>温度稳定度</span><b>98%</b><i><em :style="{ width: '98%' }" /></i></div>
+          <div><span>湿度稳定度</span><b>94%</b><i><em :style="{ width: '94%' }" /></i></div>
           <div><span>数据完整度</span><b>99%</b><i><em style="width:99%" /></i></div>
         </div>
         <div :class="['health-alert', `is-${severity}`]"><BellRing :size="14" />{{ severity === 'normal' ? '当前无环境异常' : '环境数据已触发预警规则' }}</div>

@@ -1,8 +1,9 @@
 {
   "navigationStyle": "custom",
+  "onReachBottomDistance": 80,
   "usingComponents": {
     "x-icon": "/components/x-icon/index",
-    "glass-card": "/components/glass-card/index",
+    "empty-state": "/components/empty-state/index",
     "info-sheet": "/components/info-sheet/index"
   }
 }

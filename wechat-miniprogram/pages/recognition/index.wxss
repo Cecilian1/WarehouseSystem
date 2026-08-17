@@ -1,7 +1,7 @@
 .recognition-page {
   min-height: 100vh;
-  color: #f4f8ff;
-  background: linear-gradient(165deg, #07111f, #14283f 52%, #1a2f4a);
+  color: var(--text-1);
+  background: linear-gradient(165deg, var(--bg-0), var(--bg-1) 52%, var(--bg-2));
 }
 
 .recognition-bg {
@@ -13,8 +13,6 @@
 .recognition-shell {
   position: relative;
   z-index: 1;
-  min-height: 100vh;
-  padding: 0 28rpx calc(148rpx + env(safe-area-inset-bottom));
 }
 
 .custom-nav {

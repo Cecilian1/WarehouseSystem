@@ -30,7 +30,8 @@ export const inventoryApi = {
 }
 
 export const recognitionApi = {
-  getList: () => http.get<never, ApiResponse<RecognitionRecord[]>>('/recognitions'),
+  getList: (params: { page?: number; pageSize?: number } = {}) =>
+    http.get<never, ApiResponse<PageResult<RecognitionRecord> | RecognitionRecord[]>>('/recognitions', { params }),
 }
 
 export const environmentApi = {
@@ -49,6 +50,8 @@ export const produceApi = {
 
 export const alertApi = {
   getList: (status = '') => http.get<never, ApiResponse<AlertItem[]>>('/alerts', { params: { status } }),
+  handle: (payload: { id: number; action: 'confirm' | 'ignore' }) =>
+    http.post<never, ApiResponse<{ success: boolean; id: number; status: string }>>('/alerts/handle', payload),
 }
 
 export const deviceApi = {
@@ -61,7 +64,7 @@ export const historyApi = {
 }
 
 export const analyticsApi = {
-  getData: () => http.get<never, ApiResponse<Record<string, unknown>>>('/analytics'),
+  getData: (range = 'month') => http.get<never, ApiResponse<Record<string, unknown>>>('/analytics', { params: { range } }),
 }
 
 export const settingsApi = {

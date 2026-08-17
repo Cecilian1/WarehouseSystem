@@ -23,7 +23,12 @@ const mockAdapter: AxiosAdapter = async (config) => {
   const params = config.params || {}
 
   if (url === '/dashboard') return ok(config, structuredClone(dashboardData))
-  if (url === '/recognitions') return ok(config, structuredClone(recognitionRecords))
+  if (url === '/recognitions') {
+    const page = Number(params.page || 1)
+    const pageSize = Number(params.pageSize || 12)
+    const list = recognitionRecords.slice((page - 1) * pageSize, page * pageSize)
+    return ok(config, structuredClone({ list, total: recognitionRecords.length, page, pageSize }))
+  }
   if (url === '/devices') return ok(config, structuredClone(devices))
   if (url === '/analytics') return ok(config, structuredClone(analyticsData))
   if (url === '/environment') return ok(config, structuredClone(dashboardData.environment))
@@ -98,6 +103,12 @@ const mockAdapter: AxiosAdapter = async (config) => {
   if (url === '/alerts') {
     const status = String(params.status || '')
     return ok(config, structuredClone(status ? alerts.filter((item) => item.status === status) : alerts))
+  }
+  if (url === '/alerts/handle' && config.method === 'post') {
+    const payload = JSON.parse(config.data || '{}')
+    const item = alerts.find((alert) => alert.id === payload.id)
+    if (item) item.status = payload.action === 'ignore' ? 'ignored' : 'confirmed'
+    return ok(config, { success: true, id: payload.id, status: item?.status || 'confirmed' })
   }
 
   if (url === '/history') {

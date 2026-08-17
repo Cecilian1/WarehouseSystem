@@ -102,7 +102,7 @@ def normalize_category(value: Any) -> str:
     return text
 
 
-def normalize_freshness(level: Any, score: Any = None, remaining_days: int | None = None) -> str:
+def _visual_freshness(level: Any, score: Any = None) -> str:
     text = str(level or "").lower()
     if any(word in text for word in ["腐", "坏", "spoiled", "expired"]):
         return "spoiled"
@@ -118,12 +118,26 @@ def normalize_freshness(level: Any, score: Any = None, remaining_days: int | Non
         if numeric_score < 0.75:
             return "warning"
         return "fresh"
-    if remaining_days is not None:
-        if remaining_days <= 0:
-            return "spoiled"
-        if remaining_days <= 2:
-            return "warning"
     return "fresh"
+
+
+def _calendar_freshness(remaining_days: int | None) -> str | None:
+    if remaining_days is None:
+        return None
+    if remaining_days <= 0:
+        return "spoiled"
+    if remaining_days <= 2:
+        return "warning"
+    return None
+
+
+def normalize_freshness(level: Any, score: Any = None, remaining_days: int | None = None) -> str:
+    visual = _visual_freshness(level, score)
+    calendar = _calendar_freshness(remaining_days)
+    if calendar is None:
+        return visual
+    rank = {"fresh": 0, "warning": 1, "spoiled": 2}
+    return calendar if rank[calendar] > rank.get(visual, 0) else visual
 
 
 def default_freshness_score(freshness: str) -> float:
@@ -222,6 +236,8 @@ def inventory_rows() -> list[dict[str, Any]]:
             days_left,
         )
         freshness_score = safe_float(row.get("freshness_score"), default_freshness_score(freshness))
+        if freshness != "fresh":
+            freshness_score = min(freshness_score, default_freshness_score(freshness))
         shelf_life = safe_int(row.get("shelf_life_days"), max(days_left, 0))
         items.append(
             {
@@ -482,6 +498,15 @@ def device_statuses() -> list[dict[str, Any]]:
     ]
 
 
+def _alert_status(is_read: Any) -> str:
+    value = safe_int(is_read)
+    if value == 2:
+        return "ignored"
+    if value:
+        return "confirmed"
+    return "pending"
+
+
 def alert_rows() -> list[dict[str, Any]]:
     rows = query_all(
         """
@@ -530,7 +555,7 @@ def alert_rows() -> list[dict[str, Any]]:
                 "source": source,
                 "description": description,
                 "time": format_dt(row.get("created_at")),
-                "status": "confirmed" if safe_int(row.get("is_read")) else "pending",
+                "status": _alert_status(row.get("is_read")),
             }
         )
     return items

@@ -58,7 +58,7 @@ onMounted(load)
 
 <template>
   <div class="history-page">
-    <PageHeader eyebrow="AUDIT & HISTORY" title="历史记录" description="库存、识别、环境与设备操作的全链路追溯">
+    <PageHeader eyebrow="AUDIT & HISTORY" title="历史记录">
       <template #actions><el-button @click="exportCsv"><Download :size="15" />导出报表</el-button></template>
     </PageHeader>
 

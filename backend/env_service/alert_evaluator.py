@@ -54,6 +54,16 @@ class AlertEvaluator:
 
     def _create_device_abnormal_alert(self, temperature: float) -> None:
         with connection_scope(self.db_path) as conn:
+            existing = conn.execute(
+                """
+                SELECT is_read FROM alert_record
+                WHERE alert_type = 'device_abnormal'
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+                """
+            ).fetchone()
+            if existing and int(existing["is_read"] or 0) == 0:
+                return
             conn.execute(
                 """
                 INSERT INTO alert_record (produce_id, alert_type, expire_date, is_read)

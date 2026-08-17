@@ -14,13 +14,27 @@
       <view class="user-name">{{user.nickName}}</view>
       <view class="family-name">{{user.familyName || '家庭冰箱'}}</view>
     </view>
-    <status-tag label="{{sync.text}}" tone="success" icon="check" />
+    <status-tag class="user-tag" label="{{sync.text}}" tone="success" icon="check" />
   </view>
 
-  <view class="mine-shortcuts">
-    <button bindtap="goEnvironment"><x-icon type="temp" size="{{38}}" /><text>环境监测</text></button>
-    <button bindtap="goRecords"><x-icon type="record" size="{{38}}" /><text>出入库记录</text></button>
-  </view>
+  <glass-card padding="none">
+    <view class="setting-row" bindtap="goEnvironment">
+      <view class="setting-icon"><x-icon type="temp" size="{{34}}" /></view>
+      <view class="setting-copy">
+        <view>环境监测</view>
+        <text>查看温湿度趋势与异常分析</text>
+      </view>
+      <x-icon type="arrow" size="{{30}}" />
+    </view>
+    <view class="setting-row" bindtap="goRecords">
+      <view class="setting-icon"><x-icon type="record" size="{{34}}" /></view>
+      <view class="setting-copy">
+        <view>出入库记录</view>
+        <text>按时间追溯每一次库存变化</text>
+      </view>
+      <x-icon type="arrow" size="{{30}}" />
+    </view>
+  </glass-card>
 
   <view class="setting-group">
     <view class="section-head">
@@ -43,14 +57,14 @@
       <view class="section-head__title">{{item.title}}</view>
     </view>
     <glass-card padding="none">
-      <button wx:for="{{item.items}}" wx:for-item="option" wx:key="title" class="setting-row" data-url="{{option.url}}" bindtap="navigate">
+      <view wx:for="{{item.items}}" wx:for-item="option" wx:key="title" class="setting-row" data-url="{{option.url}}" bindtap="navigate">
         <view class="setting-icon"><x-icon type="{{option.icon}}" size="{{34}}" /></view>
         <view class="setting-copy">
           <view>{{option.title}}</view>
           <text>{{option.desc}}</text>
         </view>
         <x-icon type="arrow" size="{{30}}" />
-      </button>
+      </view>
     </glass-card>
   </view>
 
@@ -142,44 +156,19 @@
     </glass-card>
   </view>
 
-  <view class="setting-group">
-    <view class="section-head">
-      <view class="section-head__title">服务连接</view>
-    </view>
-    <glass-card padding="normal">
-      <view class="connection-row"><label>API 地址</label><text>{{connection.apiUrl}}</text></view>
-      <view class="connection-row"><label>WebSocket 地址</label><text>{{connection.wsUrl}}</text></view>
-      <view class="connection-row"><label>Token</label><text>{{connection.token}}</text></view>
-      <view class="connection-row">
-        <label>云同步间隔</label>
-        <view class="connection-stepper">
-          <view class="stepper-btn" bindtap="decreaseSyncInterval">-</view>
-          <text>{{connection.syncInterval}} 分钟</text>
-          <view class="stepper-btn" bindtap="increaseSyncInterval">+</view>
-        </view>
-      </view>
-      <view class="connection-status">
-        <status-tag label="{{serviceStatus.sqlite.label}}" tone="{{serviceStatus.sqlite.tone}}" />
-        <status-tag label="{{serviceStatus.api.label}}" tone="{{serviceStatus.api.tone}}" />
-        <status-tag label="{{serviceStatus.ws.label}}" tone="{{serviceStatus.ws.tone}}" />
-      </view>
-      <button class="primary-button" bindtap="saveConnection">保存连接设置</button>
-    </glass-card>
-  </view>
-
   <view wx:for="{{groupsAfter}}" wx:key="title" class="setting-group">
     <view class="section-head">
       <view class="section-head__title">{{item.title}}</view>
     </view>
     <glass-card padding="none">
-      <button wx:for="{{item.items}}" wx:for-item="option" wx:key="title" class="setting-row" data-url="{{option.url}}" bindtap="navigate">
+      <view wx:for="{{item.items}}" wx:for-item="option" wx:key="title" class="setting-row" data-url="{{option.url}}" bindtap="navigate">
         <view class="setting-icon"><x-icon type="{{option.icon}}" size="{{34}}" /></view>
         <view class="setting-copy">
           <view>{{option.title}}</view>
           <text>{{option.desc}}</text>
         </view>
         <x-icon type="arrow" size="{{30}}" />
-      </button>
+      </view>
     </glass-card>
   </view>
 

@@ -162,7 +162,7 @@ button::after {
 
 .primary-button {
   color: #fff;
-  background: linear-gradient(135deg, var(--blue), #6c63ff);
+  background: linear-gradient(135deg, var(--blue), #38bdf8);
   box-shadow: 0 14rpx 34rpx rgba(79, 140, 255, .22);
 }
 

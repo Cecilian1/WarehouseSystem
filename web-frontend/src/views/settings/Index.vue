@@ -35,10 +35,13 @@ const users = [
 ]
 
 watch(() => form.theme, (value) => appStore.applyTheme(value))
+watch(() => appStore.theme, (value) => { form.theme = value })
 
 onMounted(async () => {
   const response = await settingsApi.get()
-  Object.assign(form, response.data)
+  const { theme: _ignored, ...rest } = response.data
+  Object.assign(form, rest)
+  form.theme = appStore.theme
 })
 
 const save = async () => {
@@ -54,7 +57,7 @@ const save = async () => {
 
 <template>
   <div class="settings-page">
-    <PageHeader eyebrow="SYSTEM CONFIGURATION" title="系统设置" description="账号权限、通知策略、预警阈值与服务连接配置">
+    <PageHeader eyebrow="SYSTEM CONFIGURATION" title="系统设置">
       <template #actions><el-button type="primary" :loading="saving" @click="save"><Save :size="15" />保存设置</el-button></template>
     </PageHeader>
 

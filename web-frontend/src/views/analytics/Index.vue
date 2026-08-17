@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { BarChart3, CalendarRange, Download, LineChart, PieChart, Radar, Sparkles } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import GlassPanel from '@/components/common/GlassPanel.vue'
@@ -7,8 +7,19 @@ import BaseChart from '@/components/common/BaseChart.vue'
 import { analyticsApi } from '@/api'
 import { useAppStore } from '@/stores/app'
 
+interface KPIs {
+  accuracy: number
+  recognitionCount: number
+  turnover: number
+  savingRate: number
+  avgCycle: number
+  totalInbound: number
+  totalOutbound: number
+}
+
 interface Analytics {
-  daily: Array<{ date: string; inbound: number; outbound: number; waste: number }>
+  kpis: KPIs
+  daily: Array<{ date: string; inbound: number; outbound: number }>
   categories: Array<{ name: string; value: number; color: string }>
   freshness: Array<{ name: string; value: number; color: string }>
   radar: Array<{ name: string; value: number }>
@@ -18,9 +29,22 @@ interface Analytics {
 const appStore = useAppStore()
 const range = ref<'today' | 'week' | 'month' | 'year'>('month')
 const data = ref<Analytics | null>(null)
+const loading = ref(false)
+
 const axis = computed(() => appStore.isDark ? 'rgba(148,163,184,.16)' : 'rgba(100,116,139,.17)')
 const text = computed(() => appStore.isDark ? '#70829a' : '#7b8ca3')
 const titleColor = computed(() => appStore.isDark ? '#f4f8ff' : '#16263d')
+
+const kpis = computed(() => {
+  if (!data.value) return null
+  const k = data.value.kpis
+  return [
+    { label: '识别准确率', value: k.accuracy ? `${k.accuracy}%` : '暂无数据', change: `${k.recognitionCount} 次识别`, icon: Sparkles, color: '#38bdf8' },
+    { label: '库存周转率', value: k.turnover ? `${k.turnover}%` : '暂无数据', change: `出库 ${k.totalOutbound} 件`, icon: CalendarRange, color: '#22c55e' },
+    { label: '库存保鲜率', value: `${k.savingRate}%`, change: `入库 ${k.totalInbound} 件`, icon: LineChart, color: '#14b8a6' },
+    { label: '平均库存周期', value: k.avgCycle ? `${k.avgCycle} 天` : '暂无数据', change: `当前库存品类`, icon: BarChart3, color: '#f59e0b' },
+  ]
+})
 
 const commonTooltip = computed(() => ({
   trigger: 'axis',
@@ -77,12 +101,24 @@ const heatmapOption = computed(() => ({
   series: [{ type: 'heatmap', data: data.value?.heatmap || [], label: { show: false }, itemStyle: { borderColor: appStore.isDark ? '#102034' : '#f6f9fc', borderWidth: 2, borderRadius: 3 } }],
 }))
 
-onMounted(async () => { data.value = (await analyticsApi.getData()).data as unknown as Analytics })
+const load = async () => {
+  loading.value = true
+  try {
+    data.value = (await analyticsApi.getData(range.value)).data as unknown as Analytics
+  } catch {
+    data.value = { kpis: { accuracy: 0, recognitionCount: 0, turnover: 0, savingRate: 0, avgCycle: 0, totalInbound: 0, totalOutbound: 0 }, daily: [], categories: [], freshness: [], radar: [], heatmap: [] }
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(range, load)
+onMounted(load)
 </script>
 
 <template>
   <div class="analytics-page">
-    <PageHeader eyebrow="DATA INTELLIGENCE" title="统计分析" description="库存效率、识别质量与环境稳定性的多维分析">
+    <PageHeader eyebrow="DATA INTELLIGENCE" title="统计分析">
       <template #actions>
         <div class="range-tabs">
           <button v-for="item in [{v:'today',l:'今日'},{v:'week',l:'本周'},{v:'month',l:'本月'},{v:'year',l:'本年'}]" :key="item.v" :class="{ active: range === item.v }" @click="range = item.v as typeof range">{{ item.l }}</button>
@@ -91,13 +127,8 @@ onMounted(async () => { data.value = (await analyticsApi.getData()).data as unkn
       </template>
     </PageHeader>
 
-    <div class="analysis-kpis">
-      <GlassPanel v-for="item in [
-        {label:'识别准确率',value:'96.8%',change:'+1.4%',icon:Sparkles,color:'#38bdf8'},
-        {label:'库存周转率',value:'82.4%',change:'+8.2%',icon:CalendarRange,color:'#22c55e'},
-        {label:'本月节约率',value:'12.8%',change:'+3.6%',icon:LineChart,color:'#14b8a6'},
-        {label:'平均库存周期',value:'8.4 天',change:'-0.8 天',icon:BarChart3,color:'#f59e0b'}
-      ]" :key="item.label" hover class="analysis-kpi">
+    <div v-if="kpis" class="analysis-kpis">
+      <GlassPanel v-for="item in kpis" :key="item.label" hover class="analysis-kpi">
         <div class="kpi-icon" :style="{color:item.color,background:`color-mix(in srgb, ${item.color} 12%, transparent)`}"><component :is="item.icon" :size="18" /></div>
         <div><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div>
         <b>{{ item.change }}</b>
@@ -125,7 +156,7 @@ onMounted(async () => { data.value = (await analyticsApi.getData()).data as unkn
         <div class="chart-title"><div><h2>系统能力雷达</h2><span>六维综合评估</span></div><Radar :size="18" /></div>
         <BaseChart :option="radarOption" height="240px" />
       </GlassPanel>
-      <GlassPanel class="chart-card chart-wide">
+      <GlassPanel class="chart-card chart-full">
         <div class="chart-title"><div><h2>识别活跃热力图</h2><span>按星期与时段聚合</span></div><CalendarRange :size="18" /></div>
         <BaseChart :option="heatmapOption" height="240px" />
       </GlassPanel>
@@ -134,10 +165,10 @@ onMounted(async () => { data.value = (await analyticsApi.getData()).data as unkn
 </template>
 
 <style scoped>
-.range-tabs { display: flex; padding: 3px; border: 1px solid var(--stroke); border-radius: 10px; background: var(--surface-soft); }.range-tabs button { padding: 7px 11px; border: 0; border-radius: 8px; color: var(--text-3); font-size: 9px; background: transparent; }.range-tabs button.active { color: white; background: linear-gradient(135deg, var(--blue), #6c63ff); }
+.range-tabs { display: flex; padding: 3px; border: 1px solid var(--stroke); border-radius: 10px; background: var(--surface-soft); }.range-tabs button { padding: 7px 11px; border: 0; border-radius: 8px; color: var(--text-3); font-size: 9px; background: transparent; }.range-tabs button.active { color: white; background: linear-gradient(135deg, #38bdf8, #4f8cff); }
 .analysis-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.analysis-kpi { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 11px; }.kpi-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 12px; }.analysis-kpi span, .analysis-kpi strong { display: block; }.analysis-kpi span { color: var(--text-3); font-size: 9px; }.analysis-kpi strong { margin-top: 5px; color: var(--text-1); font-size: 18px; }.analysis-kpi b { color: var(--green); font-size: 9px; }
-.analytics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }.chart-wide { grid-column: span 2; }.chart-card { min-width: 0; }.chart-title { display: flex; align-items: flex-start; justify-content: space-between; color: var(--cyan); }.chart-title h2 { margin: 0; color: var(--text-1); font-size: 13px; }.chart-title span { display: block; margin-top: 5px; color: var(--text-3); font-size: 9px; }
-@media (max-width: 1100px) { .analysis-kpis { grid-template-columns: 1fr 1fr; }.analytics-grid { grid-template-columns: 1fr 1fr; }.chart-wide { grid-column: span 2; } }
-@media (max-width: 680px) { .analysis-kpis, .analytics-grid { grid-template-columns: 1fr; }.chart-wide { grid-column: auto; }.range-tabs { overflow-x: auto; } }
+.analysis-kpi { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 11px; }.kpi-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 12px; }.analysis-kpi span, .analysis-kpi strong { display: block; }.analysis-kpi span { color: var(--text-3); font-size: 9px; }.analysis-kpi strong { margin-top: 5px; color: var(--text-1); font-size: 18px; }.analysis-kpi b { color: var(--text-2); font-size: 9px; }
+.analytics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }.chart-wide { grid-column: span 2; }.chart-full { grid-column: 1 / -1; }.chart-card { min-width: 0; }.chart-title { display: flex; align-items: flex-start; justify-content: space-between; color: var(--cyan); }.chart-title h2 { margin: 0; color: var(--text-1); font-size: 13px; }.chart-title span { display: block; margin-top: 5px; color: var(--text-3); font-size: 9px; }
+@media (max-width: 1100px) { .analysis-kpis { grid-template-columns: 1fr 1fr; }.analytics-grid { grid-template-columns: 1fr 1fr; }.chart-wide, .chart-full { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .analysis-kpis, .analytics-grid { grid-template-columns: 1fr; }.chart-wide, .chart-full { grid-column: auto; }.range-tabs { overflow-x: auto; } }
 </style>

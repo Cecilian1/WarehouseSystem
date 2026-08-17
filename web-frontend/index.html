@@ -6,6 +6,18 @@
     <meta name="theme-color" content="#07111f" />
     <meta name="description" content="芯鲜管家 - 基于 LoongArch 的端侧 AI 智能果蔬仓储管理系统" />
     <title>芯鲜管家 · AI 智能果蔬控制中心</title>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('xin-theme')
+          if (theme !== 'light' && theme !== 'dark') theme = 'dark'
+          document.documentElement.dataset.theme = theme
+          document.documentElement.style.colorScheme = theme
+          var meta = document.querySelector('meta[name="theme-color"]')
+          if (meta) meta.setAttribute('content', theme === 'light' ? '#eef4fa' : '#07111f')
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

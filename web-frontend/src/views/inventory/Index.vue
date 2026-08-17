@@ -98,19 +98,35 @@ const preview = (item: InventoryItem) => {
 
 const labelOf = (freshness: InventoryItem['freshness']) => freshnessLabel[freshness]
 const toneOf = (freshness: InventoryItem['freshness']) => freshnessTone[freshness]
+const remainingTone = (days: number) => (days <= 0 ? 'spoiled' : days <= 2 ? 'warning' : 'fresh')
+const remainingPrimary = (days: number) => {
+  if (days < 0) return `已过期 ${Math.abs(days)}`
+  if (days === 0) return '今日到期'
+  return String(days)
+}
+const remainingSecondary = (days: number, shelfLife: number) => {
+  if (days > 0) return `/ ${shelfLife} 天`
+  if (days < 0) return '天'
+  return ''
+}
+const remainingCardText = (days: number) => {
+  if (days < 0) return `已过期 ${Math.abs(days)} 天`
+  if (days === 0) return '今日到期'
+  return `剩余 ${days} 天`
+}
 
 onMounted(store.fetchList)
 </script>
 
 <template>
   <div class="inventory-page">
-    <PageHeader eyebrow="INVENTORY INTELLIGENCE" title="库存管理" description="AI 自动盘点与保质期精细化管理">
+    <PageHeader eyebrow="INVENTORY INTELLIGENCE" title="库存管理">
       <template #actions>
         <div class="view-switch">
-          <button :class="{ active: viewMode === 'list' }" title="列表视图" @click="viewMode = 'list'"><List :size="16" /></button>
-          <button :class="{ active: viewMode === 'card' }" title="卡片视图" @click="viewMode = 'card'"><Grid2X2 :size="16" /></button>
+          <button :class="{ active: viewMode === 'list' }" title="列表视图" @click="viewMode = 'list'"><List :size="15" /></button>
+          <button :class="{ active: viewMode === 'card' }" title="卡片视图" @click="viewMode = 'card'"><Grid2X2 :size="15" /></button>
         </div>
-        <el-button type="primary" @click="openCreate"><Plus :size="15" />新增库存</el-button>
+        <el-button @click="openCreate"><Plus :size="15" />新增库存</el-button>
       </template>
     </PageHeader>
 
@@ -161,7 +177,10 @@ onMounted(store.fetchList)
         </el-table-column>
         <el-table-column label="剩余天数" width="130" sortable>
           <template #default="{ row }">
-            <div class="days-cell" :class="`is-${row.freshness}`"><strong>{{ row.remainingDays }}</strong><span>/ {{ row.shelfLife }} 天</span></div>
+            <div class="days-cell" :class="`is-${remainingTone(row.remainingDays)}`">
+              <strong>{{ remainingPrimary(row.remainingDays) }}</strong>
+              <span>{{ remainingSecondary(row.remainingDays, row.shelfLife) }}</span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="storageAdvice" label="温湿度建议" min-width="160" />
@@ -188,7 +207,7 @@ onMounted(store.fetchList)
         </div>
         <div class="inventory-card__heading"><div><h3>{{ item.name }}</h3><span>{{ item.category }} · {{ item.location }}</span></div><strong>{{ item.quantity }}<small>{{ item.unit }}</small></strong></div>
         <div class="freshness-progress"><span :style="{ width: `${item.freshnessScore * 100}%`, background: item.color }" /></div>
-        <div class="inventory-card__meta"><span>剩余 {{ item.remainingDays }} 天</span><span>{{ item.storageAdvice }}</span></div>
+        <div class="inventory-card__meta"><span>{{ remainingCardText(item.remainingDays) }}</span><span>{{ item.storageAdvice }}</span></div>
         <div class="inventory-card__actions"><el-button @click="openEdit(item)"><Pencil :size="14" />编辑</el-button><el-button @click="removeItem(item)"><Trash2 :size="14" />删除</el-button></div>
       </GlassPanel>
     </div>
@@ -226,9 +245,9 @@ onMounted(store.fetchList)
 .inventory-stat small { color: var(--text-3); font-size: 10px; }
 .inventory-stat strong { margin-top: 5px; color: var(--text-1); font-size: 20px; }
 .inventory-stat em { margin-left: 4px; color: var(--text-3); font-size: 9px; font-style: normal; font-weight: 500; }
-.view-switch { display: flex; padding: 3px; border: 1px solid var(--stroke); border-radius: 11px; background: var(--surface-soft); }
-.view-switch button { display: grid; width: 32px; height: 30px; place-items: center; border: 0; border-radius: 8px; color: var(--text-3); background: transparent; }
-.view-switch button.active { color: white; background: linear-gradient(135deg, var(--blue), #6c63ff); box-shadow: 0 5px 15px rgba(79,140,255,.25); }
+.view-switch { display: flex; height: 32px; padding: 2px; border: 1px solid var(--stroke); border-radius: 10px; background: var(--surface-soft); }
+.view-switch button { display: grid; width: 28px; height: 26px; place-items: center; border: 0; border-radius: 8px; color: var(--text-3); background: transparent; }
+.view-switch button.active { color: var(--text-1); background: var(--bg-2); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
 .filter-panel { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
 .filter-main { display: grid; flex: 1; grid-template-columns: minmax(220px, 1fr) 140px 150px auto; gap: 9px; }
 .filter-panel > span { color: var(--text-3); font-size: 10px; white-space: nowrap; }

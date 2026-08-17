@@ -1,4 +1,5 @@
 const { recognitionService } = require('../../services/api')
+const { applyPageTheme } = require('../../utils/theme')
 const { freshnessText, freshnessTone } = require('../../utils/format')
 const config = require('../../config/index')
 
@@ -25,7 +26,8 @@ Page({
     latencyBars: [],
     imageLoading: false,
     imageError: false,
-    usingLatestFrame: false
+    usingLatestFrame: false,
+    themeClass: 'theme-dark'
   },
   onLoad() {
     const app = getApp()
@@ -33,10 +35,11 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
+    applyPageTheme(this)
     this.load()
   },
   onShow() {
-    if (this.getTabBar) this.getTabBar().syncRoute()
+    applyPageTheme(this)
   },
   onPullDownRefresh() {
     this.load().finally(() => wx.stopPullDownRefresh())

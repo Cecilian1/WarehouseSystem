@@ -1,6 +1,6 @@
 const { authService } = require('../../services/api')
 const config = require('../../config/index')
-const { applyThemeClass } = require('../../utils/theme')
+const { applyPageTheme } = require('../../utils/theme')
 
 function getWechatLoginCode() {
   return new Promise((resolve, reject) => {
@@ -31,10 +31,10 @@ Page({
       navHeight: app.globalData.navHeight,
       statusTop: app.globalData.statusBarHeight
     })
-    applyThemeClass(this)
+    applyPageTheme(this)
   },
   onShow() {
-    applyThemeClass(this)
+    applyPageTheme(this)
   },
   login() {
     this.setData({ loading: true })

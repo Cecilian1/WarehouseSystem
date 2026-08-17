@@ -1,16 +1,36 @@
 .home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
   padding-right: 24rpx;
   padding-left: 24rpx;
 }
 
+.home-page .section-head {
+  align-items: center;
+  margin: 8rpx 0 0;
+}
+
+.home-page .section-head__more {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 48rpx;
+  padding: 0 4rpx 0 16rpx;
+  color: var(--cyan);
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .home-hero {
   position: relative;
-  margin: 0 -24rpx 20rpx;
+  margin: 0 -24rpx;
   padding: 0 32rpx 34rpx;
   overflow: hidden;
   color: #fff;
   border-radius: 0 0 30rpx 30rpx;
-  background: linear-gradient(145deg, #4f8cff, #6c63ff);
+  background: linear-gradient(145deg, #4f8cff, #38bdf8);
   box-shadow: 0 16rpx 36rpx rgba(79, 140, 255, .22);
 }
 
@@ -55,7 +75,7 @@
 
 .status-strip {
   width: 100%;
-  margin: 20rpx 0;
+  margin: 0;
   white-space: nowrap;
 }
 
@@ -225,8 +245,8 @@
 .metric-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14rpx;
-  margin-top: 18rpx;
+  gap: 16rpx;
+  margin-top: 0;
 }
 
 .metric2-label {
@@ -528,6 +548,12 @@
   display: flex;
   align-items: center;
   gap: 18rpx;
+  min-width: 0;
+}
+
+.reminder-copy {
+  min-width: 0;
+  flex: 1;
 }
 
 .reminder-icon {
@@ -588,8 +614,8 @@
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14rpx;
-  margin: 24rpx 0 12rpx;
+  gap: 16rpx;
+  margin: 4rpx 0 8rpx;
 }
 
 .quick-card {

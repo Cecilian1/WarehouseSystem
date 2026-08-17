@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { AlertTriangle, BellRing, Check, CheckCheck, CircleAlert, Clock3, Filter, Flame, MoreHorizontal, Search, Thermometer, Trash2, WifiOff } from 'lucide-vue-next'
+import { AlertTriangle, Check, CheckCheck, CircleAlert, Clock3, Filter, Flame, MoreHorizontal, Search, Thermometer, Trash2, WifiOff } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/common/PageHeader.vue'
 import GlassPanel from '@/components/common/GlassPanel.vue'
@@ -21,15 +21,27 @@ const stats = computed(() => [
   { label: '设备异常', value: alerts.value.filter((item) => item.type === 'device').length, icon: WifiOff, tone: 'info' },
 ])
 
-const handle = (item: AlertItem, next: 'confirmed' | 'ignored') => {
-  item.status = next
-  ElMessage.success(next === 'confirmed' ? '预警已确认处理' : '预警已忽略')
+const handle = async (item: AlertItem, next: 'confirmed' | 'ignored') => {
+  try {
+    await alertApi.handle({ id: item.id, action: next === 'confirmed' ? 'confirm' : 'ignore' })
+    item.status = next
+    ElMessage.success(next === 'confirmed' ? '预警已确认处理' : '预警已忽略')
+  } catch {
+    ElMessage.error('处理失败，请稍后重试')
+  }
 }
 
-const batchHandle = () => {
-  selected.value.forEach((item) => { item.status = 'confirmed' })
-  ElMessage.success(`已处理 ${selected.value.length} 条预警`)
-  selected.value = []
+const batchHandle = async () => {
+  const targets = selected.value.filter((item) => item.status === 'pending')
+  if (!targets.length) return
+  try {
+    await Promise.all(targets.map((item) => alertApi.handle({ id: item.id, action: 'confirm' })))
+    targets.forEach((item) => { item.status = 'confirmed' })
+    ElMessage.success(`已处理 ${targets.length} 条预警`)
+    selected.value = []
+  } catch {
+    ElMessage.error('批量处理失败，请稍后重试')
+  }
 }
 
 onMounted(async () => { alerts.value = (await alertApi.getList()).data })
@@ -37,10 +49,9 @@ onMounted(async () => { alerts.value = (await alertApi.getList()).data })
 
 <template>
   <div class="alerts-page">
-    <PageHeader eyebrow="ALERT OPERATIONS" title="预警中心" description="保质期、环境与设备异常的统一处置闭环">
+    <PageHeader eyebrow="ALERT OPERATIONS" title="预警中心">
       <template #actions>
         <el-button :disabled="!selected.length" @click="batchHandle"><CheckCheck :size="15" />批量处理 {{ selected.length || '' }}</el-button>
-        <el-button type="primary"><BellRing :size="15" />预警规则</el-button>
       </template>
     </PageHeader>
 

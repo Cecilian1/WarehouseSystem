@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Expand, Image, Pause, Play, Search, SlidersHorizontal, ZoomIn } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import GlassPanel from '@/components/common/GlassPanel.vue'
@@ -16,15 +16,37 @@ const selected = ref<RecognitionRecord | null>(null)
 const autoRefresh = ref(true)
 const searchText = ref('')
 const previewVisible = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(12)
+const total = ref(0)
 let refreshTimer: number | undefined
+
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
 const filtered = computed(() => records.value.filter((item) => !searchText.value || item.name.includes(searchText.value)))
 const hasInference = computed(() => Boolean(selected.value && selected.value.confidence > 0))
 const resultStatus = computed(() => hasInference.value ? '真实识别记录' : selected.value ? '真实库存记录' : '暂无记录')
 
+const loadError = ref(false)
+
 const load = async () => {
-  const response = await recognitionApi.getList()
-  records.value = response.data
+  try {
+    const result = (await recognitionApi.getList({ page: currentPage.value, pageSize: pageSize.value })).data
+    // 后端旧版本直接返回数组，这里兼容两种结构，避免升级顺序不一致时列表为空
+    if (Array.isArray(result)) {
+      const start = (currentPage.value - 1) * pageSize.value
+      records.value = result.slice(start, start + pageSize.value)
+      total.value = result.length
+    } else {
+      records.value = result.list || []
+      total.value = result.total || 0
+    }
+    loadError.value = false
+  } catch {
+    records.value = []
+    total.value = 0
+    loadError.value = true
+  }
   if (!previewVisible.value) selected.value = records.value[0] || null
 }
 
@@ -34,15 +56,25 @@ const inspect = (record: RecognitionRecord) => {
 }
 
 const openOriginal = () => {
-  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
   window.open(`${apiBaseUrl}/frames/latest/image?t=${Date.now()}`, '_blank', 'noopener')
 }
+
+const getImageUrl = (record: RecognitionRecord) => {
+  if (!record.image) return ''
+  return `${apiBaseUrl}${record.image.startsWith('/api') ? record.image.slice(4) : record.image}`
+}
+
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+}
+
+watch(currentPage, () => load())
 
 onMounted(() => {
   load()
   refreshTimer = window.setInterval(() => {
     if (autoRefresh.value) load()
-  }, 5000)
+  }, 10000)
 })
 
 onBeforeUnmount(() => {
@@ -52,15 +84,19 @@ onBeforeUnmount(() => {
 
 <template>
   <div v-if="dashboard.data" class="recognition-page">
-    <PageHeader eyebrow="AI RECOGNITION" title="AI 识别记录" description="目标检测、新鲜度分类与人工复核">
+    <PageHeader eyebrow="AI RECOGNITION" title="AI 识别记录">
       <template #actions>
-        <el-switch v-model="autoRefresh" inline-prompt active-text="自动刷新" inactive-text="已暂停" />
         <el-button><SlidersHorizontal :size="15" />模型设置</el-button>
       </template>
     </PageHeader>
 
     <div class="recognition-workspace">
-      <CameraVision compact :detections="dashboard.data.detections" :performance="dashboard.data.performance" :capture-time="selected?.time" />
+      <CameraVision
+        compact
+        :detections="dashboard.data.detections"
+        :performance="dashboard.data.performance"
+        :capture-time="dashboard.data.recognitions[0]?.time"
+      />
       <GlassPanel class="current-result">
         <div class="result-head">
           <div><h2>{{ hasInference ? '识别结果' : '最新业务记录' }}</h2><span>Frame #{{ selected?.id || '--' }} · {{ selected?.time || '--:--:--' }}</span></div>
@@ -89,13 +125,15 @@ onBeforeUnmount(() => {
 
     <GlassPanel class="history-panel" padding="none">
       <div class="history-toolbar">
-        <div><h2>历史识别图片</h2><span>点击记录查看识别详情</span></div>
+        <div><h2>历史识别图片</h2><span>{{ loadError ? '接口连接失败，请确认后端服务已启动' : `点击记录查看识别详情 · 共 ${total} 条` }}</span></div>
         <el-input v-model="searchText" placeholder="搜索识别类别" clearable><template #prefix><Search :size="14" /></template></el-input>
       </div>
-      <div class="recognition-grid">
+      <el-empty v-if="!filtered.length" :description="loadError ? '无法获取识别记录' : '暂无识别记录'" />
+      <div v-else class="recognition-grid">
         <button v-for="record in filtered" :key="record.id" class="recognition-card ripple-target" @click="inspect(record)">
           <div class="recognition-image">
-            <ProduceVisual :name="record.name" :color="record.freshness === 'fresh' ? '#22c55e' : '#f59e0b'" size="large" />
+            <img v-if="record.image" :src="getImageUrl(record)" alt="" class="record-thumb" @error="($event.target as HTMLImageElement).style.display='none'" />
+            <ProduceVisual v-else :name="record.name" :color="record.freshness === 'fresh' ? '#22c55e' : '#f59e0b'" size="large" />
             <span class="zoom-overlay"><ZoomIn :size="18" /></span>
             <el-tag :type="freshnessTone[record.freshness]" effect="dark">{{ freshnessLabel[record.freshness] }}</el-tag>
           </div>
@@ -105,11 +143,22 @@ onBeforeUnmount(() => {
           </div>
         </button>
       </div>
+      <div v-if="total > pageSize" class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          layout="prev, pager, next"
+          small
+          @current-change="handlePageChange"
+        />
+      </div>
     </GlassPanel>
 
     <el-dialog v-model="previewVisible" title="识别详情" width="720px">
       <div v-if="selected" class="recognition-detail">
-        <ProduceVisual :name="selected.name" :color="selected.freshness === 'fresh' ? '#22c55e' : '#f59e0b'" size="large" />
+        <img v-if="selected.image" :src="getImageUrl(selected)" alt="" class="detail-image" />
+        <ProduceVisual v-else :name="selected.name" :color="selected.freshness === 'fresh' ? '#22c55e' : '#f59e0b'" size="large" />
         <div class="detail-copy">
           <span class="status-chip is-online"><Image :size="12" /> Frame #{{ selected.id }}</span>
           <h2>{{ selected.name }}</h2>
@@ -139,15 +188,18 @@ onBeforeUnmount(() => {
 .history-panel { margin-top: 14px; overflow: hidden; }
 .history-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 17px; border-bottom: 1px solid var(--stroke); }
 .history-toolbar .el-input { width: 240px; }
-.recognition-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 14px; }
+.recognition-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 14px; }
 .recognition-card { padding: 0; overflow: hidden; border: 1px solid var(--stroke); border-radius: 13px; color: inherit; text-align: left; background: var(--surface-soft); transition: transform .2s ease, border-color .2s ease; }
 .recognition-card:hover { border-color: rgba(56,189,248,.35); transform: translateY(-3px); }
 .recognition-image { position: relative; display: grid; height: 145px; place-items: center; overflow: hidden; }
+.recognition-image .record-thumb { width: 100%; height: 100%; object-fit: cover; }
 .recognition-image :deep(.produce-visual) { width: 100%; height: 100%; border: 0; border-radius: 0; }
 .recognition-image .el-tag { position: absolute; top: 8px; left: 8px; }
 .zoom-overlay { position: absolute; inset: 0; display: grid; place-items: center; color: white; background: rgba(5,14,24,.35); opacity: 0; transition: opacity .2s ease; }.recognition-card:hover .zoom-overlay { opacity: 1; }
 .recognition-card__body { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px; }
 .recognition-card__body strong, .recognition-card__body span { display: block; }.recognition-card__body strong { color: var(--text-1); font-size: 10px; }.recognition-card__body span { margin-top: 4px; color: var(--text-3); font-size: 8px; }.recognition-card__body b { color: var(--cyan); font-size: 10px; }
+.pagination-wrap { display: flex; justify-content: center; padding: 14px 0 18px; border-top: 1px solid var(--stroke); }
+.detail-image { width: 220px; height: 220px; object-fit: cover; border-radius: 12px; }
 .recognition-detail { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: center; }
 .detail-copy h2 { margin: 16px 0 0; color: var(--text-1); }.detail-copy p { color: var(--text-3); font-size: 11px; }
 .detail-copy dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 18px 0 0; }.detail-copy dl div { padding: 11px; border-radius: 10px; background: var(--surface-soft); }.detail-copy dt { color: var(--text-3); font-size: 8px; }.detail-copy dd { margin: 5px 0 0; color: var(--text-1); font-size: 11px; font-weight: 600; }

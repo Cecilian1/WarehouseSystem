@@ -129,11 +129,19 @@ export const historyItems: HistoryItem[] = Array.from({ length: 32 }, (_, index)
 })
 
 export const analyticsData = {
+  kpis: {
+    accuracy: 96.8,
+    recognitionCount: 142,
+    turnover: 82.4,
+    savingRate: 87.2,
+    avgCycle: 8.4,
+    totalInbound: 186,
+    totalOutbound: 153,
+  },
   daily: Array.from({ length: 14 }, (_, index) => ({
-    date: `${String(index + 7).padStart(2, '0')}日`,
+    date: `07-${String(index + 7).padStart(2, '0')}`,
     inbound: 12 + Math.round(Math.sin(index / 1.7) * 7 + (index % 5)),
     outbound: 9 + Math.round(Math.cos(index / 2.1) * 5 + (index % 3)),
-    waste: +(3.4 + Math.sin(index / 2.4) * 1.8).toFixed(1),
   })),
   categories: dashboardData.categories,
   freshness: dashboardData.freshness,

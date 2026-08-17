@@ -1,4 +1,4 @@
-const { applyThemeClass } = require('../../utils/theme')
+const { applyPageTheme } = require('../../utils/theme')
 
 Page({
   data: {
@@ -6,7 +6,7 @@ Page({
     themeClass: 'theme-dark'
   },
   onShow() {
-    applyThemeClass(this)
+    applyPageTheme(this)
     this.timer = setTimeout(() => {
       const token = wx.getStorageSync('token')
       wx.reLaunch({ url: token ? '/pages/home/index' : '/pages/login/index' })
