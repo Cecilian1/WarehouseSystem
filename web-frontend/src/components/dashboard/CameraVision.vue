@@ -16,11 +16,27 @@ const selectedId = ref(props.detections[0]?.id)
 const selected = computed(() => props.detections.find((item) => item.id === selectedId.value) || props.detections[0])
 const frameReady = ref(false)
 const frameUrl = ref('')
+const frameLoadedAt = ref('')
+const displayedCaptureTime = computed(() => props.captureTime || frameLoadedAt.value || '--:--:--')
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 let frameRefreshTimer: number | undefined
 
+const formatBeijingTime = (date: Date) =>
+  new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date)
+
 const refreshFrame = () => {
   frameUrl.value = `${apiBaseUrl}/frames/latest/image?t=${Date.now()}`
+}
+
+const handleFrameLoad = () => {
+  frameReady.value = true
+  frameLoadedAt.value = formatBeijingTime(new Date())
 }
 
 onMounted(() => {
@@ -70,7 +86,7 @@ const produce = [
         class="real-camera-frame"
         :src="frameUrl"
         alt="开发板摄像头最新画面"
-        @load="frameReady = true"
+        @load="handleFrameLoad"
         @error="frameReady = false"
       >
       <div class="camera-vignette" />
@@ -104,7 +120,7 @@ const produce = [
           <Play v-else :size="15" />
         </button>
         <div class="timeline"><span :class="{ paused: !playing }" /></div>
-        <span>{{ captureTime || '--:--:--' }}</span>
+        <span>{{ displayedCaptureTime }}</span>
       </div>
     </div>
 
