@@ -1,0 +1,51 @@
+# 模型路径相对于仓库根目录。开发板部署时可用环境变量覆盖：
+# WAREHOUSE_YOLO_MODEL_PATH / WAREHOUSE_FRESHNESS_MODEL_PATH。
+detector_model: models/best.onnx
+freshness_model: models/shufflenet_v2_freshness.onnx
+
+# 与camera_service、Qt前端共用同一个SQLite数据库。
+db_path: /data/warehousekeeper/warehousekeeper.db
+crop_dir: /data/warehousekeeper/frames/crops
+
+detector_confidence: 0.35
+detector_iou: 0.45
+detector_image_size: 640
+bbox_padding_ratio: 0.05
+poll_interval_sec: 1.0
+max_attempts: 3
+onnx_threads: 2
+
+# 单张变化帧无法可靠判断入库还是出库，第一版按接口契约记录为IN。
+# 默认不直接修改stock_summary，待用户确认后再更新库存，避免重复拍摄导致库存膨胀。
+inventory_action: IN
+update_stock_summary: false
+model_version: yolo-best+shufflenet-v4-seed20260722
+
+# best.onnx的类别形如Apple_fresh/Apple_rotten；AI服务只取下划线前的品类，
+# fresh/rotten后缀不参与最终新鲜度判断。
+produce_catalog:
+  apple:
+    name: 苹果
+    category: 水果
+    shelf_life_days: 14
+    unit: 个
+  banana:
+    name: 香蕉
+    category: 水果
+    shelf_life_days: 7
+    unit: 根
+  carrot:
+    name: 胡萝卜
+    category: 蔬菜
+    shelf_life_days: 14
+    unit: 根
+  cucumber:
+    name: 黄瓜
+    category: 蔬菜
+    shelf_life_days: 7
+    unit: 根
+  orange:
+    name: 橙子
+    category: 水果
+    shelf_life_days: 14
+    unit: 个
