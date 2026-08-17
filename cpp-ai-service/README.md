@@ -27,7 +27,7 @@ YOLO固定输入为`640×640`；ShuffleNetV2固定输入为`224×224`，输出�
 
 ## 交叉编译
 
-队友已经生成LoongArch版本NCNN：
+已经生成LoongArch版本NCNN：
 
 ```text
 ncnnac/xbuild/install/include/ncnn
