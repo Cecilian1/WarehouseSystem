@@ -59,8 +59,13 @@ def _reconcile_state(local_db_path: str, state: dict[str, int]) -> dict[str, int
     conn = sqlite3.connect(local_db_path, timeout=5)
     try:
         for table in INCREMENTAL_TABLES:
-            local_max = int(
-                conn.execute(f"SELECT COALESCE(MAX(id), 0) FROM {table}").fetchone()[0]
+            local_max = max(
+                0,
+                int(
+                    conn.execute(
+                        f"SELECT COALESCE(MAX(id), 0) FROM {table}"
+                    ).fetchone()[0]
+                ),
             )
             if local_max < reconciled[table]:
                 reconciled[table] = local_max
