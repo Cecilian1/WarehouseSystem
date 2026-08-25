@@ -30,14 +30,6 @@ TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "freshness_score",
         "confidence",
         "image_path",
-        "source_frame_id",
-        "detector_label",
-        "detector_confidence",
-        "freshness_confidence",
-        "bbox_json",
-        "freshness_probabilities_json",
-        "inference_latency_ms",
-        "model_version",
         "created_at",
         "sync_status",
     ),
@@ -76,8 +68,6 @@ TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "status",
         "created_at",
         "processed_at",
-        "attempt_count",
-        "last_error",
     ),
 }
 
@@ -90,18 +80,6 @@ PRIMARY_KEYS = {
     "env_log": "id",
     "pending_frames": "id",
 }
-
-SYNC_DEFAULTS: dict[tuple[str, str], Any] = {
-    ("pending_frames", "attempt_count"): 0,
-    ("pending_frames", "last_error"): "",
-}
-
-
-def _sync_value(table: str, column: str, row: dict[str, Any]) -> Any:
-    value = row.get(column)
-    if value is None:
-        return SYNC_DEFAULTS.get((table, column))
-    return value
 
 
 def _upsert_rows(conn: Any, table: str, rows: list[dict[str, Any]]) -> int:
@@ -121,7 +99,7 @@ def _upsert_rows(conn: Any, table: str, rows: list[dict[str, Any]]) -> int:
     for row in rows[:1000]:
         if not isinstance(row, dict) or primary_key not in row:
             continue
-        values.append(tuple(_sync_value(table, column, row) for column in columns))
+        values.append(tuple(row.get(column) for column in columns))
     if values:
         conn.executemany(sql, values)
     return len(values)
