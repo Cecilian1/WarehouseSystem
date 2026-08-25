@@ -36,7 +36,6 @@ from backend.api_service.helpers import (
     device_statuses,
     environment_data,
     format_dt,
-    format_time,
     freshness_stats,
     get_produce_item,
     history_rows,
@@ -275,14 +274,8 @@ def inventory(
 
 
 @app.get("/api/recognitions")
-def recognitions(
-    page: int = Query(1, ge=1),
-    pageSize: int = Query(12, ge=1, le=100),
-) -> dict[str, Any]:
-    all_records = recognition_rows(500)
-    total = len(all_records)
-    start = (page - 1) * pageSize
-    return ok({"list": all_records[start:start + pageSize], "total": total, "page": page, "pageSize": pageSize})
+def recognitions() -> dict[str, Any]:
+    return ok(recognition_rows(60))
 
 
 @app.get("/api/environment")
@@ -391,23 +384,6 @@ def alerts(status: str = "", level: str = "", keyword: str = "") -> dict[str, An
     return ok(items)
 
 
-@app.post("/api/alerts/handle")
-def handle_alert(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
-    alert_id = payload.get("id")
-    action = str(payload.get("action") or "confirm")
-    if alert_id is None:
-        raise HTTPException(status_code=400, detail="缺少预警 id")
-    is_read = 2 if action in {"ignore", "ignored"} else 1
-    with connection_scope(DB_PATH) as conn:
-        cursor = conn.execute(
-            "UPDATE alert_record SET is_read = ? WHERE id = ?",
-            (is_read, alert_id),
-        )
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="预警不存在")
-    return ok({"success": True, "id": alert_id, "action": action, "status": "ignored" if is_read == 2 else "confirmed"})
-
-
 @app.get("/api/devices")
 def devices() -> dict[str, Any]:
     row = query_one(
@@ -476,143 +452,42 @@ def history(page: int = Query(1, ge=1), pageSize: int = Query(10, ge=1, le=100))
 
 
 @app.get("/api/analytics")
-def analytics(time_range: str = Query("month", alias="range")) -> dict[str, Any]:
-    from datetime import date, timedelta
-
-    today = date.today()
-    if time_range == "today":
-        start_date = today.isoformat()
-    elif time_range == "week":
-        start_date = (today - timedelta(days=6)).isoformat()
-    elif time_range == "year":
-        start_date = (today - timedelta(days=364)).isoformat()
-    else:
-        start_date = (today - timedelta(days=29)).isoformat()
-
+def analytics() -> dict[str, Any]:
     items = inventory_rows()
-
     daily = query_all(
         """
         SELECT
-            strftime('%m-%d', created_at) AS date,
+            strftime('%d日', created_at) AS date,
             SUM(CASE WHEN action_type = 'IN' THEN COALESCE(quantity, 0) ELSE 0 END) AS inbound,
             SUM(CASE WHEN action_type = 'OUT' THEN COALESCE(quantity, 0) ELSE 0 END) AS outbound
         FROM inventory_log
-        WHERE date(created_at) >= ?
         GROUP BY date(created_at)
-        ORDER BY date(created_at) ASC
-        """,
-        (start_date,),
-    )
-
-    # --- KPIs from real data ---
-    total_inbound = sum(safe_float(r.get("inbound")) for r in daily)
-    total_outbound = sum(safe_float(r.get("outbound")) for r in daily)
-
-    # Recognition accuracy: average confidence from logs in range
-    acc_row = query_one(
+        ORDER BY date(created_at) DESC
+        LIMIT 14
         """
-        SELECT AVG(confidence) AS avg_conf, COUNT(*) AS cnt
-        FROM inventory_log
-        WHERE confidence IS NOT NULL AND confidence > 0 AND date(created_at) >= ?
-        """,
-        (start_date,),
     )
-    avg_confidence = safe_float(acc_row.get("avg_conf")) if acc_row else 0.0
-    recognition_count = safe_int(acc_row.get("cnt")) if acc_row else 0
-
-    # Turnover rate: outbound / total stock
-    total_stock = sum(safe_float(item.get("quantity")) for item in items)
-    turnover = (total_outbound / total_stock * 100) if total_stock > 0 else 0
-
-    # Waste / spoiled ratio
-    spoiled_count = sum(1 for item in items if item.get("freshness") == "spoiled")
-    waste_rate = (spoiled_count / len(items) * 100) if items else 0
-    saving_rate = max(0, 100 - waste_rate)
-
-    # Average inventory cycle (days items stay in stock)
-    avg_cycle_row = query_one(
-        """
-        SELECT AVG(julianday('now', 'localtime') - julianday(l.created_at)) AS avg_days
-        FROM (
-            SELECT produce_id, MIN(created_at) AS created_at
-            FROM inventory_log
-            WHERE action_type = 'IN'
-            GROUP BY produce_id
-        ) l
-        INNER JOIN stock_summary s ON s.produce_id = l.produce_id AND s.current_qty > 0
-        """,
-    )
-    avg_cycle = safe_float(avg_cycle_row.get("avg_days")) if avg_cycle_row else 0.0
-
-    # Environment stability
-    env = environment_data()
-    env_stable = env.get("temperatureState") == "online"
-
-    # Device online rate
-    statuses = device_statuses()
-    online_count = sum(1 for s in statuses if s.get("state") == "online")
-    device_online_rate = (online_count / len(statuses) * 100) if statuses else 0
-
-    # Alert response rate
-    alert_total = query_one("SELECT COUNT(*) AS c FROM alert_record WHERE date(created_at) >= ?", (start_date,))
-    alert_handled = query_one(
-        "SELECT COUNT(*) AS c FROM alert_record WHERE is_read = 1 AND date(created_at) >= ?", (start_date,)
-    )
-    alert_total_val = safe_int(alert_total.get("c")) if alert_total else 0
-    alert_handled_val = safe_int(alert_handled.get("c")) if alert_handled else 0
-    alert_rate = (alert_handled_val / alert_total_val * 100) if alert_total_val > 0 else 100
-
-    # Heatmap: day-of-week × 2-hour slots
-    heatmap_rows = query_all(
-        """
-        SELECT
-            CAST(strftime('%w', created_at) AS INTEGER) AS dow,
-            CAST(strftime('%H', created_at) AS INTEGER) / 2 AS slot,
-            COUNT(*) AS cnt
-        FROM inventory_log
-        WHERE date(created_at) >= ?
-        GROUP BY dow, slot
-        """,
-        (start_date,),
-    )
-    heatmap: list[list[int]] = []
-    for row in heatmap_rows:
-        dow_raw = safe_int(row.get("dow"))
-        dow = (dow_raw - 1) % 7  # 0=Mon
-        slot = safe_int(row.get("slot"))
-        heatmap.append([slot, dow, safe_int(row.get("cnt"))])
-
     return ok(
         {
-            "kpis": {
-                "accuracy": round(avg_confidence * 100, 1) if avg_confidence else 0,
-                "recognitionCount": recognition_count,
-                "turnover": round(turnover, 1),
-                "savingRate": round(saving_rate, 1),
-                "avgCycle": round(avg_cycle, 1) if avg_cycle else 0,
-                "totalInbound": total_inbound,
-                "totalOutbound": total_outbound,
-            },
             "daily": [
                 {
                     "date": row.get("date"),
                     "inbound": safe_float(row.get("inbound")),
                     "outbound": safe_float(row.get("outbound")),
+                    "waste": 0,
                 }
-                for row in daily
+                for row in reversed(daily)
             ],
             "categories": category_stats(items),
             "freshness": freshness_stats(items),
             "radar": [
-                {"name": "识别准确率", "value": round(avg_confidence * 100) if avg_confidence else 0},
-                {"name": "库存周转率", "value": min(100, round(turnover))},
-                {"name": "环境稳定度", "value": 90 if env_stable else 40},
-                {"name": "设备在线率", "value": round(device_online_rate)},
-                {"name": "预警及时率", "value": round(alert_rate)},
-                {"name": "节约率", "value": min(100, round(saving_rate))},
+                {"name": "识别准确率", "value": 0},
+                {"name": "库存周转率", "value": 0},
+                {"name": "环境稳定度", "value": 80 if environment_data()["temperatureState"] == "online" else 40},
+                {"name": "设备在线率", "value": 90 if device_statuses()[0]["state"] == "online" else 20},
+                {"name": "预警及时率", "value": 80},
+                {"name": "节约率", "value": 0},
             ],
-            "heatmap": heatmap,
+            "heatmap": [],
         }
     )
 
@@ -688,22 +563,6 @@ def latest_frame_image() -> Response:
     if not row:
         raise HTTPException(status_code=404, detail="暂无摄像头图片")
     return frame_image_response(int(row["id"]), row.get("image_path"))
-
-
-@app.get("/api/frames/latest/info")
-def latest_frame_info() -> dict[str, Any]:
-    row = query_one(
-        "SELECT created_at FROM pending_frames ORDER BY created_at DESC, id DESC LIMIT 1"
-    )
-    if row and row.get("created_at"):
-        return ok(
-            {
-                "captureTime": format_time(row["created_at"]),
-                "capturedAt": row["created_at"],
-                "source": "db",
-            }
-        )
-    return ok({"captureTime": None, "source": "none"})
 
 
 @app.get("/api/frames/{frame_id}/image")

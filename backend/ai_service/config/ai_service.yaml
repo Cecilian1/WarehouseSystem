@@ -19,10 +19,10 @@ onnx_threads: 2
 # 默认不直接修改stock_summary，待用户确认后再更新库存，避免重复拍摄导致库存膨胀。
 inventory_action: IN
 update_stock_summary: false
-model_version: yolo-best+shufflenet-v4-seed20260722
+model_version: yolo-5class-v1+shufflenet-v4-seed20260722
 
-# best.onnx的类别形如Apple_fresh/Apple_rotten；AI服务只取下划线前的品类，
-# fresh/rotten后缀不参与最终新鲜度判断。
+# 新YOLO只检测Apple/Banana/Carrot/Cucumber/Orange五种品类；
+# fresh/mild/rotten三级新鲜度完全由ShuffleNetV2分类模型判断。
 produce_catalog:
   apple:
     name: 苹果

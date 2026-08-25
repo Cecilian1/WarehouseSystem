@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 import cv2
@@ -10,16 +11,11 @@ from backend.ai_service.contracts import Detection
 
 
 DEFAULT_CLASS_NAMES = (
-    "Apple_fresh",
-    "Apple_rotten",
-    "Banana_fresh",
-    "Banana_rotten",
-    "Carrot_fresh",
-    "Carrot_rotten",
-    "Cucumber_freesh",
-    "Cucumber_rotten",
-    "Orange_fresh",
-    "Orange_rotten",
+    "Apple",
+    "Banana",
+    "Carrot",
+    "Cucumber",
+    "Orange",
 )
 
 
@@ -70,9 +66,11 @@ class YoloDetector:
         self.confidence = confidence
         self.iou = iou
         self.image_size = image_size
+        self.last_profile: dict[str, float] = {}
 
     @staticmethod
     def _species_from_label(label: str) -> str:
+        # 新YOLO直接输出品类；保留分割逻辑以兼容历史的Apple_fresh标签。
         return label.split("_", 1)[0].strip().lower()
 
     def _letterbox(self, image: np.ndarray) -> tuple[np.ndarray, float, int, int]:
@@ -139,6 +137,7 @@ class YoloDetector:
         return sorted(selected, key=lambda index: scores[index], reverse=True)
 
     def detect(self, image: np.ndarray) -> list[Detection]:
+        preprocess_started = time.perf_counter()
         letterboxed, scale, padding_x, padding_y = self._letterbox(image)
         blob = cv2.dnn.blobFromImage(
             letterboxed,
@@ -148,7 +147,12 @@ class YoloDetector:
             crop=False,
         )
         self.model.setInput(blob)
-        rows = self._rows_from_output(self.model.forward())
+        preprocess_ms = (time.perf_counter() - preprocess_started) * 1000
+        inference_started = time.perf_counter()
+        output = self.model.forward()
+        inference_ms = (time.perf_counter() - inference_started) * 1000
+        postprocess_started = time.perf_counter()
+        rows = self._rows_from_output(output)
         image_height, image_width = image.shape[:2]
         boxes: list[list[int]] = []
         scores: list[float] = []
@@ -192,4 +196,9 @@ class YoloDetector:
                     confidence=scores[index],
                 )
             )
+        self.last_profile = {
+            "preprocess_ms": preprocess_ms,
+            "inference_ms": inference_ms,
+            "postprocess_ms": (time.perf_counter() - postprocess_started) * 1000,
+        }
         return detections

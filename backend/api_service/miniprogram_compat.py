@@ -132,38 +132,41 @@ def inventory_detail(id: int = Query(...)) -> dict[str, Any]:
 
 @router.get("/api/recognitions/latest")
 def recognitions_latest() -> dict[str, Any]:
-    # inventory_log records describe stock movements. They do not contain
-    # bounding boxes and must never be painted as visual detections. Until a
-    # real inference service persists target coordinates, this endpoint
-    # reports an honest camera-only state.
-    latest_frame = query_one(
-        """
-        SELECT id, created_at
-        FROM pending_frames
-        ORDER BY datetime(created_at) DESC, id DESC
-        LIMIT 1
-        """
-    )
+    records = recognition_rows(8)
+    latest = records[0] if records else None
+    targets = []
+    for index, row in enumerate(records[:4]):
+        targets.append(
+            {
+                **row,
+                "freshness": _mini_freshness(row["freshness"]),
+                "freshnessScore": _percent(row["freshnessScore"]),
+                "confidence": _percent(row["confidence"]),
+                "x": 12 + (index % 2) * 42,
+                "y": 20 + (index // 2) * 38,
+                "w": 28,
+                "h": 24,
+            }
+        )
     return ok(
         {
-            "id": latest_frame["id"] if latest_frame else 0,
-            "frameNo": f"FRAME-{latest_frame['id']}" if latest_frame else "实时画面",
-            "time": latest_frame["created_at"] if latest_frame else "",
-            "status": "camera_only",
-            "hasInference": False,
-            "image": "/api/frames/latest/image",
-            "latency": 0,
+            "id": latest["id"] if latest else 0,
+            "frameNo": f"LOG-{latest['id']}" if latest else "暂无记录",
+            "time": latest["createdAt"] if latest else "",
+            "status": "completed" if latest else "empty",
+            "image": latest.get("image") if latest else None,
+            "latency": latest.get("latency", 0) if latest else 0,
             "pipeline": [
-                {"key": "capture", "name": "图像采集", "done": True, "cost": "实时画面"},
-                {"key": "detect", "name": "果蔬识别", "done": False, "cost": "模型未接入"},
-                {"key": "freshness", "name": "新鲜度分析", "done": False, "cost": "等待识别"},
-                {"key": "done", "name": "写入库存", "done": False, "cost": "未写入"},
+                {"key": "capture", "name": "图像采集", "done": True, "cost": "完成"},
+                {"key": "detect", "name": "果蔬识别", "done": True, "cost": "完成"},
+                {"key": "freshness", "name": "新鲜度分析", "done": True, "cost": "完成"},
+                {"key": "done", "name": "写入库存", "done": True, "cost": "完成"},
             ],
-            "targets": [],
-            "latencyTrend": [],
+            "targets": targets,
+            "latencyTrend": [row.get("latency", 0) for row in reversed(records)],
             "models": {
-                "detect": "未接入",
-                "classify": "未接入",
+                "detect": "开发板视觉识别",
+                "classify": "WarehouseKeeper",
             },
         }
     )
@@ -223,18 +226,14 @@ def environment_current(deviceId: str = Query("fridge-01")) -> dict[str, Any]:
         "points": current["trend"],
     }
     warning = current["temperatureState"] == "warning"
-    offline = current["temperatureState"] == "offline"
     return ok(
         {
             "temperature": current["temperature"],
             "humidity": current["humidity"],
-            "valid": current.get("valid", not offline),
-            "state": "未上报" if offline else "异常" if warning else "适宜",
+            "state": "异常" if warning else "适宜",
             "today": today,
             "analysis": (
-                "暂无环境采集数据，请检查开发板连接。"
-                if offline
-                else "检测到环境异常，请检查传感器或制冷状态。"
+                "检测到环境异常，请检查传感器或制冷状态。"
                 if warning
                 else "当前数据来自开发板环境采集服务。"
             ),

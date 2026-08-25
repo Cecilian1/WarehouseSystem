@@ -14,9 +14,10 @@ import time
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from backend.api_service import ws_hub
+from backend.api_service.auth import get_current_user
 from backend.api_service.helpers import (
     DB_PATH,
     allocate_local_id,
@@ -31,43 +32,8 @@ from backend.api_service.helpers import (
 ALERT_SCAN_INTERVAL_SEC = int(os.environ.get("WAREHOUSE_ALERT_SCAN_INTERVAL_SEC", "60"))
 EXPIRING_WINDOW_DAYS = int(os.environ.get("WAREHOUSE_ALERT_EXPIRING_WINDOW_DAYS", "3"))
 DEVICE_HEARTBEAT_STALE_SEC = int(os.environ.get("WAREHOUSE_DEVICE_STALE_SEC", "60"))
-ALERT_RESEND_COOLDOWN_SEC = int(os.environ.get("WAREHOUSE_ALERT_RESEND_COOLDOWN_SEC", "21600"))
 
 router = APIRouter()
-
-
-def _should_skip_alert(alert_type: str, produce_id: int | None = None) -> bool:
-    """同一条件只保留一条待处理预警；处理后冷却期内不再重复插入。"""
-    if produce_id is None:
-        row = query_one(
-            """
-            SELECT is_read, created_at
-            FROM alert_record
-            WHERE alert_type = ?
-            ORDER BY created_at DESC, id DESC
-            LIMIT 1
-            """,
-            (alert_type,),
-        )
-    else:
-        row = query_one(
-            """
-            SELECT is_read, created_at
-            FROM alert_record
-            WHERE produce_id = ? AND alert_type = ?
-            ORDER BY created_at DESC, id DESC
-            LIMIT 1
-            """,
-            (produce_id, alert_type),
-        )
-    if not row:
-        return False
-    if not int(row.get("is_read") or 0):
-        return True
-    created = parse_dt(row.get("created_at"))
-    if not created:
-        return True
-    return (datetime.now() - created).total_seconds() < ALERT_RESEND_COOLDOWN_SEC
 
 
 def scan_once() -> list[int]:
@@ -95,7 +61,11 @@ def scan_once() -> list[int]:
             continue
 
         produce_id = row["produce_id"]
-        if _should_skip_alert(alert_type, produce_id):
+        existing = query_one(
+            "SELECT 1 FROM alert_record WHERE produce_id = ? AND alert_type = ? AND is_read = 0",
+            (produce_id, alert_type),
+        )
+        if existing:
             continue
         with connection_scope(DB_PATH) as conn:
             alert_id = allocate_local_id(conn, "alert_record")
@@ -114,7 +84,10 @@ def scan_once() -> list[int]:
     if heartbeat_row and heartbeat_row.get("last_heartbeat"):
         last_seen = parse_dt(heartbeat_row["last_heartbeat"])
         if last_seen and (datetime.now() - last_seen).total_seconds() > DEVICE_HEARTBEAT_STALE_SEC:
-            if not _should_skip_alert("device_abnormal"):
+            existing = query_one(
+                "SELECT 1 FROM alert_record WHERE alert_type = 'device_abnormal' AND is_read = 0"
+            )
+            if not existing:
                 with connection_scope(DB_PATH) as conn:
                     alert_id = allocate_local_id(conn, "alert_record")
                     conn.execute(
@@ -172,6 +145,27 @@ def _to_message(alert: dict[str, Any]) -> dict[str, Any]:
         "suggestion": "",
         "status": alert["status"],
     }
+
+
+@router.post("/api/alerts/handle")
+def handle_alert(
+    payload: dict[str, Any] = Body(...),
+    user_id: int = Depends(get_current_user),
+) -> dict[str, Any]:
+    alert_id = payload.get("id")
+    action = str(payload.get("action") or "confirm")
+    if alert_id is None:
+        raise HTTPException(status_code=400, detail="缺少预警 id")
+
+    with connection_scope(DB_PATH) as conn:
+        cursor = conn.execute(
+            "UPDATE alert_record SET is_read = 1 WHERE id = ?",
+            (alert_id,),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="预警不存在")
+
+    return ok({"success": True, "id": alert_id, "action": action})
 
 
 @router.get("/api/messages")
