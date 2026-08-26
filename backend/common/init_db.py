@@ -55,6 +55,46 @@ def _backfill_missing_stock_summaries(conn: sqlite3.Connection) -> None:
     )
 
 
+def _ensure_ai_stock_trigger(conn: sqlite3.Connection) -> None:
+    """让旧版 C++ AI 服务写入识别流水时也能自动更新库存。"""
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS inventory_log_ai_stock_after_insert
+        AFTER INSERT ON inventory_log
+        WHEN NEW.produce_id IS NOT NULL
+             AND COALESCE(NEW.model_version, '') <> ''
+        BEGIN
+            INSERT INTO stock_summary
+                (produce_id, current_qty, earliest_expire_date, last_updated)
+            VALUES (
+                NEW.produce_id,
+                MAX(
+                    0,
+                    CASE NEW.action_type
+                        WHEN 'IN' THEN COALESCE(NEW.quantity, 0)
+                        WHEN 'OUT' THEN -COALESCE(NEW.quantity, 0)
+                        ELSE 0
+                    END
+                ),
+                '',
+                datetime('now', 'localtime')
+            )
+            ON CONFLICT(produce_id) DO UPDATE SET
+                current_qty = MAX(
+                    0,
+                    COALESCE(stock_summary.current_qty, 0)
+                    + CASE NEW.action_type
+                        WHEN 'IN' THEN COALESCE(NEW.quantity, 0)
+                        WHEN 'OUT' THEN -COALESCE(NEW.quantity, 0)
+                        ELSE 0
+                    END
+                ),
+                last_updated = datetime('now', 'localtime');
+        END
+        """
+    )
+
+
 def init_db(db_path: str) -> None:
     db_file = Path(db_path)
     db_file.parent.mkdir(parents=True, exist_ok=True)
@@ -95,6 +135,7 @@ def init_db(db_path: str) -> None:
             "TEXT DEFAULT ''",
         )
         _backfill_missing_stock_summaries(conn)
+        _ensure_ai_stock_trigger(conn)
         conn.commit()
     finally:
         conn.close()

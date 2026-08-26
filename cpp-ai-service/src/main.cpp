@@ -463,21 +463,6 @@ private:
         sqlite3_bind_text(statement, 13, "yolo-best+shufflenet-v4-cpp", -1, SQLITE_STATIC);
         check_sqlite(sqlite3_step(statement), database_, "写入识别结果失败");
         sqlite3_finalize(statement);
-        increment_stock(produce_id);
-    }
-
-    void increment_stock(long long produce_id) {
-        const char *sql =
-            "INSERT INTO stock_summary(produce_id,current_qty,earliest_expire_date,last_updated) "
-            "VALUES(?,1,'',datetime('now','localtime')) "
-            "ON CONFLICT(produce_id) DO UPDATE SET "
-            "current_qty=MAX(0,stock_summary.current_qty+excluded.current_qty), "
-            "last_updated=excluded.last_updated";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "更新库存汇总失败");
-        sqlite3_bind_int64(statement, 1, produce_id);
-        check_sqlite(sqlite3_step(statement), database_, "更新库存汇总失败");
-        sqlite3_finalize(statement);
     }
 
     void execute(const char *sql) {
