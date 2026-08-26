@@ -22,7 +22,10 @@ logger = logging.getLogger("sync_collector")
 def _load_state(path: Path) -> dict[str, int]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        return {table: int(data.get(table, 0)) for table in INCREMENTAL_TABLES}
+        return {
+            table: max(0, int(data.get(table, 0)))
+            for table in INCREMENTAL_TABLES
+        }
     except (FileNotFoundError, ValueError, TypeError, json.JSONDecodeError):
         return {table: 0 for table in INCREMENTAL_TABLES}
 
@@ -54,8 +57,15 @@ def _reconcile_state(local_db_path: str, state: dict[str, int]) -> dict[str, int
     conn = sqlite3.connect(local_db_path, timeout=5)
     try:
         for table in INCREMENTAL_TABLES:
-            local_max = int(
-                conn.execute(f"SELECT COALESCE(MAX(id), 0) FROM {table}").fetchone()[0]
+            # 开发板同步接口的 after 参数约束为 >= 0。历史演示/测试数据
+            # 可能使用负数 ID，不能将其写入远端查询游标。
+            local_max = max(
+                0,
+                int(
+                    conn.execute(
+                        f"SELECT COALESCE(MAX(id), 0) FROM {table}"
+                    ).fetchone()[0]
+                ),
             )
             if local_max < reconciled[table]:
                 reconciled[table] = local_max
