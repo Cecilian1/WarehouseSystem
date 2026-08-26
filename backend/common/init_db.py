@@ -27,6 +27,34 @@ def _ensure_column(
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
+def _backfill_missing_stock_summaries(conn: sqlite3.Connection) -> None:
+    """为历史识别日志补齐库存汇总，但绝不覆盖已有的人工库存汇总。"""
+    conn.execute(
+        """
+        INSERT INTO stock_summary
+            (produce_id, current_qty, earliest_expire_date, last_updated)
+        SELECT
+            l.produce_id,
+            MAX(
+                0,
+                SUM(
+                    CASE l.action_type
+                        WHEN 'IN' THEN COALESCE(l.quantity, 0)
+                        WHEN 'OUT' THEN -COALESCE(l.quantity, 0)
+                        ELSE 0
+                    END
+                )
+            ),
+            '',
+            datetime('now', 'localtime')
+        FROM inventory_log l
+        LEFT JOIN stock_summary s ON s.produce_id = l.produce_id
+        WHERE s.produce_id IS NULL
+        GROUP BY l.produce_id
+        """
+    )
+
+
 def init_db(db_path: str) -> None:
     db_file = Path(db_path)
     db_file.parent.mkdir(parents=True, exist_ok=True)
@@ -66,6 +94,7 @@ def init_db(db_path: str) -> None:
             "last_error",
             "TEXT DEFAULT ''",
         )
+        _backfill_missing_stock_summaries(conn)
         conn.commit()
     finally:
         conn.close()

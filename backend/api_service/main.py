@@ -11,6 +11,7 @@ import logging
 import os
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -563,6 +564,36 @@ def latest_frame_image() -> Response:
     if not row:
         raise HTTPException(status_code=404, detail="暂无摄像头图片")
     return frame_image_response(int(row["id"]), row.get("image_path"))
+
+
+@app.get("/api/frames/latest/info")
+def latest_frame_info() -> dict[str, Any]:
+    """Return metadata for the exact latest-frame source used by Web clients."""
+    latest_path = Path(LATEST_FRAME_PATH)
+    if latest_path.is_file():
+        return ok(
+            {
+                "available": True,
+                "captureTime": datetime.fromtimestamp(latest_path.stat().st_mtime).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+            }
+        )
+
+    row = query_one(
+        """
+        SELECT created_at
+        FROM pending_frames
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+        """
+    )
+    return ok(
+        {
+            "available": False,
+            "captureTime": row.get("created_at", "") if row else "",
+        }
+    )
 
 
 @app.get("/api/frames/{frame_id}/image")

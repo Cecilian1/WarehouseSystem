@@ -327,6 +327,9 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
                 "category": normalize_category(row.get("category")),
                 "quantity": safe_float(row.get("quantity"), 0),
                 "action": row.get("action_type") or "IN",
+                "type": "inbound"
+                if (row.get("action_type") or "IN") == "IN"
+                else "outbound",
                 "confidence": max(0.0, min(1.0, confidence)),
                 "freshness": freshness,
                 "freshnessScore": max(0.0, min(1.0, freshness_score)),

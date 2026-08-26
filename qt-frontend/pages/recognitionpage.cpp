@@ -30,6 +30,17 @@ RecognitionPage::RecognitionPage(QWidget *parent)
 
 void RecognitionPage::refresh()
 {
+    const QString latestFramePath = QStringLiteral("/data/warehousekeeper/frames/latest.jpg");
+    const auto displayImage = [this](const QString &imagePath) {
+        QPixmap pixmap(imagePath);
+        if (pixmap.isNull()) {
+            return false;
+        }
+        m_imageLabel->setPixmap(
+            pixmap.scaled(m_imageLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        return true;
+    };
+
     QSqlQuery recognitionQuery(DatabaseManager::database());
     recognitionQuery.prepare(
         "SELECT l.id, COALESCE(p.name, '未知果蔬'), l.freshness_level, "
@@ -44,12 +55,9 @@ void RecognitionPage::refresh()
     }
 
     if (recognitionQuery.next()) {
-        const QString imagePath = recognitionQuery.value(4).toString();
-        QPixmap pixmap(imagePath);
-        if (!pixmap.isNull()) {
-            m_imageLabel->setPixmap(pixmap.scaled(m_imageLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        } else {
-            m_imageLabel->setText(QStringLiteral("识别图片不可用: %1").arg(imagePath));
+        if (!displayImage(latestFramePath)
+            && !displayImage(recognitionQuery.value(4).toString())) {
+            m_imageLabel->setText(QStringLiteral("实时画面暂不可用"));
         }
 
         const QString freshness = recognitionQuery.value(2).toString().isEmpty()
@@ -77,14 +85,11 @@ void RecognitionPage::refresh()
         return;
     }
 
-    const QString imagePath = frameQuery.value(0).toString();
     const QString status = frameQuery.value(1).toString();
 
-    QPixmap pixmap(imagePath);
-    if (!pixmap.isNull()) {
-        m_imageLabel->setPixmap(pixmap.scaled(m_imageLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    } else {
-        m_imageLabel->setText(QStringLiteral("图片加载失败: %1").arg(imagePath));
+    if (!displayImage(latestFramePath)
+        && !displayImage(frameQuery.value(0).toString())) {
+        m_imageLabel->setText(QStringLiteral("实时画面暂不可用"));
     }
 
     if (status == QStringLiteral("processed")) {

@@ -26,6 +26,13 @@ function normalizeInventoryItem(item) {
   }
 }
 
+function normalizeRecognitionItem(item) {
+  const record = item || {}
+  const action = String(record.action || '').toUpperCase()
+  const type = record.type || (action === 'IN' || record.action === '自动入库' ? 'inbound' : 'outbound')
+  return { ...record, type }
+}
+
 function normalizeDashboard(data) {
   const freshness = { fresh: 0, mild: 0, expiring: 0, spoiled: 0 }
   if (Array.isArray(data.freshness)) {
@@ -70,6 +77,7 @@ function normalizeDashboard(data) {
     },
     freshness,
     reminders: data.reminders || [],
+    recognitions: (data.recognitions || []).map(normalizeRecognitionItem),
     suggestions: data.suggestions || [],
     quickActions: data.quickActions || []
   }

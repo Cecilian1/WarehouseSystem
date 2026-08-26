@@ -3,6 +3,8 @@ const { applyPageTheme } = require('../../utils/theme')
 const { freshnessText, freshnessTone } = require('../../utils/format')
 const config = require('../../config/index')
 
+let liveRefreshTimer = null
+
 function imageUrl(path) {
   if (/^https?:\/\//.test(path || '')) {
     const separator = path.includes('?') ? '&' : '?'
@@ -40,6 +42,23 @@ Page({
   },
   onShow() {
     applyPageTheme(this)
+    this.startLiveRefresh()
+  },
+  onHide() {
+    this.stopLiveRefresh()
+  },
+  onUnload() {
+    this.stopLiveRefresh()
+  },
+  startLiveRefresh() {
+    this.stopLiveRefresh()
+    liveRefreshTimer = setInterval(() => this.load(), 5000)
+  },
+  stopLiveRefresh() {
+    if (liveRefreshTimer) {
+      clearInterval(liveRefreshTimer)
+      liveRefreshTimer = null
+    }
   },
   onPullDownRefresh() {
     this.load().finally(() => wx.stopPullDownRefresh())
@@ -68,7 +87,8 @@ Page({
       const result = {
         ...res.data,
         hasInference,
-        imageUrl: imageUrl(res.data.image || '/api/frames/latest/image')
+        // 三端实时预览统一使用最新采集帧；识别裁剪图仅作为记录详情图片。
+        imageUrl: imageUrl('/api/frames/latest/image')
       }
 
       this.setData({
@@ -78,7 +98,7 @@ Page({
         latencyBars,
         imageLoading: true,
         imageError: false,
-        usingLatestFrame: !hasInference
+        usingLatestFrame: true
       })
     })
   },

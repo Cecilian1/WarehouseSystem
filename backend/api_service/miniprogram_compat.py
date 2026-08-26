@@ -151,6 +151,7 @@ def recognitions_latest() -> dict[str, Any]:
     return ok(
         {
             "id": latest["id"] if latest else 0,
+            "hasInference": latest is not None,
             "frameNo": f"LOG-{latest['id']}" if latest else "暂无记录",
             "time": latest["createdAt"] if latest else "",
             "status": "completed" if latest else "empty",
