@@ -7,6 +7,8 @@ Type=simple
 WorkingDirectory=__WAREHOUSE_ROOT__
 Environment=WAREHOUSE_DB_PATH=/data/warehousekeeper/warehousekeeper.db
 Environment=WAREHOUSE_CORS_ORIGINS=*
+# 仅限受信任局域网演示：允许小程序 scene=demo 登录，不调用微信 code2Session。
+Environment=WAREHOUSE_ALLOW_DEMO_LOGIN=true
 ExecStart=/usr/bin/python3 -m uvicorn backend.api_service.main:app --host 0.0.0.0 --port 8000
 Restart=on-failure
 RestartSec=5
