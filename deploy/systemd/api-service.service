@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/warehousekeeper
+WorkingDirectory=__WAREHOUSE_ROOT__
 Environment=WAREHOUSE_DB_PATH=/data/warehousekeeper/warehousekeeper.db
 Environment=WAREHOUSE_CORS_ORIGINS=*
 ExecStart=/usr/bin/python3 -m uvicorn backend.api_service.main:app --host 0.0.0.0 --port 8000

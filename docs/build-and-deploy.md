@@ -41,9 +41,19 @@ cd /opt/warehousekeeper
 sh deploy/install_on_device.sh
 ```
 
-该脚本会依次完成：安装Python依赖（`backend/requirements.txt`）、创建
-`/data/warehousekeeper`数据目录、初始化SQLite数据库、安装并启动三个
-systemd服务。详见 `deploy/install_on_device.sh` 源码。
+该脚本会自动识别当前仓库目录；依次安装 Python 依赖、创建
+`/data/warehousekeeper` 数据目录、初始化 SQLite 数据库，并安装和启动
+摄像头、环境监测、API 三个 systemd 服务。若项目同时包含已授权执行的
+`bin/warehouse-ai-service` 及两组 NCNN 模型，脚本还会自动启动
+`ai-service-cpp`。若任一已启用服务未成功进入 active 状态，脚本会打印最近
+日志并失败退出。详见 `deploy/install_on_device.sh` 源码。
+
+启用 C++ AI 服务前，在开发板核对二进制架构并设置执行权限：
+
+```bash
+file bin/warehouse-ai-service  # 应显示 LoongArch ELF
+chmod 755 bin/warehouse-ai-service
+```
 
 ## 4. systemd常用操作
 

@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/warehousekeeper
+WorkingDirectory=__WAREHOUSE_ROOT__
 ExecStart=/usr/bin/python3 -m backend.env_service.main
 Restart=on-failure
 RestartSec=5

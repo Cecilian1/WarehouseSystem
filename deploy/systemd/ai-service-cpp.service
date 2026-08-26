@@ -5,11 +5,11 @@ Requires=camera-service.service
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/warehousekeeper
-ExecStart=/opt/warehousekeeper/bin/warehouse-ai-service \
+WorkingDirectory=__WAREHOUSE_ROOT__
+ExecStart=__WAREHOUSE_ROOT__/bin/warehouse-ai-service \
   --db /data/warehousekeeper/warehousekeeper.db \
-  --detector /opt/warehousekeeper/models/best_ncnn_model \
-  --freshness /opt/warehousekeeper/models/shufflenet_v2_freshness_ncnn_model \
+  --detector __WAREHOUSE_ROOT__/models/best_ncnn_model \
+  --freshness __WAREHOUSE_ROOT__/models/shufflenet_v2_freshness_ncnn_model \
   --crop-dir /data/warehousekeeper/frames/crops \
   --threads 2
 Restart=on-failure
