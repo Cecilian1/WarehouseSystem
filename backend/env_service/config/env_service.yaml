@@ -1,0 +1,24 @@
+# env_service 配置
+
+# I2C总线：默认复用I2C3（音频codec ES8388所在总线），地址不同(SHT30 0x44/45,
+# ES8388约0x10)理论不冲突，开箱即用无需改设备树/内核。
+# 若上板后 i2cdetect -y 3 发现总线争用问题严重，可切换到JP7扩展排针走软件I2C
+# （需先修改设备树新增i2c-gpio节点并重新编译烧录内核，见 docs/hardware-notes.md）。
+i2c_bus: /dev/i2c-3
+
+# SHT30地址，取决于传感器ADDR引脚接法，0x44(ADDR接地)或0x45(ADDR接VDD)
+# 需上板后用 i2cdetect -y 3 实测确认
+sht30_address: 0x44
+
+# 采集周期（秒），docx建议1~5分钟，默认180秒(3分钟)
+read_interval_sec: 180
+
+# 设备异常判定：温度超过该值(摄氏度)且持续超过abnormal_duration_sec则告警
+temp_high_threshold_c: 8.0
+abnormal_duration_sec: 600
+
+# SQLite数据库文件路径（与camera_service、Qt前端共用同一个文件）
+db_path: /data/warehousekeeper/warehousekeeper.db
+
+# 设备ID，写入device_status表用
+device_id: fridge-01

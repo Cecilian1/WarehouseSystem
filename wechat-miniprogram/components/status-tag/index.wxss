@@ -1,0 +1,40 @@
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  min-height: 44rpx;
+  padding: 0 16rpx;
+  border-radius: var(--radius-pill);
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.tone-fresh,
+.tone-online,
+.tone-success {
+  color: var(--green);
+  background: rgba(34, 197, 94, .16);
+}
+
+.tone-mild,
+.tone-warning {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, .2);
+}
+
+.tone-expiring {
+  color: var(--orange);
+  background: rgba(245, 158, 11, .18);
+}
+
+.tone-spoiled,
+.tone-critical,
+.tone-offline {
+  color: var(--red);
+  background: rgba(239, 68, 68, .16);
+}
+
+.tone-info {
+  color: var(--cyan);
+  background: rgba(56, 189, 248, .16);
+}

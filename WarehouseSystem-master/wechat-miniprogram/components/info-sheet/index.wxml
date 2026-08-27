@@ -1,0 +1,10 @@
+<view wx:if="{{visible}}" class="sheet-mask" catchtap="close">
+  <view class="sheet-panel info-panel" catchtap="noop">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">{{title}}</view>
+    <scroll-view scroll-y class="info-body">
+      <slot></slot>
+    </scroll-view>
+    <view class="info-close" bindtap="close">关闭</view>
+  </view>
+</view>

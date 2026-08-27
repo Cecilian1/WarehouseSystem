@@ -1,0 +1,5 @@
+<view class="x-icon icon-{{type}}" style="width: {{size}}rpx; height: {{size}}rpx; color: {{color || 'currentColor'}};">
+  <view class="part p1"></view>
+  <view class="part p2"></view>
+  <view class="part p3"></view>
+</view>

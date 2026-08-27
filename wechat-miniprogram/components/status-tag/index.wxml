@@ -1,0 +1,4 @@
+<view class="status-tag tone-{{tone}}">
+  <x-icon wx:if="{{icon}}" type="{{icon}}" size="{{24}}" />
+  <text>{{label}}</text>
+</view>

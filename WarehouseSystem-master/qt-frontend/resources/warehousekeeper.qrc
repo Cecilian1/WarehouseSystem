@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/icons">
+        <!-- 果蔬图标占位资源，开发者可将实际图标文件放入 resources/icons/ 后在此登记 -->
+    </qresource>
+</RCC>

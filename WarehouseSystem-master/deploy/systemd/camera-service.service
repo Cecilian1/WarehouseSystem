@@ -1,0 +1,15 @@
+[Unit]
+Description=WarehouseKeeper Camera Capture Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__WAREHOUSE_ROOT__
+ExecStartPre=/usr/bin/python3 -m backend.common.frame_cleanup --db-path /data/warehousekeeper/warehousekeeper.db --frame-root /data/warehousekeeper/frames --completed-retention-days 7 --pending-retention-days 7 --max-completed-frames 1000 --max-pending-frames 1000
+ExecStart=/usr/bin/python3 -m backend.camera_service.main
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

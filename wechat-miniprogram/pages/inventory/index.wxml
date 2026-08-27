@@ -1,0 +1,128 @@
+<view class="page-shell inventory-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <view class="nav-copy">
+      <view class="page-title">库存</view>
+      <view class="page-subtitle">看见冰箱里每一份新鲜</view>
+    </view>
+    <view class="mode-button" bindtap="toggleMode">
+      <x-icon type="record" size="{{32}}" />
+      <text>{{viewMode === 'card' ? '列表' : '卡片'}}</text>
+    </view>
+  </view>
+
+  <view class="kpi-panel">
+    <view class="kpi-item">
+      <text class="kpi-label">库存品类</text>
+      <text class="kpi-value">{{stats.categories}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">库存总量</text>
+      <text class="kpi-value">{{stats.total}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">新鲜库存</text>
+      <text class="kpi-value">{{stats.fresh}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">需优先处理</text>
+      <text class="kpi-value urgent">{{stats.urgent}}</text>
+    </view>
+  </view>
+
+  <view class="search-card">
+    <view class="search-icon"><x-icon type="search" size="{{32}}" /></view>
+    <input
+      class="search-input"
+      value="{{keyword}}"
+      bindinput="inputKeyword"
+      confirm-type="search"
+      bindconfirm="search"
+      placeholder="搜索果蔬、分类或货位"
+      placeholder-class="search-placeholder"
+    />
+    <view wx:if="{{keyword}}" class="search-clear" bindtap="clearKeyword">×</view>
+    <view class="search-submit" bindtap="search">搜索</view>
+  </view>
+
+  <view class="filter-panel">
+    <view class="filter-segment">
+      <view
+        wx:for="{{categories}}"
+        wx:key="*this"
+        class="filter-item {{category === item ? 'active' : ''}}"
+        data-value="{{item}}"
+        bindtap="selectCategory"
+      >{{item}}</view>
+    </view>
+    <view class="filter-segment">
+      <view
+        wx:for="{{freshnessOptions}}"
+        wx:key="value"
+        class="filter-item {{freshness === item.value ? 'active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="selectFreshness"
+      >{{item.label}}</view>
+    </view>
+    <view class="filter-segment">
+      <view
+        wx:for="{{sortOptions}}"
+        wx:key="*this"
+        class="filter-item {{sort === item ? 'active' : ''}}"
+        data-value="{{item}}"
+        bindtap="selectSort"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <view class="inventory-actions">
+    <view class="action-btn ghost" bindtap="manualInbound">
+      <x-icon type="add" size="{{32}}" />
+      <text>手动入库</text>
+    </view>
+    <view class="action-btn primary" bindtap="startRecognition">
+      <x-icon type="scan" size="{{32}}" />
+      <text>开始识别</text>
+    </view>
+  </view>
+
+  <view wx:if="{{list.length}}" class="inventory-list {{viewMode}}">
+    <produce-card
+      wx:for="{{list}}"
+      wx:key="id"
+      item="{{item}}"
+      mode="{{viewMode}}"
+      bind:detail="goDetail"
+      bind:action="handleAction"
+    />
+  </view>
+
+  <empty-state
+    wx:else
+    title="冰箱里暂时没有库存"
+    desc="可以通过 AI 识别或手动入库，让芯鲜管家开始守护食材。"
+    button-text="立即开始识别"
+    icon="scan"
+    bind:action="startRecognition"
+  />
+
+  <confirm-sheet
+    visible="{{sheetVisible}}"
+    title="{{pendingAction.title}}"
+    desc="{{pendingAction.desc}}"
+    danger="{{pendingAction.danger}}"
+    confirm-text="确认"
+    bind:cancel="cancelSheet"
+    bind:confirm="confirmSheet"
+  />
+
+  <form-sheet
+    visible="{{formVisible}}"
+    title="手动入库"
+    fields="{{formFields}}"
+    values="{{formValues}}"
+    confirm-text="创建"
+    bind:cancel="cancelForm"
+    bind:confirm="confirmForm"
+  />
+  <ai-assistant />
+</view>

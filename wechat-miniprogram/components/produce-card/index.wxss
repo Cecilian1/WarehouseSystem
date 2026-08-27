@@ -1,0 +1,289 @@
+.produce-wrap {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.action-rail {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  width: 252rpx;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #38bdf8, #4f8cff);
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6rpx;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.action-item.danger {
+  background: rgba(239, 68, 68, .34);
+}
+
+.produce-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 16rpx;
+  min-width: 0;
+  min-height: 148rpx;
+  padding: 18rpx;
+  border: 1rpx solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  transition: transform .18s ease;
+}
+
+.is-open .produce-card {
+  transform: translateX(-252rpx);
+}
+
+.produce-visual {
+  position: relative;
+  display: grid;
+  width: 88rpx;
+  height: 88rpx;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  border: 1rpx solid var(--stroke);
+}
+
+.produce-visual::after {
+  position: absolute;
+  inset: 14rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .7), transparent 64%);
+  content: "";
+}
+
+.food {
+  position: relative;
+  z-index: 1;
+  width: 46rpx;
+  height: 46rpx;
+  background: var(--food-color);
+  box-shadow: inset 0 8rpx 16rpx rgba(255, 255, 255, .22), 0 12rpx 24rpx rgba(0, 0, 0, .1);
+}
+
+.food-apple,
+.food-tomato,
+.food-orange {
+  border-radius: 48% 52% 50% 50%;
+}
+
+.food-banana {
+  width: 58rpx;
+  height: 34rpx;
+  border-radius: 0 0 70rpx 70rpx;
+  transform: rotate(-24deg);
+}
+
+.food-berry {
+  border-radius: 50% 50% 42% 42%;
+  clip-path: polygon(50% 0, 86% 18%, 100% 52%, 74% 100%, 25% 100%, 0 52%, 15% 18%);
+}
+
+.food-cucumber {
+  width: 64rpx;
+  height: 26rpx;
+  border-radius: 999rpx;
+  transform: rotate(-16deg);
+}
+
+.food-leaf,
+.food-lettuce {
+  width: 60rpx;
+  height: 40rpx;
+  border-radius: 70rpx 0 70rpx 0;
+  transform: rotate(-18deg);
+}
+
+.food-carrot {
+  width: 34rpx;
+  height: 62rpx;
+  clip-path: polygon(18% 0, 82% 0, 56% 100%);
+  transform: rotate(28deg);
+}
+
+.food-broccoli {
+  width: 62rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 25% 30%, #a9d9b7 0 18%, transparent 19%), radial-gradient(circle at 52% 25%, #5d9b73 0 22%, transparent 23%), radial-gradient(circle at 74% 42%, #4b815f 0 20%, transparent 21%), #3d6f4d;
+}
+
+.produce-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.produce-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.produce-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.produce-name,
+.produce-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.produce-name {
+  color: var(--text-1);
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.produce-meta {
+  margin-top: 6rpx;
+  color: var(--text-3);
+  font-size: 22rpx;
+}
+
+.produce-status {
+  flex: 0 0 auto;
+  margin-top: 2rpx;
+}
+
+.produce-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 12rpx;
+  color: var(--text-2);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.produce-info text {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fresh-line {
+  height: 8rpx;
+  margin-top: 12rpx;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+}
+
+.fresh-line view {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.mode-card .produce-card {
+  display: block;
+  min-height: auto;
+  padding: 16rpx;
+}
+
+.mode-card .action-rail {
+  display: none;
+}
+
+.mode-card.is-open .produce-card {
+  transform: none;
+}
+
+.mode-card .produce-visual {
+  width: 100%;
+  height: 148rpx;
+  border-radius: var(--radius-md);
+}
+
+.mode-card .food {
+  width: 72rpx;
+  height: 72rpx;
+}
+
+.mode-card .food-banana {
+  width: 96rpx;
+  height: 54rpx;
+}
+
+.mode-card .food-cucumber {
+  width: 100rpx;
+  height: 38rpx;
+}
+
+.mode-card .food-leaf,
+.mode-card .food-lettuce {
+  width: 90rpx;
+  height: 60rpx;
+}
+
+.mode-card .food-carrot {
+  width: 52rpx;
+  height: 92rpx;
+}
+
+.mode-card .food-broccoli {
+  width: 88rpx;
+  height: 74rpx;
+}
+
+.mode-card .produce-main {
+  margin-top: 12rpx;
+}
+
+.mode-card .produce-head {
+  display: block;
+}
+
+.mode-card .produce-status {
+  display: inline-block;
+  margin-top: 8rpx;
+}
+
+.mode-card .produce-info {
+  margin-top: 10rpx;
+}
+
+.mode-card .produce-info text {
+  padding: 4rpx 10rpx;
+  border-radius: 12rpx;
+  background: var(--surface-soft);
+}
+
+.mode-list .produce-card {
+  align-items: center;
+  min-height: 124rpx;
+  padding: 16rpx;
+  border-radius: var(--radius-md);
+}
+
+.mode-list .produce-info {
+  margin-top: 8rpx;
+}
+
+.mode-list .fresh-line {
+  display: none;
+}

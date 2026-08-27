@@ -1,0 +1,72 @@
+<view class="page-shell records-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <view class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></view>
+    <view class="nav-copy">
+      <view class="page-title">出入库记录</view>
+      <view class="page-subtitle">{{total ? '共 ' + total + ' 条记录' : '按时间倒序追溯每一次库存变化'}}</view>
+    </view>
+  </view>
+
+  <view class="search-card">
+    <view class="search-icon"><x-icon type="search" size="{{32}}" /></view>
+    <input
+      class="search-input"
+      value="{{keyword}}"
+      bindinput="inputKeyword"
+      confirm-type="search"
+      bindconfirm="search"
+      placeholder="搜索果蔬或操作详情"
+      placeholder-class="search-placeholder"
+    />
+    <view wx:if="{{keyword}}" class="search-clear" bindtap="clearKeyword">×</view>
+    <view class="search-submit" bindtap="search">搜索</view>
+  </view>
+
+  <view class="filter-segment">
+    <view
+      wx:for="{{types}}"
+      wx:key="value"
+      class="filter-item {{type === item.value ? 'active' : ''}}"
+      data-value="{{item.value}}"
+      bindtap="selectType"
+    >{{item.label}}</view>
+  </view>
+
+  <view wx:if="{{list.length}}" class="record-list">
+    <view
+      wx:for="{{list}}"
+      wx:key="id"
+      class="record-card"
+      data-id="{{item.id}}"
+      bindtap="openDetail"
+    >
+      <view class="record-top">
+        <view class="record-type {{item.type}}">{{item.typeLabel}}</view>
+        <view class="record-copy">
+          <view class="record-title">{{item.action}}</view>
+          <view class="record-detail">{{item.detail}}</view>
+        </view>
+        <view class="record-time">{{item.time}}</view>
+      </view>
+      <view class="record-meta">{{item.operator}} · 置信度 {{item.confidenceText}}</view>
+    </view>
+    <view class="load-more">{{loading ? '加载中...' : hasMore ? '上拉加载更多' : '已加载全部'}}</view>
+  </view>
+
+  <empty-state
+    wx:else
+    title="暂无出入库记录"
+    desc="识别入库或手动调整库存后，这里会按时间倒序展示。"
+    icon="record"
+  />
+
+  <info-sheet visible="{{detailVisible}}" title="记录详情" bind:close="closeDetail">
+    <view class="record-detail-row"><text class="row-label">编号</text><text class="row-value">#{{detailRecord.id}}</text></view>
+    <view class="record-detail-row"><text class="row-label">果蔬</text><text class="row-value">{{detailRecord.name}}</text></view>
+    <view class="record-detail-row"><text class="row-label">类型</text><text class="row-value">{{detailRecord.typeLabel}} × {{detailRecord.quantity}}</text></view>
+    <view class="record-detail-row"><text class="row-label">置信度</text><text class="row-value">{{detailRecord.confidenceText}}</text></view>
+    <view class="record-detail-row"><text class="row-label">新鲜度</text><text class="row-value">{{detailRecord.freshnessLabel || '读取中...'}}</text></view>
+    <view class="record-detail-row"><text class="row-label">耗时</text><text class="row-value">{{detailRecord.latency || 0}} ms</text></view>
+    <view class="record-detail-row"><text class="row-label">时间</text><text class="row-value">{{detailRecord.time}}</text></view>
+  </info-sheet>
+</view>

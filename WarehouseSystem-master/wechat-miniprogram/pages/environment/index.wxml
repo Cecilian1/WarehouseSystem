@@ -1,0 +1,83 @@
+<view class="page-shell environment-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <view class="nav-back" bindtap="back"><x-icon type="back" size="{{34}}" /></view>
+    <view>
+      <view class="page-title">环境监测</view>
+      <view class="page-subtitle">温湿度趋势与异常分析</view>
+    </view>
+  </view>
+
+  <view wx:if="{{current}}" class="current-card env-{{current.tone}}">
+    <view class="current-head">
+      <view>
+        <view class="env-label">当前环境</view>
+        <view class="env-state">{{current.state}}</view>
+      </view>
+      <view class="env-badge">{{current.state}}</view>
+    </view>
+    <view class="env-current-values">
+      <view>
+        <small>温度</small>
+        <text>{{current.temperature}}</text>
+        <small>°C</small>
+      </view>
+      <view>
+        <small>湿度</small>
+        <text>{{current.humidity}}</text>
+        <small>%RH</small>
+      </view>
+    </view>
+  </view>
+
+  <view class="kpi-panel" wx:if="{{current}}">
+    <view class="kpi-item">
+      <text class="kpi-label">今日最高温</text>
+      <text class="kpi-value">{{current.today.tempMax}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">今日最低温</text>
+      <text class="kpi-value">{{current.today.tempMin}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">最高湿度</text>
+      <text class="kpi-value">{{current.today.humidityMax}}</text>
+    </view>
+    <view class="kpi-item">
+      <text class="kpi-label">最低湿度</text>
+      <text class="kpi-value">{{current.today.humidityMin}}</text>
+    </view>
+  </view>
+
+  <view class="filter-segment">
+    <view
+      wx:for="{{ranges}}"
+      wx:key="*this"
+      class="filter-item {{range === item ? 'active' : ''}}"
+      data-value="{{item}}"
+      bindtap="selectRange"
+    >{{item}}</view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">温湿度历史</view>
+    <view wx:if="{{history.length}}" class="trend-chart {{history.length > 10 ? 'dense' : ''}}">
+      <view wx:for="{{history}}" wx:key="date" class="trend-col">
+        <view class="bars">
+          <view class="temp-bar" style="height: {{item.tempHeight}}rpx;"></view>
+          <view class="humidity-bar" style="height: {{item.humidityHeight}}rpx;"></view>
+        </view>
+        <text>{{item.date}}</text>
+      </view>
+    </view>
+    <view wx:else class="empty-copy">暂无历史数据</view>
+    <view class="chart-legend">
+      <view><view class="dot temp"></view>温度</view>
+      <view><view class="dot humidity"></view>湿度</view>
+    </view>
+  </view>
+
+  <view wx:if="{{current}}" class="panel">
+    <view class="panel-title">环境分析</view>
+    <view class="analysis-copy">{{current.analysis}}</view>
+  </view>
+</view>

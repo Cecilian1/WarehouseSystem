@@ -1,0 +1,182 @@
+<view class="page-shell home-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="home-hero fade-up">
+    <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+      <view>
+        <view class="hello">晚上好</view>
+        <view class="hero-title">芯鲜管家</view>
+      </view>
+    </view>
+    <view class="hero-copy">{{overview.greeting || '正在读取冰箱状态'}}</view>
+  </view>
+
+  <scroll-view wx:if="{{overview.statuses.length}}" scroll-x class="status-strip" show-scrollbar="{{false}}">
+    <view wx:for="{{overview.statuses}}" wx:key="id" class="status-chip-wrap">
+      <glass-card padding="small">
+        <view class="status-chip-row">
+          <i class="status-chip-dot {{item.state}}"></i>
+          <text class="status-chip-label">{{item.label}}</text>
+        </view>
+        <view class="status-chip-value">{{item.value}}</view>
+      </glass-card>
+    </view>
+  </scroll-view>
+
+  <glass-card wx:if="{{overview}}" tone="light" padding="normal" hover bindtap="goDevice">
+    <view class="device-card">
+      <view>
+        <view class="card-label">当前设备</view>
+        <view class="card-title">{{overview.device.name}}</view>
+        <view class="card-sub">最近同步 {{overview.device.lastSync}} · {{overview.device.code}}</view>
+      </view>
+      <status-tag label="{{overview.device.state === 'online' ? '在线' : overview.device.state === 'warning' ? '需关注' : '离线'}}" tone="{{overview.device.state}}" icon="device" />
+    </view>
+    <view class="device-grid">
+      <view><i class="status-dot"></i><text>摄像头：{{overview.device.cameraStatus}}</text></view>
+      <view><i class="status-dot"></i><text>传感器：{{overview.device.sensorStatus}}</text></view>
+    </view>
+  </glass-card>
+
+  <glass-card wx:if="{{overview}}" tone="{{overview.environment.state === '适宜' ? 'env' : overview.environment.state === '异常' ? 'warn' : 'offline'}}" padding="normal" hover bindtap="goEnvironment">
+    <view class="env-card">
+      <view>
+        <view class="env-title">冰箱环境</view>
+        <view class="env-desc">{{overview.environment.description}}</view>
+      </view>
+      <view class="env-state">{{overview.environment.state}}</view>
+    </view>
+    <view class="env-values">
+      <view>
+        <small>温度</small>
+        <text>{{overview.environment.valid ? overview.environment.temperature : '--'}}</text>
+        <small>°C</small>
+      </view>
+      <view>
+        <small>湿度</small>
+        <text>{{overview.environment.valid ? overview.environment.humidity : '--'}}</text>
+        <small>%RH</small>
+      </view>
+    </view>
+  </glass-card>
+
+  <view class="section-head">
+    <view class="section-head__title">库存与趋势</view>
+  </view>
+  <view class="metric-grid-2" wx:if="{{metrics.length}}">
+    <glass-card wx:for="{{metrics}}" wx:key="id" padding="small">
+      <view class="metric2">
+        <text class="metric2-label">{{item.label}}</text>
+        <view class="metric2-value-row">
+          <text class="metric2-value tone-{{item.tone}}">{{item.value}}</text>
+          <text class="metric2-unit">{{item.unit}}</text>
+        </view>
+        <text class="metric2-change {{item.up ? 'up' : 'down'}}">{{item.up ? '↑' : '↓'}} {{item.changeAbs}}%</text>
+      </view>
+    </glass-card>
+  </view>
+
+  <glass-card wx:if="{{overview.categories.length}}" padding="normal">
+    <view class="category-row">
+      <view class="donut-wrap">
+        <view class="donut-ring" style="background: conic-gradient({{categoryGradient}});"></view>
+        <view class="donut-hole">
+          <text>{{categoryTotal}}</text>
+          <small>件</small>
+        </view>
+      </view>
+      <view class="category-legend">
+        <view wx:for="{{overview.categories}}" wx:key="name">
+          <i style="background: {{item.color}};"></i>
+          <text>{{item.name}}</text>
+          <b>{{item.value}}</b>
+        </view>
+      </view>
+    </view>
+  </glass-card>
+
+  <glass-card wx:if="{{stockBars.length}}" padding="normal">
+    <view class="chart-title">入出库趋势（近24小时）</view>
+    <view class="stock-trend-chart">
+      <view wx:for="{{stockBars}}" wx:key="time" class="stock-trend-col">
+        <view class="stock-bars">
+          <view class="inbound-bar" style="height: {{item.inboundHeight}}rpx;"></view>
+          <view class="outbound-bar" style="height: {{item.outboundHeight}}rpx;"></view>
+        </view>
+        <text>{{item.time}}</text>
+      </view>
+    </view>
+    <view class="chart-legend">
+      <view><i class="inbound"></i>入库</view>
+      <view><i class="outbound"></i>出库</view>
+    </view>
+    <view class="trend-insight">今日净流入 {{netFlowText}} 件</view>
+  </glass-card>
+
+  <view class="section-head">
+    <view class="section-head__title">新鲜度概览</view>
+    <view class="section-head__more" bindtap="go" data-url="/pages/inventory/index">查看库存</view>
+  </view>
+  <glass-card wx:if="{{overview}}" padding="normal">
+    <view class="fresh-stack">
+      <view wx:for="{{freshnessBars}}" wx:key="key" class="fresh-segment" style="width: {{item.width}}%; background: {{item.color}};"></view>
+    </view>
+    <view class="fresh-legend">
+      <view wx:for="{{freshnessBars}}" wx:key="key">
+        <i style="background: {{item.color}};"></i>
+        <text>{{item.label}}</text>
+        <b>{{item.value}}</b>
+      </view>
+    </view>
+  </glass-card>
+
+  <view class="section-head">
+    <view class="section-head__title">今日提醒</view>
+    <view class="section-head__more" bindtap="go" data-url="/pages/alerts/index">全部</view>
+  </view>
+  <view class="reminder-list">
+    <glass-card wx:for="{{overview.reminders}}" wx:key="id" padding="small" hover>
+      <view class="reminder-item" bindtap="goMessage" data-id="{{item.id}}">
+        <view class="reminder-icon {{item.level}}"><x-icon type="alert" size="{{34}}" /></view>
+        <view class="reminder-copy">
+          <view class="reminder-title">{{item.title}}</view>
+          <view class="reminder-desc">{{item.description}}</view>
+        </view>
+      </view>
+    </glass-card>
+  </view>
+
+  <view class="section-head">
+    <view class="section-head__title">最近识别</view>
+    <view class="section-head__more" bindtap="go" data-url="/pages/records/index">全部</view>
+  </view>
+  <view class="recognition-list" wx:if="{{overview.recognitions.length}}">
+    <glass-card wx:for="{{overview.recognitions}}" wx:key="id" padding="small">
+      <view class="recognition-row">
+        <view class="recognition-main">
+          <view class="recognition-name">
+            {{item.name}}
+            <text class="recognition-type {{item.type}}">{{item.type === 'inbound' ? '入库' : '出库'}} ×{{item.quantity}}</text>
+          </view>
+          <view class="recognition-meta">{{item.time}} · 置信度 {{item.confidence}}% · 耗时 {{item.latency}}ms</view>
+        </view>
+      </view>
+    </glass-card>
+  </view>
+
+  <view class="section-head">
+    <view class="section-head__title">智能建议</view>
+  </view>
+  <glass-card padding="normal">
+    <view class="suggestion" wx:for="{{overview.suggestions}}" wx:key="*this">
+      <view class="suggestion-dot"></view>
+      <text>{{item}}</text>
+    </view>
+  </glass-card>
+
+  <view class="quick-grid">
+    <view wx:for="{{overview.quickActions}}" wx:key="title" class="quick-card tap-scale" bindtap="go" data-url="{{item.path}}">
+      <x-icon type="{{item.icon}}" size="{{42}}" />
+      <text>{{item.title}}</text>
+    </view>
+  </view>
+  <ai-assistant />
+</view>

@@ -1,0 +1,56 @@
+<view class="assistant-root">
+  <view wx:if="{{open}}" class="assistant-backdrop" catchtap="close"></view>
+
+  <view class="assistant-dock {{dockClass}} {{open ? 'is-open' : ''}}" style="{{dockStyle}}">
+    <view wx:if="{{open}}" class="assistant-panel">
+      <view class="assistant-heading">
+        <view class="heading-mark"><view class="heading-spark"></view></view>
+        <view>
+          <view class="heading-title">芯鲜 AI 助手</view>
+          <view class="heading-desc">今天想了解什么？</view>
+        </view>
+      </view>
+
+      <button
+        wx:for="{{actions}}"
+        wx:key="key"
+        class="assistant-action"
+        data-key="{{item.key}}"
+        bindtap="select"
+      >
+        <view class="action-icon icon-{{item.icon}}">
+          <view class="icon-part part-a"></view>
+          <view class="icon-part part-b"></view>
+          <view class="icon-part part-c"></view>
+        </view>
+        <view class="action-copy">
+          <view class="action-title">{{item.title}}</view>
+          <view class="action-desc">{{item.desc}}</view>
+        </view>
+        <view class="action-arrow"></view>
+      </button>
+    </view>
+
+    <view class="assistant-trigger-row">
+      <view
+        class="assistant-fab"
+        role="button"
+        aria-label="打开芯鲜AI助手"
+        bindtap="toggle"
+        bindtouchstart="dragStart"
+        catchtouchmove="dragMove"
+        bindtouchend="dragEnd"
+        bindtouchcancel="dragEnd"
+      >
+        <view class="fab-ring"></view>
+        <view class="fab-face">
+          <view class="fab-eye eye-left"></view>
+          <view class="fab-eye eye-right"></view>
+          <view class="fab-smile"></view>
+        </view>
+        <view class="fab-spark spark-one"></view>
+        <view class="fab-spark spark-two"></view>
+      </view>
+    </view>
+  </view>
+</view>

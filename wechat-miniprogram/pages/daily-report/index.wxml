@@ -1,0 +1,130 @@
+<view class="page-shell report-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <view class="nav-back" bindtap="back"><x-icon type="back" size="{{32}}" /></view>
+    <view class="nav-copy">
+      <view class="page-title">AI 每日报告</view>
+      <view class="page-subtitle">通览库存、新鲜度与温湿度</view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="report-loading fade-up">
+    <view class="loading-orbit">
+      <view class="loading-core"></view>
+      <view class="loading-dot"></view>
+    </view>
+    <view class="loading-title">正在汇总今天的仓储数据</view>
+    <view class="loading-desc">AI 正在分析果蔬新鲜度、库存、温湿度和预警信息</view>
+  </view>
+
+  <view wx:elif="{{error && !hasReport}}" class="report-error fade-up">
+    <view class="error-mark">!</view>
+    <view class="error-title">暂时无法生成报告</view>
+    <view class="error-desc">{{error}}</view>
+    <button class="primary-button retry-button" bindtap="retry">重新获取</button>
+  </view>
+
+  <block wx:elif="{{hasReport}}">
+    <view class="report-hero risk-{{risk.tone}} fade-up">
+      <view class="hero-topline">
+        <view class="ai-badge"><view class="badge-spark"></view><text>AI DAILY</text></view>
+        <view class="risk-pill"><i></i>{{risk.label}}</view>
+      </view>
+      <view class="report-date">{{report.title}}</view>
+      <view class="report-summary">{{report.summary}}</view>
+      <view class="report-meta">
+        <text>{{report.sourceLabel}}</text>
+        <text>{{generatedTime}} 生成</text>
+      </view>
+    </view>
+
+    <view wx:if="{{report.fallbackReason}}" class="fallback-banner">
+      <view class="fallback-dot"></view>
+      <text>{{report.fallbackReason}}</text>
+    </view>
+
+    <view class="section-head">
+      <view>
+        <view class="section-head__title">今日核心指标</view>
+        <view class="section-caption">数据来自本地设备与仓储记录</view>
+      </view>
+      <view class="refresh-link {{refreshing ? 'disabled' : ''}}" bindtap="refresh">
+        <view class="refresh-icon {{refreshing ? 'spinning' : ''}}"></view>
+        <text>{{refreshing ? '生成中' : '重新生成'}}</text>
+      </view>
+    </view>
+
+    <view class="metric-grid">
+      <view class="metric-card metric-temp" bindtap="goEnvironment">
+        <view class="metric-label">当前温度</view>
+        <view class="metric-value">{{report.environment.valid ? report.environment.temperature : '--'}}<small>°C</small></view>
+        <view class="metric-foot">{{report.environment.status}}</view>
+      </view>
+      <view class="metric-card metric-humidity" bindtap="goEnvironment">
+        <view class="metric-label">当前湿度</view>
+        <view class="metric-value">{{report.environment.valid ? report.environment.humidity : '--'}}<small>%RH</small></view>
+        <view class="metric-foot">{{report.environment.sampleCount}} 个今日样本</view>
+      </view>
+      <view class="metric-card metric-fresh" bindtap="goInventory">
+        <view class="metric-label">综合新鲜度</view>
+        <view class="metric-value">{{report.freshness.averageScore}}<small>分</small></view>
+        <view class="metric-foot">临期 {{report.freshness.warning}} · 腐败 {{report.freshness.spoiled}}</view>
+      </view>
+      <view class="metric-card metric-stock" bindtap="goInventory">
+        <view class="metric-label">库存总量</view>
+        <view class="metric-value">{{report.inventory.totalQuantity}}<small>件</small></view>
+        <view class="metric-foot">共 {{report.inventory.produceTypes}} 类果蔬</view>
+      </view>
+    </view>
+
+    <view class="section-head">
+      <view class="section-head__title">AI 今日洞察</view>
+    </view>
+    <glass-card padding="normal">
+      <view class="insight-item" wx:for="{{report.highlights}}" wx:key="*this">
+        <view class="insight-index">{{index + 1}}</view>
+        <text>{{item}}</text>
+      </view>
+    </glass-card>
+
+    <view class="section-head">
+      <view class="section-head__title">建议行动</view>
+      <view class="section-head__more" bindtap="goAlerts">查看预警</view>
+    </view>
+    <view class="recommend-list">
+      <view class="recommend-card" wx:for="{{report.recommendations}}" wx:key="*this">
+        <view class="recommend-check">✓</view>
+        <text>{{item}}</text>
+      </view>
+    </view>
+
+    <block wx:if="{{report.freshness.riskyItems.length}}">
+      <view class="section-head">
+        <view>
+          <view class="section-head__title">优先关注果蔬</view>
+          <view class="section-caption">按风险与新鲜度排序</view>
+        </view>
+        <view class="section-head__more" bindtap="goInventory">全部库存</view>
+      </view>
+      <view class="risk-list">
+        <view class="risk-item" wx:for="{{report.freshness.riskyItems}}" wx:key="name" bindtap="goInventory">
+          <view class="produce-avatar">{{item.initial}}</view>
+          <view class="risk-copy">
+            <view class="risk-name">{{item.name}}</view>
+            <view class="risk-detail">{{item.quantity}}{{item.unit}} · 剩余 {{item.remainingDays}} 天</view>
+          </view>
+          <view class="fresh-score {{item.status === '腐败' ? 'critical' : ''}}">
+            <b>{{item.freshnessScore}}</b><small>分</small>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="data-note">
+      <view class="note-lock"></view>
+      <view>
+        <view class="note-title">数据与密钥安全</view>
+        <view class="note-copy">报告只基于本系统中的仓储数据生成；模型密钥由后端保管，不会下发到小程序。</view>
+      </view>
+    </view>
+  </block>
+</view>

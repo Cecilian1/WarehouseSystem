@@ -1,0 +1,71 @@
+.empty-state {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 520rpx;
+  padding: 52rpx 28rpx;
+  text-align: center;
+}
+
+.empty-visual {
+  position: relative;
+  width: 210rpx;
+  height: 180rpx;
+}
+
+.icon-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  width: 140rpx;
+  height: 140rpx;
+  place-items: center;
+  border: 1rpx solid var(--stroke);
+  border-radius: var(--radius-md);
+  color: var(--blue);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  transform: translate(-50%, -50%);
+}
+
+.leaf {
+  position: absolute;
+  width: 90rpx;
+  height: 52rpx;
+  border-radius: 60rpx 0 60rpx 0;
+  background: rgba(56, 189, 248, .16);
+}
+
+.leaf-a {
+  left: 12rpx;
+  top: 18rpx;
+  transform: rotate(-22deg);
+}
+
+.leaf-b {
+  right: 12rpx;
+  bottom: 20rpx;
+  background: rgba(79, 140, 255, .18);
+  transform: rotate(26deg);
+}
+
+.empty-title {
+  color: var(--text-1);
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.empty-desc {
+  max-width: 520rpx;
+  margin-top: 12rpx;
+  color: var(--text-3);
+  font-size: 26rpx;
+  line-height: 1.55;
+}
+
+.empty-button {
+  width: 320rpx;
+  margin-top: 28rpx;
+}

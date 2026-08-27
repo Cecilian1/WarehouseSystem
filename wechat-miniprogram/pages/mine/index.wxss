@@ -1,0 +1,200 @@
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+  margin: 24rpx 0 16rpx;
+  padding: 24rpx;
+  border: 1rpx solid var(--stroke);
+  border-radius: var(--radius-lg);
+  color: var(--text-1);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.avatar {
+  display: grid;
+  width: 88rpx;
+  height: 88rpx;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1rpx solid var(--stroke);
+  border-radius: 26rpx;
+  background: var(--surface-soft);
+}
+
+.avatar view {
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 50%;
+  border: 5rpx solid var(--text-3);
+  border-bottom-color: transparent;
+}
+
+.user-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.user-name,
+.family-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-name {
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.family-name {
+  margin-top: 6rpx;
+  color: var(--text-3);
+  font-size: 23rpx;
+}
+
+.user-tag {
+  flex: 0 0 auto;
+  max-width: 220rpx;
+}
+
+.setting-group {
+  margin-top: 8rpx;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 18rpx;
+  min-height: 116rpx;
+  padding: 0 24rpx;
+}
+
+.setting-row + .setting-row {
+  border-top: 1rpx solid var(--stroke);
+}
+
+.setting-icon {
+  display: grid;
+  width: 66rpx;
+  height: 66rpx;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  background: var(--surface-soft);
+}
+
+.theme-icon-shape {
+  width: 30rpx;
+  height: 30rpx;
+  border: 2rpx solid var(--stroke-strong);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue) 50%, transparent 50%);
+}
+
+.setting-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.setting-copy view {
+  color: var(--text-1);
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.setting-copy text {
+  display: block;
+  overflow: hidden;
+  margin-top: 6rpx;
+  color: var(--text-3);
+  font-size: 23rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threshold-row {
+  margin-bottom: 26rpx;
+}
+
+.threshold-row:last-of-type {
+  margin-bottom: 18rpx;
+}
+
+.threshold-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.threshold-label text {
+  color: var(--text-2);
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.threshold-label .threshold-value {
+  color: var(--text-1);
+  font-weight: 900;
+}
+
+.account-row,
+.role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--stroke);
+}
+
+.account-name {
+  color: var(--text-1);
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.account-role {
+  margin-left: 8rpx;
+  color: var(--text-3);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.account-meta {
+  margin-top: 6rpx;
+  color: var(--text-3);
+  font-size: 22rpx;
+}
+
+.account-add {
+  margin-top: 20rpx;
+}
+
+.role-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.role-name {
+  color: var(--text-1);
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.role-desc {
+  margin-top: 6rpx;
+  color: var(--text-3);
+  font-size: 22rpx;
+}
+
+.role-config {
+  flex: 0 0 auto;
+  min-width: 140rpx;
+  height: 60rpx;
+  font-size: 23rpx;
+  line-height: 60rpx;
+}

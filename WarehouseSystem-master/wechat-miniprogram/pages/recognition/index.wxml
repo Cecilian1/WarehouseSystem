@@ -1,0 +1,130 @@
+<view class="page-shell recognition-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="recognition-bg"></view>
+  <view class="recognition-shell">
+    <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+      <view>
+        <view class="page-title page-title--on-camera">冰箱快照</view>
+        <view class="page-subtitle page-subtitle--on-camera">开发板摄像头最新画面</view>
+      </view>
+      <status-tag label="{{result && result.hasInference ? '可复核' : '图像采集'}}" tone="info" icon="scan" />
+    </view>
+
+    <view wx:if="{{result}}" class="camera-card">
+      <view class="camera-head">
+        <view>
+          <view class="camera-title">{{result.hasInference && !usingLatestFrame ? '冰箱识别快照' : '冰箱实时画面'}}</view>
+          <view class="camera-sub">
+            {{result.hasInference && !usingLatestFrame ? result.frameNo + ' · ' + result.time : '当前仅展示摄像头画面，尚未产生真实识别目标'}}
+          </view>
+        </view>
+        <button class="live-dot" bindtap="refreshFrame">{{result.hasInference && !usingLatestFrame ? '处理完成' : '刷新画面'}}</button>
+      </view>
+      <view class="camera-stage">
+        <view class="camera-frame">
+          <image
+            class="camera-image"
+            src="{{result.imageUrl}}"
+            mode="aspectFill"
+            bindload="handleImageLoad"
+            binderror="handleImageError"
+          />
+          <view wx:if="{{imageLoading}}" class="image-state">
+            <view class="image-spinner"></view>
+            <text>正在获取摄像头画面</text>
+          </view>
+          <view wx:if="{{imageError}}" class="image-state image-state--error">
+            <x-icon type="scan" size="{{42}}" />
+            <text>摄像头画面暂时不可用</text>
+          </view>
+          <view wx:if="{{result.hasInference}}" class="scan-line"></view>
+          <block wx:if="{{result.hasInference && !usingLatestFrame && !imageError}}">
+            <view
+              wx:for="{{targets}}"
+              wx:key="id"
+              class="detect-box {{item.freshness}}"
+              style="left: {{item.x}}%; top: {{item.y}}%; width: {{item.w}}%; height: {{item.h}}%;"
+            >
+              <text>{{item.name}} ×{{item.quantity}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <glass-card wx:if="{{result}}" padding="normal">
+      <view class="pipeline">
+        <view wx:for="{{result.pipeline}}" wx:key="key" class="pipeline-step {{item.done ? 'done' : ''}}">
+          <view class="step-mark"><x-icon type="{{item.done ? 'check' : 'clock'}}" size="{{28}}" /></view>
+          <view>
+            <view class="step-name">{{item.name}}</view>
+            <view class="step-cost">{{item.cost}}</view>
+          </view>
+        </view>
+      </view>
+    </glass-card>
+
+    <glass-card wx:if="{{result && result.hasInference}}" padding="normal">
+      <view class="frame-summary">
+        <view class="score-ring">
+          <text>{{avgConfidence}}%</text>
+        </view>
+        <view class="frame-summary-info">
+          <view class="frame-summary-row"><label>识别耗时</label><text>{{result.latency}} ms</text></view>
+          <view class="frame-summary-row"><label>检测模型</label><text>{{result.models.detect}}</text></view>
+          <view class="frame-summary-row"><label>分类模型</label><text>{{result.models.classify}}</text></view>
+        </view>
+      </view>
+      <view class="latency-trend">
+        <view wx:for="{{latencyBars}}" wx:for-index="barIndex" wx:key="barIndex" class="latency-bar" style="height: {{item.height}}rpx;"></view>
+      </view>
+      <view class="latency-caption">端侧推理延迟趋势 · 近12帧</view>
+    </glass-card>
+
+    <glass-card wx:if="{{result && !result.hasInference}}" padding="normal">
+      <view class="frame-summary">
+        <view class="score-ring">
+          <text>--</text>
+        </view>
+        <view class="frame-summary-info">
+          <view class="frame-summary-row"><label>当前状态</label><text>仅图像采集</text></view>
+          <view class="frame-summary-row"><label>检测模型</label><text>未接入</text></view>
+          <view class="frame-summary-row"><label>库存写入</label><text>未执行</text></view>
+        </view>
+      </view>
+    </glass-card>
+
+    <view wx:if="{{result && result.hasInference}}" class="section-head section-head--on-camera">
+      <view class="section-head__title">识别结果</view>
+      <button class="section-head__more" bindtap="addTarget">添加目标</button>
+    </view>
+
+    <view wx:if="{{result && result.hasInference}}" class="target-list">
+      <glass-card wx:for="{{targets}}" wx:key="id" padding="small">
+        <view class="target-row">
+          <view class="target-main">
+            <view class="target-name">{{item.name}} <text>×{{item.quantity}}</text></view>
+            <view class="target-meta">{{item.category}} · 置信度 {{item.confidence}}% · 新鲜度 {{item.freshnessScore}}</view>
+            <status-tag label="{{item.freshnessLabel}}" tone="{{item.tone}}" />
+          </view>
+          <view class="target-actions">
+            <button data-id="{{item.id}}" bindtap="editTarget">修改</button>
+            <button data-id="{{item.id}}" bindtap="deleteTarget">删除</button>
+          </view>
+        </view>
+      </glass-card>
+    </view>
+
+    <button wx:if="{{result && result.hasInference}}" class="primary-button confirm-recognition" bindtap="confirmRecognition">
+      <x-icon type="check" size="{{34}}" />确认并更新库存
+    </button>
+  </view>
+
+  <confirm-sheet
+    visible="{{sheetVisible}}"
+    title="修改识别结果"
+    desc="演示版将快速切换该目标的新鲜度等级；正式接入后可编辑类别、数量与评分。"
+    confirm-text="切换新鲜度"
+    bind:cancel="cancelSheet"
+    bind:confirm="confirmEdit"
+  />
+</view>

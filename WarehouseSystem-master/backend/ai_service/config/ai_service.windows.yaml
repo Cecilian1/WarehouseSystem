@@ -1,0 +1,20 @@
+detector_model: models/best.onnx
+freshness_model: models/shufflenet_v2_freshness.onnx
+db_path: data/warehousekeeper-test.db
+crop_dir: data/ai_crops
+detector_confidence: 0.35
+detector_iou: 0.45
+detector_image_size: 640
+bbox_padding_ratio: 0.05
+poll_interval_sec: 1.0
+max_attempts: 3
+onnx_threads: 2
+inventory_action: IN
+update_stock_summary: false
+model_version: yolo-5class-v1+shufflenet-v4-seed20260722
+produce_catalog:
+  apple: {name: 苹果, category: 水果, shelf_life_days: 14, unit: 个}
+  banana: {name: 香蕉, category: 水果, shelf_life_days: 7, unit: 根}
+  carrot: {name: 胡萝卜, category: 蔬菜, shelf_life_days: 14, unit: 根}
+  cucumber: {name: 黄瓜, category: 蔬菜, shelf_life_days: 7, unit: 根}
+  orange: {name: 橙子, category: 水果, shelf_life_days: 14, unit: 个}

@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Qt构建产物
+qt-frontend/build-*/
+qt-frontend/*.pro.user
+
+# 采集图片（数据库可入库，帧文件仍只留本地）
+backend/camera_service/frames/
+data/warehousekeeper/frames/
+data-old-before-current-import/
+
+# Web前端 (Vue 3 + Vite)
+web-frontend/node_modules/
+web-frontend/dist/
+web-frontend/.env
+web-frontend/.env.local
+web-frontend/.env.*.local
+web-frontend/*.log
+web-frontend/npm-debug.log*
+web-frontend/yarn-debug.log*
+web-frontend/yarn-error.log*
+web-frontend/.vscode/
+web-frontend/.idea/
+web-frontend/.DS_Store
+
+# Vite临时文件
+web-frontend/.vite/
+web-frontend/vite-plugin-temp-*
+
+# 项目状态文档（本地only，不入库）
+PROJECT_STATUS.md
+
+# Local service logs
+*.out.log
+*.err.log
+
+
+# claude
+.claude/

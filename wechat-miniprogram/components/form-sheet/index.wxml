@@ -1,0 +1,45 @@
+<view wx:if="{{visible}}" class="sheet-mask" catchtap="cancel">
+  <view class="sheet-panel form-panel" catchtap="noop">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">{{title}}</view>
+    <scroll-view scroll-y class="form-body">
+      <view wx:for="{{fields}}" wx:key="key" class="form-row">
+        <text class="form-label">{{item.label}}</text>
+        <block wx:if="{{item.type === 'select'}}">
+          <view class="form-chip-group">
+            <view
+              wx:for="{{item.options}}"
+              wx:for-item="opt"
+              wx:key="*this"
+              class="form-chip {{formValues[item.key] === opt ? 'active' : ''}}"
+              data-key="{{item.key}}"
+              data-value="{{opt}}"
+              bindtap="onSelectOption"
+            >{{opt}}</view>
+          </view>
+        </block>
+        <block wx:elif="{{item.type === 'stepper'}}">
+          <view class="form-stepper">
+            <view class="stepper-btn" data-key="{{item.key}}" data-delta="{{-1}}" bindtap="onStep">-</view>
+            <text class="stepper-value">{{formValues[item.key]}}{{item.unit ? item.unit : ''}}</text>
+            <view class="stepper-btn" data-key="{{item.key}}" data-delta="{{1}}" bindtap="onStep">+</view>
+          </view>
+        </block>
+        <block wx:else>
+          <input
+            class="form-input"
+            type="{{item.type === 'number' ? 'digit' : 'text'}}"
+            value="{{formValues[item.key]}}"
+            placeholder="{{item.placeholder || ''}}"
+            data-key="{{item.key}}"
+            bindinput="onInput"
+          />
+        </block>
+      </view>
+    </scroll-view>
+    <view class="sheet-actions">
+      <button class="ghost-button" bindtap="cancel">取消</button>
+      <button class="primary-button" bindtap="confirm">{{confirmText}}</button>
+    </view>
+  </view>
+</view>

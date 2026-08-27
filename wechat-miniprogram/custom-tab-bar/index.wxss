@@ -1,0 +1,99 @@
+/* custom-tab-bar is mounted by the framework outside any page's WXML tree,
+   so it has no page ancestor carrying .theme-dark/.theme-light to inherit
+   CSS variables from — the token blocks are duplicated here from app.wxss. */
+.theme-dark {
+  --bg-0: #07111f;
+  --bg-1: #0d1728;
+  --bg-2: #111f33;
+  --blue: #4f8cff;
+  --cyan: #38bdf8;
+  --surface-strong: #111f33;
+  --stroke: rgba(148, 163, 184, .16);
+  --text-3: #70829a;
+  --radius-lg: 44rpx;
+}
+
+.theme-light {
+  --bg-0: #eef4fa;
+  --bg-1: #f6f9fc;
+  --bg-2: #ffffff;
+  --blue: #4f8cff;
+  --cyan: #38bdf8;
+  --surface-strong: #ffffff;
+  --stroke: rgba(100, 116, 139, .18);
+  --text-3: #8b9bb0;
+  --radius-lg: 44rpx;
+}
+
+.tab-safe {
+  position: fixed;
+  z-index: 80;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 104rpx;
+  padding: 8rpx 16rpx calc(10rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--stroke);
+  background: var(--bg-2);
+  pointer-events: auto;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6rpx;
+  min-width: 0;
+  min-height: 82rpx;
+  margin: 0;
+  padding: 0;
+  color: var(--text-3);
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.tab-icon {
+  display: grid;
+  flex-shrink: 0;
+  width: 48rpx;
+  height: 48rpx;
+  place-items: center;
+  border-radius: 18rpx;
+}
+
+.tab-item.active {
+  color: var(--blue);
+}
+
+.tab-item.active .tab-icon {
+  background: rgba(79, 140, 255, .12);
+}
+
+.tab-item.center {
+  transform: none;
+}
+
+.tab-item.center .tab-icon {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 20rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #38bdf8, #4f8cff);
+  box-shadow: 0 8rpx 20rpx rgba(79, 140, 255, .28);
+}
+
+.tab-item.center .tab-label {
+  color: var(--blue);
+  font-size: 22rpx;
+}

@@ -1,0 +1,100 @@
+<view class="page-shell alerts-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusTop}}px;">
+    <view>
+      <view class="page-title">预警</view>
+      <view class="page-subtitle">保质期、环境与设备异常提醒</view>
+    </view>
+  </view>
+
+  <view class="alert-stats">
+    <glass-card wx:for="{{stats}}" wx:key="label" padding="small">
+      <view class="stat {{item.tone}}">
+        <text>{{item.value}}</text>
+        <small>{{item.label}}</small>
+      </view>
+    </glass-card>
+  </view>
+
+  <view class="search-card">
+    <view class="search-icon"><x-icon type="search" size="{{32}}" /></view>
+    <input
+      class="search-input"
+      value="{{keyword}}"
+      bindinput="inputKeyword"
+      confirm-type="search"
+      bindconfirm="search"
+      placeholder="搜索预警标题或来源"
+      placeholder-class="search-placeholder"
+    />
+    <view wx:if="{{keyword}}" class="search-clear" bindtap="clearKeyword">×</view>
+    <view class="search-submit" bindtap="search">搜索</view>
+  </view>
+
+  <view class="filter-panel">
+    <view class="filter-segment">
+      <view
+        wx:for="{{statusOptions}}"
+        wx:key="value"
+        class="filter-item {{statusFilter === item.value ? 'active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="selectStatus"
+      >{{item.label}}</view>
+    </view>
+    <view class="filter-segment">
+      <view
+        wx:for="{{levelOptions}}"
+        wx:key="value"
+        class="filter-item {{filter === item.value ? 'active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="setFilter"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{selectedIds.length}}" class="batch-bar">
+    <text>已选 {{selectedIds.length}} 项</text>
+    <button class="primary-button" bindtap="batchHandle">批量处理</button>
+  </view>
+
+  <view wx:if="{{alerts.length}}" class="group-list">
+    <block wx:for="{{groups}}" wx:key="title">
+      <view wx:if="{{item.list.length}}" class="alert-group">
+        <view class="section-head">
+          <view class="section-head__title">{{item.title}}</view>
+        </view>
+        <glass-card wx:for="{{item.list}}" wx:for-item="alert" wx:key="id" padding="small" hover>
+          <view class="alert-card {{alert.level}}">
+            <view class="alert-top">
+              <checkbox class="alert-checkbox" checked="{{alert.selected}}" data-id="{{alert.id}}" catchtap="toggleSelect" />
+              <view class="alert-icon {{alert.level}}"><x-icon type="alert" size="{{32}}" /></view>
+              <view class="alert-main" bindtap="goDetail" data-id="{{alert.id}}">
+                <view class="alert-title">{{alert.title}}</view>
+                <view class="alert-desc">{{alert.description}}</view>
+                <view class="alert-meta">{{alert.source}} · {{alert.time}}</view>
+              </view>
+              <view class="alert-tag">
+                <status-tag label="{{alert.status === 'pending' ? '待处理' : alert.status === 'ignored' ? '已忽略' : '已处理'}}" tone="{{alert.status === 'pending' ? 'warning' : alert.status === 'ignored' ? 'offline' : 'success'}}" />
+              </view>
+            </view>
+            <view wx:if="{{alert.status === 'pending'}}" class="alert-actions">
+              <view class="alert-action ghost" data-id="{{alert.id}}" bindtap="ignoreAlert">忽略</view>
+              <view class="alert-action primary" data-id="{{alert.id}}" bindtap="openHandle">处理</view>
+            </view>
+          </view>
+        </glass-card>
+      </view>
+    </block>
+  </view>
+
+  <empty-state wx:else title="暂无预警" desc="当前冰箱环境稳定，库存状态良好。" icon="check" />
+
+  <confirm-sheet
+    visible="{{sheetVisible}}"
+    title="标记为已处理"
+    desc="{{selected.suggestion}}"
+    confirm-text="已处理"
+    bind:cancel="cancelSheet"
+    bind:confirm="confirmSheet"
+  />
+  <ai-assistant />
+</view>

@@ -1,0 +1,20 @@
+[Unit]
+Description=WarehouseKeeper C++ YOLO and Freshness AI Service
+After=camera-service.service
+Requires=camera-service.service
+
+[Service]
+Type=simple
+WorkingDirectory=__WAREHOUSE_ROOT__
+ExecStart=__WAREHOUSE_ROOT__/bin/warehouse-ai-service \
+  --db /data/warehousekeeper/warehousekeeper.db \
+  --detector __WAREHOUSE_ROOT__/models/best_ncnn_model \
+  --freshness __WAREHOUSE_ROOT__/models/shufflenet_v2_freshness_ncnn_model \
+  --crop-dir /data/warehousekeeper/frames/crops \
+  --threads 2
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
