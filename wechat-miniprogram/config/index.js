@@ -1,8 +1,8 @@
 module.exports = {
   enableMock: false,
   enableDemoLogin: true,
-  baseUrl: 'http://10.28.32.254:8000/api',
-  wsUrl: 'ws://10.28.32.254:8000/ws/notify',
+  baseUrl: 'http://10.28.32.252:8000/api',
+  wsUrl: 'ws://10.28.32.252:8000/ws/notify',
   timeout: 10000,
   appName: '芯鲜管家',
   defaultDeviceId: 'fridge-01'
