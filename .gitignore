@@ -1,7 +1,7 @@
 # Python
 __pycache__/
 *.pyc
-.env
+/.env
 
 # Qt构建产物
 qt-frontend/build-*/
@@ -32,6 +32,9 @@ web-frontend/vite-plugin-temp-*
 
 # 项目状态文档（本地only，不入库）
 PROJECT_STATUS.md
+
+# Local runtime data
+/data/
 
 # Local service logs
 *.out.log
