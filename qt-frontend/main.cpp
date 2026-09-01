@@ -11,6 +11,10 @@ int main(int argc, char *argv[])
     // 拼音候选键盘不会出现。允许部署环境通过 QT_IM_MODULE 覆盖这个默认值。
     if (qEnvironmentVariableIsEmpty("QT_IM_MODULE"))
         qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
+    // 出厂镜像提供了 Qt Virtual Keyboard。优先选择简体中文布局，用户仍可在
+    // 键盘中切换语言；部署环境可通过同名变量保留其他默认语言。
+    if (qEnvironmentVariableIsEmpty("QT_VIRTUALKEYBOARD_LOCALE"))
+        qputenv("QT_VIRTUALKEYBOARD_LOCALE", "zh_CN");
 
     QApplication a(argc, argv);
 

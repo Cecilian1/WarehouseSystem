@@ -16,6 +16,7 @@
 #include <QScrollArea>
 #include <QSpinBox>
 #include <QTableView>
+#include <QTimer>
 #include <QVBoxLayout>
 
 ProduceInfoPage::ProduceInfoPage(QWidget *parent)
@@ -81,17 +82,21 @@ void ProduceInfoPage::buildLayout()
     auto *rightScroll = new QScrollArea(this);
     rightScroll->setWidgetResizable(true);
     rightScroll->setFrameShape(QFrame::NoFrame);
+    rightScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     rightScroll->setWidget(rightWidget);
 
     auto *mainLayout = new QHBoxLayout(this);
-    mainLayout->addWidget(m_tableView, 2);
-    mainLayout->addWidget(rightScroll, 1);
+    mainLayout->addWidget(m_tableView, 3);
+    mainLayout->addWidget(rightScroll, 2);
 
     // 哪个文本输入框获得焦点，屏幕键盘就写入哪个输入框。
     connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *now) {
         auto *lineEdit = qobject_cast<QLineEdit *>(now);
-        if (lineEdit == m_nameEdit || lineEdit == m_categoryEdit || lineEdit == m_idealTempEdit)
+        if (lineEdit == m_nameEdit || lineEdit == m_categoryEdit || lineEdit == m_idealTempEdit) {
             m_keyboard->attachTarget(lineEdit);
+            // 让触摸文本框成为唤起输入法的唯一动作，无需先点自绘英文键盘。
+            QTimer::singleShot(0, m_keyboard, [this]() { m_keyboard->showSystemInputMethod(); });
+        }
     });
     m_keyboard->attachTarget(m_nameEdit);
 }

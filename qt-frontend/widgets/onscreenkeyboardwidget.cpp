@@ -5,6 +5,7 @@
 #include <QInputMethod>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSizePolicy>
 
 namespace {
 // 简化的数字+字母布局；果蔬名称多为中文，实际中文录入建议仍走系统输入法
@@ -31,7 +32,18 @@ void OnScreenKeyboardWidget::attachTarget(QLineEdit *target)
 void OnScreenKeyboardWidget::buildLayout()
 {
     auto *layout = new QGridLayout(this);
-    layout->setSpacing(4);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(2);
+    for (int column = 0; column < 10; ++column)
+        layout->setColumnStretch(column, 1);
+
+    const auto configureKey = [](QPushButton *button) {
+        // 信息录入页右侧只有约 400px 宽。Ignored 允许十列按实际宽度收缩，
+        // 避免 QScrollArea 产生横向滚动条而把前半键裁掉。
+        button->setMinimumHeight(34);
+        button->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+        button->setFocusPolicy(Qt::NoFocus);
+    };
 
     int row = 0;
     for (const char *rowChars : kRows) {
@@ -39,7 +51,7 @@ void OnScreenKeyboardWidget::buildLayout()
         for (const char *p = rowChars; *p; ++p) {
             const QString ch{QChar(*p)};
             auto *btn = new QPushButton(ch, this);
-            btn->setMinimumSize(48, 48);
+            configureKey(btn);
             connect(btn, &QPushButton::clicked, this, [this, ch]() { appendChar(ch); });
             layout->addWidget(btn, row, col);
             ++col;
@@ -48,17 +60,17 @@ void OnScreenKeyboardWidget::buildLayout()
     }
 
     auto *spaceBtn = new QPushButton(QStringLiteral("空格"), this);
-    spaceBtn->setMinimumSize(120, 48);
+    configureKey(spaceBtn);
     connect(spaceBtn, &QPushButton::clicked, this, [this]() { appendChar(QStringLiteral(" ")); });
     layout->addWidget(spaceBtn, row, 0, 1, 4);
 
     auto *backspaceBtn = new QPushButton(QStringLiteral("退格"), this);
-    backspaceBtn->setMinimumSize(120, 48);
+    configureKey(backspaceBtn);
     connect(backspaceBtn, &QPushButton::clicked, this, &OnScreenKeyboardWidget::backspace);
     layout->addWidget(backspaceBtn, row, 4, 1, 4);
 
-    auto *chineseInputBtn = new QPushButton(QStringLiteral("中文输入"), this);
-    chineseInputBtn->setMinimumSize(120, 48);
+    auto *chineseInputBtn = new QPushButton(QStringLiteral("中文键盘"), this);
+    configureKey(chineseInputBtn);
     chineseInputBtn->setToolTip(QStringLiteral("使用系统拼音输入法输入中文"));
     connect(chineseInputBtn, &QPushButton::clicked,
             this, &OnScreenKeyboardWidget::showSystemInputMethod);
@@ -87,5 +99,6 @@ void OnScreenKeyboardWidget::showSystemInputMethod()
     // 没有接收目标。QInputMethod 会使用板端实际安装的输入法插件。
     m_target->setFocus(Qt::OtherFocusReason);
     m_target->setAttribute(Qt::WA_InputMethodEnabled, true);
+    QGuiApplication::inputMethod()->update(Qt::ImQueryAll);
     QGuiApplication::inputMethod()->show();
 }

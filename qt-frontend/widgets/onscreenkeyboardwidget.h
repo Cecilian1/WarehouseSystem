@@ -22,12 +22,14 @@ public:
 
     // 将键盘输出绑定到指定的输入框；传nullptr表示解绑（键盘输入被忽略）
     void attachTarget(QLineEdit *target);
+    // 请求板端 Qt Virtual Keyboard 显示。文本框获得焦点时会自动调用，也可由
+    // “中文键盘”按钮手动调用。
+    void showSystemInputMethod();
 
 private:
     void buildLayout();
     void appendChar(const QString &ch);
     void backspace();
-    void showSystemInputMethod();
 
     QLineEdit *m_target = nullptr;
 };
