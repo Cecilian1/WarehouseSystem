@@ -12,6 +12,8 @@ class QLineEdit;
 // 不需要改动ProduceInfoPage等调用方的接口）。
 // 本类作为不依赖额外模块的兜底实现：无联想输入/无多语言输入法能力，
 // 但满足果蔬名称/数量等简短字段的手动录入需求。
+// “中文输入”按钮会把焦点交还给输入框并请求系统输入法；因此板端已安装的
+// Qt Virtual Keyboard、fcitx 或 ibus 都可以处理拼音候选和中文上屏。
 class OnScreenKeyboardWidget : public QWidget
 {
     Q_OBJECT
@@ -25,6 +27,7 @@ private:
     void buildLayout();
     void appendChar(const QString &ch);
     void backspace();
+    void showSystemInputMethod();
 
     QLineEdit *m_target = nullptr;
 };

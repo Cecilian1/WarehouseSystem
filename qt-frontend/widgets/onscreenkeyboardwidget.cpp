@@ -1,6 +1,8 @@
 #include "onscreenkeyboardwidget.h"
 
 #include <QGridLayout>
+#include <QGuiApplication>
+#include <QInputMethod>
 #include <QLineEdit>
 #include <QPushButton>
 
@@ -54,6 +56,13 @@ void OnScreenKeyboardWidget::buildLayout()
     backspaceBtn->setMinimumSize(120, 48);
     connect(backspaceBtn, &QPushButton::clicked, this, &OnScreenKeyboardWidget::backspace);
     layout->addWidget(backspaceBtn, row, 4, 1, 4);
+
+    auto *chineseInputBtn = new QPushButton(QStringLiteral("中文输入"), this);
+    chineseInputBtn->setMinimumSize(120, 48);
+    chineseInputBtn->setToolTip(QStringLiteral("使用系统拼音输入法输入中文"));
+    connect(chineseInputBtn, &QPushButton::clicked,
+            this, &OnScreenKeyboardWidget::showSystemInputMethod);
+    layout->addWidget(chineseInputBtn, row, 8, 1, 2);
 }
 
 void OnScreenKeyboardWidget::appendChar(const QString &ch)
@@ -67,4 +76,16 @@ void OnScreenKeyboardWidget::backspace()
     if (!m_target)
         return;
     m_target->backspace();
+}
+
+void OnScreenKeyboardWidget::showSystemInputMethod()
+{
+    if (!m_target)
+        return;
+
+    // 点击自绘按键后焦点会落在按钮上；先恢复到文本框，否则输入法的候选字会
+    // 没有接收目标。QInputMethod 会使用板端实际安装的输入法插件。
+    m_target->setFocus(Qt::OtherFocusReason);
+    m_target->setAttribute(Qt::WA_InputMethodEnabled, true);
+    QGuiApplication::inputMethod()->show();
 }

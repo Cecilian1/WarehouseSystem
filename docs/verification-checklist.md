@@ -9,6 +9,9 @@
 - [ ] scp部署到板子，`chmod +x`后能启动，LCD上显示出5个页面框架+顶部环境状态条
 - [ ] 触摸各导航按钮，`QStackedWidget`能正确切换页面
 - [ ] `ProduceInfoPage`触摸输入框后，自绘虚拟键盘能正常输入字符/退格
+- [ ] 触摸“名称”或“分类”输入框，Qt Virtual Keyboard自动弹出；切换到中文拼音后
+      能输入候选字并保存一条含中文名称/分类的记录。若未弹出，使用
+      `QT_DEBUG_PLUGINS=1 ./WarehouseKeeper`检查`qtvirtualkeyboard`插件是否已加载
 - [ ] `AlertPage`选中一行后点击"标记为已处理"，数据库`alert_record.is_read`
       正确更新为1，界面刷新后该行状态变化
 - [ ] Qt程序与camera_service/env_service同时运行时，反复触摸刷新页面，

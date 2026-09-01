@@ -6,6 +6,12 @@
 
 int main(int argc, char *argv[])
 {
+    // 嵌入式触摸屏没有物理键盘。必须在创建 QApplication 之前选择输入法插件，
+    // 否则 QInputMethod::show() 只会请求默认（通常为空）的输入法上下文，中文
+    // 拼音候选键盘不会出现。允许部署环境通过 QT_IM_MODULE 覆盖这个默认值。
+    if (qEnvironmentVariableIsEmpty("QT_IM_MODULE"))
+        qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
+
     QApplication a(argc, argv);
 
     // frontend.ini路径相对于程序运行时的工作目录（部署时约定为可执行文件

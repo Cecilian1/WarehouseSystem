@@ -115,15 +115,31 @@ scp WarehouseKeeper root@<板子IP>:/opt/warehousekeeper/qt-frontend/
 ## 7. Qt Virtual Keyboard模块可用性确认
 
 本项目`qt-frontend/widgets/onscreenkeyboardwidget.h/.cpp`已实现一套不依赖
-额外模块的自绘虚拟键盘作为默认方案。若希望使用官方Qt Virtual Keyboard
-模块（更完整的输入法体验），需先确认交叉工具链是否已包含该模块：
+额外模块的自绘英文/数字键盘；中文录入使用官方 Qt Virtual Keyboard。应用启动时
+会默认设置`QT_IM_MODULE=qtvirtualkeyboard`，因此触摸“名称”“分类”等文本框会
+直接唤起软键盘（也可点击页面中的“中文输入”按钮）。先确认交叉工具链和开发板
+运行时均含该模块：
 
 ```bash
 find /opt/atk-dl2k0300-toolchain -iname "*virtualkeyboard*"
+find /usr -path "*platforminputcontexts*" -o -iname "*virtualkeyboard*"
 ```
 
-若未找到，说明该模块未预编译进交叉工具链，需要开发者自行交叉编译该模块，
-或继续使用本项目已提供的自绘键盘方案（无需额外工作）。
+开发板上应能找到`libqtvirtualkeyboardplugin.so`及其依赖的
+`qtvirtualkeyboard`资源目录。缺少其中任一项时，需在出厂 Buildroot 配置中启用
+Qt Virtual Keyboard 和中文拼音布局/输入法后重新构建镜像；仅有本项目的自绘
+英文键盘无法把拼音转换为汉字。
+
+部署后可用以下命令确认运行时发现了输入法插件：
+
+```bash
+cd /opt/warehousekeeper/qt-frontend
+QT_DEBUG_PLUGINS=1 ./WarehouseKeeper
+```
+
+日志中应出现`qtvirtualkeyboard`输入法插件被加载。若板端通过启动脚本设置了
+`QT_IM_MODULE`，请不要把它设置成`compose`、`ibus`等其他值；本程序默认值会在
+该变量未设置时自动生效。
 
 ## 8. 常见问题
 

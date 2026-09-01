@@ -43,6 +43,11 @@ void ProduceInfoPage::buildLayout()
     connect(m_tableView, &QTableView::clicked, this, &ProduceInfoPage::onRowSelected);
 
     m_shelfLifeSpin->setRange(0, 3650);
+    // 保持系统输入法的默认策略，不限制为数字/拉丁字符；名称、分类和温湿度
+    // 区间均可通过“中文输入”按钮调用板端拼音输入法。
+    m_nameEdit->setInputMethodHints(Qt::ImhNone);
+    m_categoryEdit->setInputMethodHints(Qt::ImhNone);
+    m_idealTempEdit->setInputMethodHints(Qt::ImhNone);
     m_quantitySpin->setRange(0, 1000000);
     m_quantitySpin->setDecimals(2);
     m_expireDateEdit->setCalendarPopup(true);
