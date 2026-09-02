@@ -1,4 +1,5 @@
 const { request } = require('../utils/request')
+const config = require('../config/index')
 
 function mapResponse(task, mapper) {
   return task.then((res) => ({ ...res, data: mapper(res.data) }))
@@ -207,6 +208,82 @@ const recordService = {
   }
 }
 
+function authHeader() {
+  const token = wx.getStorageSync('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+const voiceService = {
+  transcribe(filePath) {
+    return new Promise((resolve, reject) => {
+      wx.getFileSystemManager().readFile({
+        filePath,
+        success(fileResult) {
+          wx.request({
+            url: `${config.baseUrl}/voice/transcribe`,
+            method: 'POST',
+            data: fileResult.data,
+            timeout: Math.max(config.timeout, 100000),
+            header: {
+              'Content-Type': 'application/octet-stream',
+              ...authHeader()
+            },
+            success(response) {
+              if (response.statusCode >= 200 && response.statusCode < 300) {
+                resolve(response.data)
+                return
+              }
+              const detail = response.data && (response.data.detail || response.data.message)
+              reject(new Error(detail || `语音识别请求失败（${response.statusCode}）`))
+            },
+            fail: reject
+          })
+        },
+        fail: reject
+      })
+    })
+  },
+
+  chat(text, history = []) {
+    return request({ url: '/voice/chat', method: 'POST', data: { text, history } })
+  },
+
+  synthesize(text) {
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url: `${config.baseUrl}/voice/synthesize`,
+        method: 'POST',
+        data: { text },
+        timeout: Math.max(config.timeout, 70000),
+        responseType: 'arraybuffer',
+        header: {
+          'content-type': 'application/json',
+          ...authHeader()
+        },
+        success(response) {
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error(`语音合成失败（${response.statusCode}）`))
+            return
+          }
+          const headers = response.header || {}
+          const contentType = String(headers['content-type'] || headers['Content-Type'] || '')
+          const extension = contentType.includes('mpeg') ? 'mp3'
+            : contentType.includes('ogg') ? 'ogg'
+              : contentType.includes('mp4') ? 'm4a' : 'wav'
+          const filePath = `${wx.env.USER_DATA_PATH}/voice-${Date.now()}.${extension}`
+          wx.getFileSystemManager().writeFile({
+            filePath,
+            data: response.data,
+            success: () => resolve({ tempFilePath: filePath }),
+            fail: reject
+          })
+        },
+        fail: reject
+      })
+    })
+  }
+}
+
 const reportService = {
   getDaily(refresh = false) {
     return request({
@@ -236,5 +313,6 @@ module.exports = {
   environmentService,
   recordService,
   reportService,
-  assistantService
+  assistantService,
+  voiceService
 }

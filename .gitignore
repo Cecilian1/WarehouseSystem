@@ -1,7 +1,9 @@
 # Python
 __pycache__/
 *.pyc
+.venv/
 /.env
+**/.env
 
 # Qt构建产物
 qt-frontend/build-*/
@@ -39,6 +41,10 @@ PROJECT_STATUS.md
 # Local service logs
 *.out.log
 *.err.log
+
+# Voice runtime and model are distributed as local deployment resources.
+bin/funasr-llamacpp/
+models/sensevoice/
 
 
 # claude

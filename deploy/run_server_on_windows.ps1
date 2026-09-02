@@ -8,6 +8,7 @@ if ($env:WAREHOUSE_PYTHON) {
 if ($env:CONDA_PREFIX) {
     $pythonCandidates += (Join-Path $env:CONDA_PREFIX "python.exe")
 }
+$pythonCandidates += (Join-Path $projectRoot ".venv\Scripts\python.exe")
 $pythonCandidates += @(where.exe python 2>$null)
 $pythonCandidates += @(
     Get-Command python -All -ErrorAction SilentlyContinue |

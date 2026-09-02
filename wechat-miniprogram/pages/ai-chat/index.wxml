@@ -1,4 +1,4 @@
-<view class="page-shell chat-page {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
+<view class="page-shell chat-page {{voiceMode ? 'voice-mode' : ''}} {{themeClass}}" style="--status-top: {{statusTop}}px; --nav-height: {{navHeight}}px;">
   <view class="custom-nav chat-nav" style="padding-top: {{statusTop}}px;">
     <view class="nav-back" bindtap="back"><x-icon type="back" size="{{32}}" /></view>
     <view class="nav-ai-mark"><view></view></view>
@@ -10,7 +10,7 @@
 
   <view class="chat-status">
     <view class="online-dot"></view>
-    <text>回答仅以当前仓储数据库为事实来源</text>
+    <text>{{voiceMode ? voiceStatus : '回答仅以当前仓储数据库为事实来源'}}</text>
   </view>
 
   <scroll-view class="chat-scroll" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{scrollTarget}}" scroll-with-animation>
@@ -65,7 +65,41 @@
     <view id="answer-bottom" class="answer-bottom"></view>
   </scroll-view>
 
-  <view class="chat-composer">
+  <view wx:if="{{voiceMode}}" class="voice-composer">
+    <view class="voice-hint">{{recording ? '松开即可识别' : '按住麦克风说话'}}</view>
+    <view
+      class="voice-button {{recording ? 'is-recording' : ''}} {{sending ? 'is-disabled' : ''}}"
+      catchtouchstart="startVoice"
+      catchtouchend="stopVoice"
+      catchtouchcancel="stopVoice"
+    >
+      <view class="voice-wave wave-a"></view>
+      <view class="voice-wave wave-b"></view>
+      <view class="voice-button-surface">
+        <view class="mic-capsule"><view class="mic-highlight"></view></view>
+        <view class="mic-cradle"></view>
+        <view class="mic-stem"></view>
+        <view class="mic-base"></view>
+      </view>
+    </view>
+    <view class="composer-inner voice-text-composer">
+      <input
+        class="question-input"
+        value="{{input}}"
+        bindinput="inputQuestion"
+        bindconfirm="ask"
+        confirm-type="send"
+        maxlength="240"
+        placeholder="{{preset.placeholder}}"
+        placeholder-class="question-placeholder"
+      />
+      <view class="send-button {{input && !sending ? 'active' : ''}}" bindtap="ask">
+        <view class="send-arrow"></view>
+      </view>
+    </view>
+    <view class="composer-tip">语音先转成文字，再由 AI 查询当前仓储数据</view>
+  </view>
+  <view wx:else class="chat-composer">
     <view class="composer-inner">
       <input
         class="question-input"

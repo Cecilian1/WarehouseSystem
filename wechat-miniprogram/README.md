@@ -49,6 +49,7 @@ module.exports = {
 - 库存列表
 - 果蔬详情
 - AI 识别
+- 语音对话（SenseVoice 识别、Qwen 回答、Qwen TTS 播报）
 - 预警中心
 - 环境监测
 - 出入库记录
@@ -63,3 +64,20 @@ module.exports = {
 - `produce_info`、`stock_summary` 对应库存列表与果蔬详情
 - `inventory_log` 对应出入库记录
 - `pending_frames` / AI 服务输出对应 AI 识别页
+
+## 语音助手
+
+首页等页面的悬浮 AI 助手中提供“语音对话”入口。进入后按住麦克风说话，
+松开后依次完成本地 SenseVoice 识别、Qwen 仓储数据问答和语音播报；也可以
+在同一页面直接输入文字提问。
+
+后端需具备 `bin/funasr-llamacpp/`、`models/sensevoice/`、可用的 `ffmpeg`
+以及 Qwen API Key。修改根目录 `.env` 中的 `MINIPROGRAM_BASE_URL` 和
+`MINIPROGRAM_WS_URL` 后，执行：
+
+```powershell
+node scripts/sync-miniprogram-config.js
+```
+
+真机调试时手机与后端电脑需在同一网络；正式发布时必须改用 HTTPS/WSS
+合法域名。

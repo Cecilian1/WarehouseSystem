@@ -117,6 +117,9 @@
 .icon-part { position: absolute; border-color: currentColor; }
 
 .icon-report .part-a { left: 18rpx; top: 12rpx; width: 28rpx; height: 38rpx; border: 3rpx solid currentColor; border-radius: 5rpx; }
+.icon-voice .part-a { left: 22rpx; top: 11rpx; width: 18rpx; height: 30rpx; border: 3rpx solid currentColor; border-radius: 12rpx; }
+.icon-voice .part-b { left: 16rpx; top: 26rpx; width: 30rpx; height: 25rpx; border: 3rpx solid currentColor; border-top: 0; border-radius: 0 0 17rpx 17rpx; }
+.icon-voice .part-c { left: 30rpx; top: 51rpx; height: 9rpx; border-left: 3rpx solid currentColor; }
 .icon-report .part-b { left: 25rpx; top: 25rpx; width: 20rpx; border-top: 3rpx solid currentColor; box-shadow: 0 10rpx 0 currentColor; }
 .icon-report .part-c { left: 14rpx; top: 14rpx; width: 12rpx; height: 12rpx; border-radius: 50%; background: #38bdf8; }
 

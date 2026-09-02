@@ -56,6 +56,7 @@ from backend.api_service.inventory_ops import router as inventory_ops_router
 from backend.api_service.miniprogram_compat import router as miniprogram_compat_router
 from backend.api_service.records import router as records_router
 from backend.api_service.settings_store import router as settings_router
+from backend.api_service.voice import router as voice_router
 from backend.common.db import connection_scope
 from backend.common.init_db import init_db
 from backend.sync_service.collector import start_background_collector
@@ -103,6 +104,7 @@ app.include_router(inventory_ops_router)
 app.include_router(miniprogram_compat_router)
 app.include_router(settings_router)
 app.include_router(records_router)
+app.include_router(voice_router)
 
 
 @app.get("/api/health")

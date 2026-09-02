@@ -1,4 +1,5 @@
 const ACTIONS = {
+  voice: '/pages/ai-chat/index?type=voice',
   report: '/pages/daily-report/index',
   freshness: '/pages/ai-chat/index?type=freshness',
   environment: '/pages/ai-chat/index?type=environment',
@@ -28,6 +29,7 @@ Component({
     fabX: 0,
     fabY: 0,
     actions: [
+      { key: 'voice', title: '语音对话', desc: '按住麦克风，与芯鲜助手交流', icon: 'voice' },
       { key: 'report', title: 'AI 每日报告', desc: '汇总今日全部仓储信息', icon: 'report' },
       { key: 'freshness', title: '新鲜度分析', desc: 'AI分析当前新鲜度与处理顺序', icon: 'freshness' },
       { key: 'environment', title: '温湿度诊断', desc: 'AI诊断当前环境与异常原因', icon: 'environment' },
