@@ -26,7 +26,10 @@ int main(int argc, char *argv[])
     }
 
     MainWindow w;
-    w.show();
+    if (qEnvironmentVariable("QT_QPA_PLATFORM").startsWith("linuxfb"))
+        w.showFullScreen();
+    else
+        w.show();
 
     const int result = a.exec();
 

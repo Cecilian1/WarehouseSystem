@@ -12,6 +12,7 @@ SOURCES += \
     app/mainwindow.cpp \
     app/navigationbar.cpp \
     pages/inventoryboardpage.cpp \
+    pages/welcomepage.cpp \
     pages/recognitionpage.cpp \
     pages/produceinfopage.cpp \
     pages/historypage.cpp \
@@ -29,6 +30,7 @@ HEADERS += \
     app/mainwindow.h \
     app/navigationbar.h \
     pages/inventoryboardpage.h \
+    pages/welcomepage.h \
     pages/recognitionpage.h \
     pages/produceinfopage.h \
     pages/historypage.h \

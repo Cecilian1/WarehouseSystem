@@ -9,6 +9,7 @@
 #include "../pages/inventoryboardpage.h"
 #include "../pages/produceinfopage.h"
 #include "../pages/recognitionpage.h"
+#include "../pages/welcomepage.h"
 
 #include <QSettings>
 #include <QStackedWidget>
@@ -17,6 +18,8 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
+    , m_rootStack(new QStackedWidget(this))
+    , m_welcomePage(new WelcomePage(this))
     , m_stackedWidget(new QStackedWidget(this))
     , m_navigationBar(new NavigationBar(this))
     , m_envStatusCard(new EnvStatusCard(this))
@@ -53,13 +56,20 @@ void MainWindow::buildUi()
             m_historyPage->refresh();
     });
 
-    auto *central = new QWidget(this);
-    auto *layout = new QVBoxLayout(central);
+    auto *mainInterface = new QWidget(this);
+    auto *layout = new QVBoxLayout(mainInterface);
     layout->addWidget(m_envStatusCard);
     layout->addWidget(m_stackedWidget, 1);
     layout->addWidget(m_navigationBar);
 
-    setCentralWidget(central);
+    m_rootStack->addWidget(m_welcomePage);
+    m_rootStack->addWidget(mainInterface);
+    m_rootStack->setCurrentWidget(m_welcomePage);
+    connect(m_welcomePage, &WelcomePage::continueRequested, this, [this]() {
+        m_rootStack->setCurrentIndex(1);
+    });
+
+    setCentralWidget(m_rootStack);
 }
 
 void MainWindow::connectPolling()

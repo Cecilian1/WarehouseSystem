@@ -11,6 +11,7 @@ class ProduceInfoPage;
 class HistoryPage;
 class AlertPage;
 class EnvStatusCard;
+class WelcomePage;
 class QStackedWidget;
 
 // 应用主窗口：顶部常驻EnvStatusCard + 中部QStackedWidget承载5个可切换页面
@@ -27,6 +28,8 @@ private:
     void buildUi();
     void connectPolling();
 
+    QStackedWidget *m_rootStack;
+    WelcomePage *m_welcomePage;
     QStackedWidget *m_stackedWidget;
     NavigationBar *m_navigationBar;
     EnvStatusCard *m_envStatusCard;

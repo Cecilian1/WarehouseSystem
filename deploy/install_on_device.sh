@@ -66,6 +66,18 @@ echo "==> 安装systemd服务单元..."
 install_unit camera-service.service
 install_unit env-service.service
 install_unit api-service.service
+QT_FRONTEND_SERVICE=""
+if [ -f "$INSTALL_ROOT/qt-frontend/WarehouseKeeper" ]; then
+    chmod 755 "$INSTALL_ROOT/qt-frontend/WarehouseKeeper"
+    chmod 755 "$INSTALL_ROOT/deploy/run_qt_frontend.sh"
+    mkdir -p /etc/profile.d
+    cp "$INSTALL_ROOT/deploy/qt-frontend-env.sh" /etc/profile.d/warehousekeeper-qt.sh
+    chmod 644 /etc/profile.d/warehousekeeper-qt.sh
+    install_unit qt-frontend.service
+    QT_FRONTEND_SERVICE=qt-frontend
+else
+    echo "==> 未发现 qt-frontend/WarehouseKeeper，跳过 Qt 前端自启动服务。"
+fi
 AI_SERVICE_NAME=""
 if [ -x "$INSTALL_ROOT/bin/warehouse-ai-service" ]; then
     for model_file in \
@@ -89,6 +101,9 @@ echo "==> 启用并启动服务..."
 systemctl enable --now camera-service
 systemctl enable --now env-service
 systemctl enable --now api-service
+if [ -n "$QT_FRONTEND_SERVICE" ]; then
+    systemctl enable --now "$QT_FRONTEND_SERVICE"
+fi
 if [ -n "$AI_SERVICE_NAME" ]; then
     # Python AI 服务与 NCNN C++ 服务不能同时消费同一批 pending_frames。
     systemctl disable --now ai-service 2>/dev/null || true
@@ -96,7 +111,7 @@ if [ -n "$AI_SERVICE_NAME" ]; then
 fi
 
 sleep 2
-for service_name in camera-service env-service api-service $AI_SERVICE_NAME; do
+for service_name in camera-service env-service api-service $QT_FRONTEND_SERVICE $AI_SERVICE_NAME; do
     if ! systemctl is-active --quiet "$service_name"; then
         echo "==> $service_name 启动失败，最近日志如下：" >&2
         journalctl -u "$service_name" -n 40 --no-pager >&2 || true
@@ -108,9 +123,15 @@ echo "==> 完成。用以下命令检查状态："
 echo "    systemctl status camera-service"
 echo "    systemctl status env-service"
 echo "    systemctl status api-service"
+if [ -n "$QT_FRONTEND_SERVICE" ]; then
+    echo "    systemctl status qt-frontend"
+fi
 if [ -n "$AI_SERVICE_NAME" ]; then
     echo "    systemctl status $AI_SERVICE_NAME"
 fi
 echo "    journalctl -u camera-service -f"
 echo "    journalctl -u env-service -f"
 echo "    journalctl -u api-service -f"
+if [ -n "$QT_FRONTEND_SERVICE" ]; then
+    echo "    journalctl -u qt-frontend -f"
+fi

@@ -1,0 +1,14 @@
+[Unit]
+Description=WarehouseKeeper Qt Touch Frontend
+After=local-fs.target systemd-user-sessions.service
+
+[Service]
+Type=simple
+WorkingDirectory=__WAREHOUSE_ROOT__/qt-frontend
+ExecStart=__WAREHOUSE_ROOT__/deploy/run_qt_frontend.sh
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

@@ -7,6 +7,10 @@
 
 - [ ] `qmake && make -j16` 交叉编译通过，`file`命令确认产物为LoongArch架构
 - [ ] scp部署到板子，`chmod +x`后能启动，LCD上显示出5个页面框架+顶部环境状态条
+- [ ] 重启开发板后`qt-frontend.service`自动运行，`/proc/<PID>/environ`中包含
+      `QT_QPA_PLATFORM=linuxfb:fb=/dev/fb0`
+- [ ] LCD首先完整显示“芯鲜管家”欢迎页，触摸任意位置后进入库存看板；欢迎页支持
+      Enter/Space进入，且800×480与1024×600下文字和进入提示均不被裁切
 - [ ] 触摸各导航按钮，`QStackedWidget`能正确切换页面
 - [ ] `ProduceInfoPage`触摸输入框后，自绘虚拟键盘能正常输入字符/退格
 - [ ] 触摸“名称”或“分类”输入框，Qt Virtual Keyboard自动弹出；切换到中文拼音后
