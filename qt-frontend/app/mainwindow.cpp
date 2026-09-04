@@ -18,28 +18,47 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , m_rootStack(new QStackedWidget(this))
     , m_welcomePage(new WelcomePage(this))
-    , m_stackedWidget(new QStackedWidget(this))
-    , m_navigationBar(new NavigationBar(this))
-    , m_envStatusCard(new EnvStatusCard(this))
+    , m_stackedWidget(nullptr)
+    , m_navigationBar(nullptr)
+    , m_envStatusCard(nullptr)
     , m_pollingTimer(nullptr)
-    , m_inventoryBoardPage(new InventoryBoardPage(this))
-    , m_recognitionPage(new RecognitionPage(this))
-    , m_produceInfoPage(new ProduceInfoPage(this))
-    , m_historyPage(new HistoryPage(this))
-    , m_alertPage(new AlertPage(this))
+    , m_inventoryBoardPage(nullptr)
+    , m_recognitionPage(nullptr)
+    , m_produceInfoPage(nullptr)
+    , m_historyPage(nullptr)
+    , m_alertPage(nullptr)
 {
-    buildUi();
-    connectPolling();
+    buildWelcomeUi();
 }
 
 MainWindow::~MainWindow() = default;
 
-void MainWindow::buildUi()
+void MainWindow::buildWelcomeUi()
 {
     setWindowTitle(QStringLiteral("芯鲜管家"));
     resize(1024, 600);  // 对应7寸LCD 1024x600分辨率
+
+    setCentralWidget(m_welcomePage);
+    connect(m_welcomePage, &WelcomePage::continueRequested,
+            this, &MainWindow::showMainInterface);
+}
+
+void MainWindow::showMainInterface()
+{
+    // linuxfb 没有桌面合成器。欢迎页显示期间不创建业务控件，避免隐藏的
+    // QTableView 内容残留在 framebuffer 上，与欢迎页发生叠加。
+    if (m_stackedWidget)
+        return;
+
+    m_stackedWidget = new QStackedWidget(this);
+    m_navigationBar = new NavigationBar(this);
+    m_envStatusCard = new EnvStatusCard(this);
+    m_inventoryBoardPage = new InventoryBoardPage(this);
+    m_recognitionPage = new RecognitionPage(this);
+    m_produceInfoPage = new ProduceInfoPage(this);
+    m_historyPage = new HistoryPage(this);
+    m_alertPage = new AlertPage(this);
 
     m_stackedWidget->addWidget(m_inventoryBoardPage);
     m_stackedWidget->addWidget(m_recognitionPage);
@@ -62,14 +81,9 @@ void MainWindow::buildUi()
     layout->addWidget(m_stackedWidget, 1);
     layout->addWidget(m_navigationBar);
 
-    m_rootStack->addWidget(m_welcomePage);
-    m_rootStack->addWidget(mainInterface);
-    m_rootStack->setCurrentWidget(m_welcomePage);
-    connect(m_welcomePage, &WelcomePage::continueRequested, this, [this]() {
-        m_rootStack->setCurrentIndex(1);
-    });
-
-    setCentralWidget(m_rootStack);
+    setCentralWidget(mainInterface);
+    m_welcomePage = nullptr;
+    connectPolling();
 }
 
 void MainWindow::connectPolling()

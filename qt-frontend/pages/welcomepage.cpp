@@ -13,6 +13,9 @@
 WelcomePage::WelcomePage(QWidget *parent)
     : QWidget(parent)
 {
+    // linuxfb 无窗口合成器，明确保证本页每次刷新都会覆盖 framebuffer 的
+    // 全部像素，避免上一界面的内容透出或残留。
+    setAttribute(Qt::WA_OpaquePaintEvent, true);
     setFocusPolicy(Qt::StrongFocus);
     setAccessibleName(QStringLiteral("芯鲜管家欢迎界面，轻触任意位置进入"));
 
@@ -52,26 +55,26 @@ WelcomePage::WelcomePage(QWidget *parent)
 
     setStyleSheet(QStringLiteral(R"(
         QLabel#welcomeEyebrow {
-            color: #1F6B4F;
+            color: #90CAF9;
             font-family: "Noto Sans CJK SC", "WenQuanYi Micro Hei", "Microsoft YaHei";
             font-size: 17px;
             font-weight: 600;
         }
         QLabel#welcomeTitle {
-            color: #16332A;
+            color: #FFFFFF;
             font-family: "Noto Sans CJK SC", "WenQuanYi Micro Hei", "Microsoft YaHei";
             font-size: 54px;
             font-weight: 700;
         }
         QLabel#welcomeSubtitle {
-            color: #60746D;
+            color: #D7E9FA;
             font-family: "Noto Sans CJK SC", "WenQuanYi Micro Hei", "Microsoft YaHei";
             font-size: 22px;
         }
         QLabel#welcomePrompt {
-            color: #F8FCF9;
-            background-color: #1F6B4F;
-            border: 2px solid #4DAA78;
+            color: #0D47A1;
+            background-color: #F7FBFF;
+            border: 2px solid #90CAF9;
             border-radius: 29px;
             font-family: "Noto Sans CJK SC", "WenQuanYi Micro Hei", "Microsoft YaHei";
             font-size: 20px;
@@ -89,18 +92,20 @@ void WelcomePage::paintEvent(QPaintEvent *event)
     painter.setRenderHint(QPainter::Antialiasing, true);
 
     QLinearGradient background(0, 0, width(), height());
-    background.setColorAt(0.0, QColor(QStringLiteral("#F8FCF9")));
-    background.setColorAt(0.55, QColor(QStringLiteral("#EAF5EF")));
-    background.setColorAt(1.0, QColor(QStringLiteral("#D8EAE1")));
+    background.setColorAt(0.0, QColor(QStringLiteral("#0B3C6F")));
+    background.setColorAt(0.55, QColor(QStringLiteral("#1565C0")));
+    background.setColorAt(1.0, QColor(QStringLiteral("#0D47A1")));
+    painter.setCompositionMode(QPainter::CompositionMode_Source);
     painter.fillRect(rect(), background);
+    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
-    // 轻量“储鲜环”：纯绘制、无图片和动画，适合无 GPU 的 linuxfb 环境。
+    // 轻量蓝色“储鲜环”：纯绘制、无图片和动画，适合无 GPU 的 linuxfb 环境。
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(77, 170, 120, 34));
+    painter.setBrush(QColor(144, 202, 249, 48));
     painter.drawEllipse(QPointF(width() * 0.84, height() * 0.27), 190, 190);
-    painter.setBrush(QColor(31, 107, 79, 30));
+    painter.setBrush(QColor(100, 181, 246, 44));
     painter.drawEllipse(QPointF(width() * 0.89, height() * 0.22), 112, 112);
-    painter.setBrush(QColor(216, 166, 75, 42));
+    painter.setBrush(QColor(179, 229, 252, 54));
     painter.drawEllipse(QPointF(width() * 0.08, height() * 0.82), 72, 72);
 }
 

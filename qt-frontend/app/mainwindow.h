@@ -25,10 +25,10 @@ public:
     ~MainWindow() override;
 
 private:
-    void buildUi();
+    void buildWelcomeUi();
+    void showMainInterface();
     void connectPolling();
 
-    QStackedWidget *m_rootStack;
     WelcomePage *m_welcomePage;
     QStackedWidget *m_stackedWidget;
     NavigationBar *m_navigationBar;
