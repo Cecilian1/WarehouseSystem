@@ -1,10 +1,8 @@
 # env_service 配置
 
-# I2C总线：默认复用I2C3（音频codec ES8388所在总线），地址不同(SHT30 0x44/45,
-# ES8388约0x10)理论不冲突，开箱即用无需改设备树/内核。
-# 若上板后 i2cdetect -y 3 发现总线争用问题严重，可切换到JP7扩展排针走软件I2C
-# （需先修改设备树新增i2c-gpio节点并重新编译烧录内核，见 docs/hardware-notes.md）。
-i2c_bus: /dev/i2c-3
+# 实测 `sht31e p` 使用 I2C0、地址 0x44。I2C3 由音频 Codec 占用，
+# 直接写入会返回 Device or resource busy，不能作为 SHT3x 采集总线。
+i2c_bus: /dev/i2c-0
 
 # SHT30地址，取决于传感器ADDR引脚接法，0x44(ADDR接地)或0x45(ADDR接VDD)
 # 需上板后用 i2cdetect -y 3 实测确认

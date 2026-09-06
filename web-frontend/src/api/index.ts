@@ -4,7 +4,7 @@ import type {
   ApiResponse,
   DashboardData,
   DeviceItem,
-  EnvironmentPoint,
+  EnvironmentData,
   HistoryItem,
   InventoryItem,
   InventoryMutationPayload,
@@ -12,6 +12,7 @@ import type {
   ProduceItem,
   ProducePayload,
   RecognitionRecord,
+  AnalyticsData,
 } from '@/types'
 
 export const dashboardApi = {
@@ -35,8 +36,8 @@ export const recognitionApi = {
 }
 
 export const environmentApi = {
-  getCurrent: () =>
-    http.get<never, ApiResponse<{ temperature: number; humidity: number; trend: EnvironmentPoint[] }>>('/environment'),
+  getCurrent: (range: '6h' | '24h' | '7d' = '24h') =>
+    http.get<never, ApiResponse<EnvironmentData>>('/environment', { params: { range } }),
   getLatest: () =>
     http.get<never, ApiResponse<{ valid: boolean; temperature: number; humidity: number; isAbnormal: boolean; recordedAt: string }>>('/environment/latest'),
 }
@@ -64,7 +65,8 @@ export const historyApi = {
 }
 
 export const analyticsApi = {
-  getData: (range = 'month') => http.get<never, ApiResponse<Record<string, unknown>>>('/analytics', { params: { range } }),
+  getData: (range: AnalyticsData['range'] = 'month') =>
+    http.get<never, ApiResponse<AnalyticsData>>('/analytics', { params: { range } }),
 }
 
 export const settingsApi = {

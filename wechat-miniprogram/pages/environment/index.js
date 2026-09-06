@@ -9,7 +9,9 @@ function envTone(state) {
 
 function displayValue(value) {
   if (value === 0 || value === '0') return 0
-  return value === undefined || value === null || value === '' ? '--' : value
+  if (value === undefined || value === null || value === '') return '--'
+  const number = Number(value)
+  return Number.isFinite(number) ? Number(number.toFixed(1)) : value
 }
 
 function normalizeCurrent(raw) {

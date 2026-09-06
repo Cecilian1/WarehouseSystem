@@ -45,14 +45,14 @@
       <view class="env-state">{{overview.environment.state}}</view>
     </view>
     <view class="env-values">
-      <view>
+      <view class="env-value">
         <small>温度</small>
-        <text>{{overview.environment.valid ? overview.environment.temperature : '--'}}</text>
+        <text class="env-value__number">{{overview.environment.valid ? overview.environment.temperature : '--'}}</text>
         <small>°C</small>
       </view>
-      <view>
+      <view class="env-value">
         <small>湿度</small>
-        <text>{{overview.environment.valid ? overview.environment.humidity : '--'}}</text>
+        <text class="env-value__number">{{overview.environment.valid ? overview.environment.humidity : '--'}}</text>
         <small>%RH</small>
       </view>
     </view>

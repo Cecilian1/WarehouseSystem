@@ -381,8 +381,90 @@ def environment_data() -> dict[str, Any]:
         "valid": valid,
         "temperatureState": "offline" if not valid else "warning" if is_abnormal else "online",
         "humidityState": "offline" if not valid else "warning" if is_abnormal else "online",
+        "recordedAt": format_dt(latest.get("recorded_at") if latest else None),
         "trend": trend,
     }
+
+
+def environment_history(range_value: str = "24h") -> list[dict[str, Any]]:
+    """Return SHT30 samples in a chart-friendly, bounded time window.
+
+    The collector writes one sample every three minutes.  Keeping raw values for
+    6/24 hours preserves useful detail, while hourly aggregation keeps the
+    seven-day chart responsive instead of returning thousands of points.
+    """
+    range_key = str(range_value or "24h").lower()
+    if range_key not in {"6h", "24h", "7d"}:
+        range_key = "24h"
+
+    if range_key == "7d":
+        rows = query_all(
+            """
+            SELECT
+                strftime('%m/%d %H:00', recorded_at) AS time,
+                AVG(temperature) AS temperature,
+                AVG(humidity) AS humidity,
+                MAX(is_abnormal) AS is_abnormal,
+                COUNT(*) AS sample_count,
+                SUM(is_abnormal) AS abnormal_count
+            FROM env_log
+            WHERE datetime(recorded_at) >= datetime('now', 'localtime', '-7 days')
+            GROUP BY strftime('%Y-%m-%d %H', recorded_at)
+            ORDER BY MIN(recorded_at)
+            """
+        )
+    else:
+        hours = 6 if range_key == "6h" else 24
+        rows = query_all(
+            """
+            SELECT
+                strftime('%H:%M', recorded_at) AS time,
+                temperature,
+                humidity,
+                is_abnormal,
+                1 AS sample_count,
+                is_abnormal AS abnormal_count
+            FROM env_log
+            WHERE datetime(recorded_at) >= datetime('now', 'localtime', ?)
+            ORDER BY recorded_at
+            """,
+            (f"-{hours} hours",),
+        )
+
+    return [
+        {
+            "time": str(row.get("time") or ""),
+            "temperature": round(safe_float(row.get("temperature")), 1),
+            "humidity": round(safe_float(row.get("humidity")), 1),
+            "isAbnormal": bool(row.get("is_abnormal")),
+            "sampleCount": safe_int(row.get("sample_count"), 1),
+            "abnormalCount": safe_int(row.get("abnormal_count")),
+        }
+        for row in rows
+    ]
+
+
+def environment_summary(points: list[dict[str, Any]]) -> dict[str, Any]:
+    """Calculate transparent, real summary values for the environment page."""
+    def stats(metric: str) -> dict[str, float]:
+        values = [safe_float(point.get(metric)) for point in points]
+        if not values:
+            return {"min": 0.0, "max": 0.0, "average": 0.0, "stddev": 0.0}
+        average = sum(values) / len(values)
+        variance = sum((value - average) ** 2 for value in values) / len(values)
+        return {
+            "min": round(min(values), 1),
+            "max": round(max(values), 1),
+            "average": round(average, 1),
+            "stddev": round(variance ** 0.5, 2),
+        }
+
+    return {
+        "sampleCount": sum(safe_int(point.get("sampleCount"), 1) for point in points),
+        "abnormalCount": sum(safe_int(point.get("abnormalCount")) for point in points),
+        "temperature": stats("temperature"),
+        "humidity": stats("humidity"),
+}
 
 
 def category_stats(items: list[dict[str, Any]]) -> list[dict[str, Any]]:

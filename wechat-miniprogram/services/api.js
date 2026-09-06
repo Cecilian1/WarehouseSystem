@@ -10,6 +10,41 @@ function toPercent(value) {
   return Math.max(0, Math.min(100, Math.round(number <= 1 ? number * 100 : number)))
 }
 
+// SHT3x 返回的是高精度浮点数。小程序的卡片空间有限，且温湿度不需要展示
+// 超过一位的小数；在数据适配层统一处理，避免每个页面各自截断而产生不一致。
+function toOneDecimal(value) {
+  const number = Number(value)
+  return Number.isFinite(number) ? Number(number.toFixed(1)) : value
+}
+
+function isEnvironmentAbnormal(environment) {
+  const temperature = Number(environment && environment.temperature)
+  const humidity = Number(environment && environment.humidity)
+  return (
+    (Number.isFinite(temperature) && (temperature < 2 || temperature > 5)) ||
+    (Number.isFinite(humidity) && (humidity < 85 || humidity > 95))
+  )
+}
+
+function normalizeEnvironment(environment) {
+  const source = environment || {}
+  const valid = Boolean(source.valid !== false && source.temperatureState !== 'offline')
+  const abnormal = valid && (
+    isEnvironmentAbnormal(source) ||
+    source.isAbnormal === true ||
+    source.temperatureState === 'warning'
+  )
+
+  return {
+    ...source,
+    temperature: toOneDecimal(source.temperature),
+    humidity: toOneDecimal(source.humidity),
+    valid,
+    state: !valid ? '未上报' : (abnormal ? '异常' : '适宜'),
+    isAbnormal: abnormal
+  }
+}
+
 function normalizeFreshness(value) {
   return value === 'warning' ? 'expiring' : value
 }
@@ -52,11 +87,8 @@ function normalizeDashboard(data) {
   const board = statuses.find((item) => item.id === 'board') || {}
   const camera = statuses.find((item) => item.id === 'camera') || {}
   const sensor = statuses.find((item) => item.id === 'sensor') || {}
-  const environmentValid = Boolean(
-    data.environment &&
-    data.environment.valid !== false &&
-    data.environment.temperatureState !== 'offline'
-  )
+  const environment = normalizeEnvironment(data.environment)
+  const environmentValid = environment.valid
   return {
     ...data,
     device: data.device || {
@@ -69,11 +101,7 @@ function normalizeDashboard(data) {
       lastSync: camera.detail || board.detail || '暂无'
     },
     environment: {
-      ...data.environment,
-      valid: environmentValid,
-      state: !environmentValid
-        ? '未上报'
-        : data.environment.temperatureState === 'warning' ? '异常' : '适宜',
+      ...environment,
       description: environmentValid
         ? '数据来自开发板环境采集服务'
         : '温湿度传感器尚未连接'
@@ -180,7 +208,10 @@ const alertService = {
 
 const environmentService = {
   getCurrent(deviceId) {
-    return request({ url: '/environment/current', data: { deviceId } })
+    return mapResponse(
+      request({ url: '/environment/current', data: { deviceId } }),
+      normalizeEnvironment
+    )
   },
   getHistory(range = '7d') {
     return request({ url: '/environment/history', data: { range } })

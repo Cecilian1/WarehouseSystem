@@ -12,6 +12,51 @@ export interface EnvironmentPoint {
   time: string
   temperature: number
   humidity: number
+  isAbnormal?: boolean
+  sampleCount?: number
+  abnormalCount?: number
+}
+
+export interface EnvironmentMetricSummary {
+  min: number
+  max: number
+  average: number
+  stddev: number
+}
+
+export interface EnvironmentData {
+  valid: boolean
+  temperature: number
+  humidity: number
+  temperatureState: DeviceState
+  humidityState: DeviceState
+  recordedAt: string
+  range: '6h' | '24h' | '7d'
+  trend: EnvironmentPoint[]
+  summary: {
+    sampleCount: number
+    abnormalCount: number
+    temperature: EnvironmentMetricSummary
+    humidity: EnvironmentMetricSummary
+  }
+}
+
+export interface AnalyticsData {
+  range: 'today' | 'week' | 'month' | 'year'
+  kpis: {
+    accuracy: number
+    recognitionCount: number
+    turnover: number
+    savingRate: number
+    avgCycle: number
+    totalInbound: number
+    totalOutbound: number
+  }
+  daily: Array<{ date: string; inbound: number; outbound: number; waste?: number }>
+  categories: CategoryStat[]
+  freshness: CategoryStat[]
+  radar: Array<{ name: string; value: number }>
+  heatmap: number[][]
 }
 
 export interface StatusItem {
@@ -74,6 +119,7 @@ export interface DashboardData {
     humidity: number
     temperatureState: DeviceState
     humidityState: DeviceState
+    recordedAt?: string
     trend: EnvironmentPoint[]
   }
   detections: DetectionBox[]

@@ -8,7 +8,7 @@ import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
 const route = useRoute()
-const items = [
+const items: Array<{ path: string; label: string; icon: typeof LayoutDashboard; badge?: string }> = [
   { path: '/dashboard', label: '仪表盘', icon: LayoutDashboard },
   { path: '/monitoring', label: '实时监控', icon: Radar },
   { path: '/inventory', label: '库存管理', icon: Boxes },

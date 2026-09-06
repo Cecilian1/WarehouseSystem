@@ -216,28 +216,34 @@
 
 .env-values {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14rpx;
   margin-top: 18rpx;
 }
 
-.env-values view {
+.env-value {
   display: flex;
   align-items: flex-start;
   flex-direction: column;
   gap: 4rpx;
+  min-width: 0;
   color: #fff;
   padding: 16rpx;
   border-radius: 22rpx;
   background: rgba(255, 255, 255, .12);
 }
 
-.env-values text {
+.env-value__number {
+  max-width: 100%;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
   font-size: 44rpx;
   font-weight: 900;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
-.env-values small {
+.env-value small {
   font-size: 22rpx;
   opacity: .78;
 }

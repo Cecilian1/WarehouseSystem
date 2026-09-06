@@ -11,6 +11,7 @@ import logging
 import os
 import urllib.error
 import urllib.request
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +38,8 @@ from backend.api_service.helpers import (
     category_stats,
     device_statuses,
     environment_data,
+    environment_history,
+    environment_summary,
     format_dt,
     freshness_stats,
     get_produce_item,
@@ -287,9 +290,17 @@ def recognitions() -> dict[str, Any]:
 
 
 @app.get("/api/environment")
-def environment() -> dict[str, Any]:
+def environment(range: str = Query("24h")) -> dict[str, Any]:
     env = environment_data()
-    return ok({"temperature": env["temperature"], "humidity": env["humidity"], "trend": env["trend"]})
+    trend = environment_history(range)
+    return ok(
+        {
+            **env,
+            "range": range if range in {"6h", "24h", "7d"} else "24h",
+            "trend": trend,
+            "summary": environment_summary(trend),
+        }
+    )
 
 
 @app.get("/api/environment/latest")
@@ -460,23 +471,93 @@ def history(page: int = Query(1, ge=1), pageSize: int = Query(10, ge=1, le=100))
 
 
 @app.get("/api/analytics")
-def analytics() -> dict[str, Any]:
+def analytics(range: str = Query("month")) -> dict[str, Any]:
+    range_key = range if range in {"today", "week", "month", "year"} else "month"
+    range_days = {"today": 1, "week": 7, "month": 30, "year": 365}[range_key]
+    since = (date.today() - timedelta(days=range_days - 1)).isoformat()
     items = inventory_rows()
     daily = query_all(
         """
         SELECT
-            strftime('%d日', created_at) AS date,
+            strftime('%m/%d', created_at) AS date,
             SUM(CASE WHEN action_type = 'IN' THEN COALESCE(quantity, 0) ELSE 0 END) AS inbound,
             SUM(CASE WHEN action_type = 'OUT' THEN COALESCE(quantity, 0) ELSE 0 END) AS outbound
         FROM inventory_log
-        WHERE COALESCE(model_version, '') = ''
+        WHERE date(created_at) >= date(?)
         GROUP BY date(created_at)
-        ORDER BY date(created_at) DESC
-        LIMIT 14
-        """
+        ORDER BY date(created_at)
+        """,
+        (since,),
     )
+    movement = query_one(
+        """
+        SELECT
+            SUM(CASE WHEN action_type = 'IN' THEN COALESCE(quantity, 0) ELSE 0 END) AS inbound,
+            SUM(CASE WHEN action_type = 'OUT' THEN COALESCE(quantity, 0) ELSE 0 END) AS outbound,
+            COUNT(*) AS recognition_count,
+            AVG(COALESCE(detector_confidence, confidence)) AS accuracy
+        FROM inventory_log
+        WHERE date(created_at) >= date(?)
+        """,
+        (since,),
+    ) or {}
+    total_stock = sum(safe_float(item.get("quantity")) for item in items)
+    fresh_stock = sum(
+        safe_float(item.get("quantity"))
+        for item in items
+        if item.get("freshness") == "fresh"
+    )
+    inventory_cycle = query_one(
+        """
+        SELECT AVG(julianday('now', 'localtime') - julianday(last_inbound)) AS days
+        FROM (
+            SELECT s.produce_id, MAX(l.created_at) AS last_inbound
+            FROM stock_summary s
+            JOIN inventory_log l ON l.produce_id = s.produce_id AND l.action_type = 'IN'
+            WHERE s.current_qty > 0
+            GROUP BY s.produce_id
+        )
+        """
+    ) or {}
+    accuracy_raw = safe_float(movement.get("accuracy"))
+    accuracy = accuracy_raw * 100 if 0 < accuracy_raw <= 1 else accuracy_raw
+    total_inbound = safe_float(movement.get("inbound"))
+    total_outbound = safe_float(movement.get("outbound"))
+    turnover = (total_outbound / total_stock * 100) if total_stock else 0.0
+    saving_rate = (fresh_stock / total_stock * 100) if total_stock else 0.0
+    env = environment_data()
+    statuses = device_statuses()
+    online_count = sum(1 for status in statuses if status.get("state") == "online")
+    device_score = round(online_count / len(statuses) * 100) if statuses else 0
+    env_score = 0 if not env.get("valid") else 45 if env.get("temperatureState") == "warning" else 95
+    heatmap_rows = query_all(
+        """
+        SELECT
+            CAST(strftime('%H', created_at) AS INTEGER) / 2 AS hour_bucket,
+            (CAST(strftime('%w', created_at) AS INTEGER) + 6) % 7 AS weekday,
+            COUNT(*) AS total
+        FROM inventory_log
+        WHERE date(created_at) >= date(?)
+        GROUP BY hour_bucket, weekday
+        """,
+        (since,),
+    )
+    heatmap = [
+        [safe_int(row.get("hour_bucket")), safe_int(row.get("weekday")), safe_int(row.get("total"))]
+        for row in heatmap_rows
+    ]
     return ok(
         {
+            "range": range_key,
+            "kpis": {
+                "accuracy": round(max(0.0, min(100.0, accuracy)), 1),
+                "recognitionCount": safe_int(movement.get("recognition_count")),
+                "turnover": round(max(0.0, turnover), 1),
+                "savingRate": round(max(0.0, min(100.0, saving_rate)), 1),
+                "avgCycle": round(max(0.0, safe_float(inventory_cycle.get("days"))), 1),
+                "totalInbound": total_inbound,
+                "totalOutbound": total_outbound,
+            },
             "daily": [
                 {
                     "date": row.get("date"),
@@ -484,19 +565,19 @@ def analytics() -> dict[str, Any]:
                     "outbound": safe_float(row.get("outbound")),
                     "waste": 0,
                 }
-                for row in reversed(daily)
+                for row in daily
             ],
             "categories": category_stats(items),
             "freshness": freshness_stats(items),
             "radar": [
-                {"name": "识别准确率", "value": 0},
-                {"name": "库存周转率", "value": 0},
-                {"name": "环境稳定度", "value": 80 if environment_data()["temperatureState"] == "online" else 40},
-                {"name": "设备在线率", "value": 90 if device_statuses()[0]["state"] == "online" else 20},
-                {"name": "预警及时率", "value": 80},
-                {"name": "节约率", "value": 0},
+                {"name": "识别准确率", "value": round(max(0.0, min(100.0, accuracy)))},
+                {"name": "库存周转率", "value": round(max(0.0, min(100.0, turnover)))},
+                {"name": "环境稳定度", "value": env_score},
+                {"name": "设备在线率", "value": device_score},
+                {"name": "库存保鲜率", "value": round(max(0.0, min(100.0, saving_rate)))},
+                {"name": "数据活跃度", "value": min(100, safe_int(movement.get("recognition_count")) * 10)},
             ],
-            "heatmap": [],
+            "heatmap": heatmap,
         }
     )
 

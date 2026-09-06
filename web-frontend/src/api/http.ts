@@ -31,7 +31,21 @@ const mockAdapter: AxiosAdapter = async (config) => {
   }
   if (url === '/devices') return ok(config, structuredClone(devices))
   if (url === '/analytics') return ok(config, structuredClone(analyticsData))
-  if (url === '/environment') return ok(config, structuredClone(dashboardData.environment))
+  if (url === '/environment') {
+    const environment = structuredClone(dashboardData.environment)
+    return ok(config, {
+      ...environment,
+      valid: true,
+      recordedAt: new Date().toISOString(),
+      range: String(params.range || '24h'),
+      summary: {
+        sampleCount: environment.trend.length,
+        abnormalCount: 0,
+        temperature: { min: 3.1, max: 4.2, average: 3.6, stddev: 0.32 },
+        humidity: { min: 84.8, max: 90.3, average: 87.6, stddev: 1.54 },
+      },
+    })
+  }
   if (url === '/environment/latest') {
     return ok(config, {
       valid: true,
