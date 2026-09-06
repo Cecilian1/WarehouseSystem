@@ -217,7 +217,33 @@ class RecognitionStockTest(unittest.TestCase):
         self.assertEqual(used, apple_id)
         self.assertEqual(self._stock("苹果"), 1)
 
-    def test_metrics_ignore_recognition_inbound_logs(self) -> None:
+    def _movements(self, name: str) -> list[tuple[str, float]]:
+        with connection_scope(self.db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT l.action_type, l.quantity
+                FROM inventory_log l
+                JOIN produce_info p ON p.id = l.produce_id
+                WHERE p.name = ? AND COALESCE(l.bbox_json, '') = ''
+                ORDER BY l.id
+                """,
+                (name,),
+            ).fetchall()
+        return [(str(row["action_type"]), float(row["quantity"])) for row in rows]
+
+    def _today_inbound(self) -> float:
+        today = helpers.query_one(
+            """
+            SELECT SUM(COALESCE(quantity, 0)) AS total
+            FROM inventory_log
+            WHERE action_type = 'IN'
+              AND date(created_at) = date('now', 'localtime')
+              AND COALESCE(bbox_json, '') = ''
+            """
+        )
+        return helpers.safe_float(today.get("total") if today else None)
+
+    def test_metrics_count_delta_and_manual_but_ignore_boxes(self) -> None:
         self._queue_frame(1)
         self.repository.save_results(
             1,
@@ -237,22 +263,46 @@ class RecognitionStockTest(unittest.TestCase):
                 (apple_id,),
             )
 
-        today = helpers.query_one(
-            """
-            SELECT SUM(COALESCE(quantity, 0)) AS total
-            FROM inventory_log
-            WHERE action_type = 'IN'
-              AND date(created_at) = date('now', 'localtime')
-              AND COALESCE(model_version, '') = ''
-            """
-        )
         recognition = next(
             row for row in helpers.recognition_rows(10) if row.get("isRecognition")
         )
-        record = _to_record(recognition)
-        self.assertEqual(helpers.safe_float(today.get("total") if today else None), 4)
-        self.assertEqual(record["action"], "自动识别")
-        self.assertIn("识别", record["detail"])
+        movement = next(
+            row for row in helpers.recognition_rows(10) if not row.get("isRecognition")
+        )
+        self.assertEqual(self._today_inbound(), 5)
+        self.assertEqual(_to_record(recognition)["action"], "自动识别")
+        self.assertEqual(_to_record(movement)["action"], "自动入库")
+        self.assertIn("识别", _to_record(recognition)["detail"])
+
+    def test_frame_delta_decides_inbound_and_outbound(self) -> None:
+        apples = [_result("apple", self.crop_dir / "a1.jpg") for _ in range(2)]
+        self._queue_frame(1)
+        self.repository.save_results(1, self.crop_dir / "frame.jpg", apples)
+        self.assertEqual(self._stock("苹果"), 2)
+        self.assertEqual(self._movements("苹果"), [("IN", 2.0)])
+        self.assertEqual(self._today_inbound(), 2)
+
+        self._queue_frame(2)
+        self.repository.save_results(2, self.crop_dir / "frame.jpg", apples)
+        self.assertEqual(self._stock("苹果"), 2)
+        self.assertEqual(self._movements("苹果"), [("IN", 2.0)])
+        self.assertEqual(self._today_inbound(), 2)
+
+        self._queue_frame(3)
+        self.repository.save_results(
+            3, self.crop_dir / "frame.jpg", [_result("apple", self.crop_dir / "a2.jpg")]
+        )
+        self.assertEqual(self._stock("苹果"), 1)
+        self.assertEqual(self._movements("苹果"), [("IN", 2.0), ("OUT", 1.0)])
+
+        self._queue_frame(4)
+        self.repository.save_results(
+            4, self.crop_dir / "frame.jpg", [_result("banana", self.crop_dir / "b.jpg")]
+        )
+        self.assertEqual(self._stock("香蕉"), 1)
+        self.assertEqual(self._stock("苹果"), 1)
+        self.assertEqual(self._movements("香蕉"), [("IN", 1.0)])
+        self.assertEqual(self._movements("苹果"), [("IN", 2.0), ("OUT", 1.0)])
 
 
 if __name__ == "__main__":

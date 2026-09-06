@@ -365,7 +365,9 @@ public:
                 frame_counts[produce_id] += 1;
             }
             for (const auto &entry : frame_counts) {
+                const int previous = current_stock(entry.first);
                 set_stock(entry.first, entry.second);
+                insert_movement(frame_id, entry.first, entry.second - previous);
             }
             sqlite3_stmt *statement = nullptr;
             const char *sql = "UPDATE pending_frames SET status=?,processed_at=datetime('now','localtime'),last_error=? WHERE id=?";
@@ -453,6 +455,36 @@ private:
         check_sqlite(sqlite3_step(statement), database_, "创建果蔬失败");
         sqlite3_finalize(statement);
         return sqlite3_last_insert_rowid(database_);
+    }
+
+    int current_stock(long long produce_id) {
+        sqlite3_stmt *statement = nullptr;
+        const char *sql = "SELECT COALESCE(current_qty, 0) FROM stock_summary WHERE produce_id=?";
+        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "查询库存失败");
+        sqlite3_bind_int64(statement, 1, produce_id);
+        int quantity = 0;
+        if (sqlite3_step(statement) == SQLITE_ROW) {
+            quantity = sqlite3_column_int(statement, 0);
+        }
+        sqlite3_finalize(statement);
+        return quantity;
+    }
+
+    void insert_movement(long long frame_id, long long produce_id, int delta) {
+        if (delta == 0) {
+            return;
+        }
+        const char *sql = "INSERT INTO inventory_log(produce_id,action_type,quantity,sync_status,"
+                          "source_frame_id,model_version) VALUES(?,?,?,'local',?,?)";
+        sqlite3_stmt *statement = nullptr;
+        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "写入出入库差额失败");
+        sqlite3_bind_int64(statement, 1, produce_id);
+        sqlite3_bind_text(statement, 2, delta > 0 ? "IN" : "OUT", -1, SQLITE_STATIC);
+        sqlite3_bind_int(statement, 3, delta > 0 ? delta : -delta);
+        sqlite3_bind_int64(statement, 4, frame_id);
+        sqlite3_bind_text(statement, 5, "yolo-best+shufflenet-v4-cpp", -1, SQLITE_STATIC);
+        check_sqlite(sqlite3_step(statement), database_, "写入出入库差额失败");
+        sqlite3_finalize(statement);
     }
 
     void set_stock(long long produce_id, int quantity) {

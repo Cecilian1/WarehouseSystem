@@ -235,7 +235,7 @@ def dashboard() -> dict[str, Any]:
         FROM inventory_log
         WHERE action_type = 'IN'
           AND date(created_at) = date('now', 'localtime')
-          AND COALESCE(model_version, '') = ''
+          AND COALESCE(bbox_json, '') = ''
         """
     )
     alerts = alert_rows()
@@ -484,6 +484,7 @@ def analytics(range: str = Query("month")) -> dict[str, Any]:
             SUM(CASE WHEN action_type = 'OUT' THEN COALESCE(quantity, 0) ELSE 0 END) AS outbound
         FROM inventory_log
         WHERE date(created_at) >= date(?)
+          AND COALESCE(bbox_json, '') = ''
         GROUP BY date(created_at)
         ORDER BY date(created_at)
         """,
@@ -498,6 +499,7 @@ def analytics(range: str = Query("month")) -> dict[str, Any]:
             AVG(COALESCE(detector_confidence, confidence)) AS accuracy
         FROM inventory_log
         WHERE date(created_at) >= date(?)
+          AND COALESCE(bbox_json, '') = ''
         """,
         (since,),
     ) or {}
@@ -515,6 +517,7 @@ def analytics(range: str = Query("month")) -> dict[str, Any]:
             FROM stock_summary s
             JOIN inventory_log l ON l.produce_id = s.produce_id AND l.action_type = 'IN'
             WHERE s.current_qty > 0
+              AND COALESCE(l.bbox_json, '') = ''
             GROUP BY s.produce_id
         )
         """

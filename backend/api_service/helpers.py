@@ -302,6 +302,7 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
             l.image_path,
             l.created_at,
             l.model_version,
+            l.bbox_json,
             COALESCE(p.name, '未知果蔬') AS name,
             COALESCE(p.category, '') AS category
         FROM inventory_log l
@@ -316,6 +317,7 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
     for row in rows:
         action = str(row.get("action_type") or "IN").upper()
         model_version = str(row.get("model_version") or "")
+        has_bbox = bool(str(row.get("bbox_json") or "").strip())
         freshness = normalize_freshness(row.get("freshness_level"), row.get("freshness_score"))
         confidence = safe_float(row.get("confidence"), 0.0)
         freshness_score = safe_float(row.get("freshness_score"), default_freshness_score(freshness))
@@ -332,7 +334,7 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
                 "action": action,
                 "type": "inbound" if action == "IN" else "outbound",
                 "modelVersion": model_version,
-                "isRecognition": bool(model_version),
+                "isRecognition": has_bbox,
                 "confidence": max(0.0, min(1.0, confidence)),
                 "freshness": freshness,
                 "freshnessScore": max(0.0, min(1.0, freshness_score)),
@@ -499,7 +501,7 @@ def stock_trend() -> list[dict[str, Any]]:
             SUM(CASE WHEN action_type = 'IN' THEN COALESCE(quantity, 0) ELSE 0 END) AS inbound,
             SUM(CASE WHEN action_type = 'OUT' THEN COALESCE(quantity, 0) ELSE 0 END) AS outbound
         FROM inventory_log
-        WHERE COALESCE(model_version, '') = ''
+        WHERE COALESCE(bbox_json, '') = ''
         GROUP BY date(created_at)
         ORDER BY date(created_at) DESC
         LIMIT 12
@@ -643,13 +645,13 @@ def history_rows(page: int = 1, page_size: int = 10) -> dict[str, Any]:
                 created_at AS time,
                 'AI 识别' AS module,
                 CASE
-                    WHEN COALESCE(model_version, '') <> '' THEN '自动识别'
+                    WHEN COALESCE(bbox_json, '') <> '' THEN '自动识别'
                     WHEN action_type = 'IN' THEN '自动入库'
                     ELSE '自动出库'
                 END AS action,
                 COALESCE(p.name, '未知果蔬') || ' ' ||
                     CASE
-                        WHEN COALESCE(model_version, '') <> '' THEN '识别 '
+                        WHEN COALESCE(bbox_json, '') <> '' THEN '识别 '
                         WHEN action_type = 'IN' THEN '+'
                         ELSE '-'
                     END ||

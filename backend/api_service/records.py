@@ -13,7 +13,7 @@ router = APIRouter()
 
 def _to_record(item: dict[str, Any]) -> dict[str, Any]:
     is_inbound = item["action"] == "IN"
-    is_recognition = bool(item.get("isRecognition") or item.get("modelVersion"))
+    is_recognition = bool(item.get("isRecognition"))
     if is_recognition:
         action = "自动识别"
         detail = f"{item['name']} 识别 {item['quantity']}件"

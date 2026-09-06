@@ -76,11 +76,11 @@ def build_daily_snapshot() -> dict[str, Any]:
         """
         SELECT
             SUM(CASE
-                WHEN action_type = 'IN' AND COALESCE(model_version, '') = ''
+                WHEN action_type = 'IN' AND COALESCE(bbox_json, '') = ''
                 THEN COALESCE(quantity, 0) ELSE 0
             END) AS inbound,
             SUM(CASE
-                WHEN action_type = 'OUT' AND COALESCE(model_version, '') = ''
+                WHEN action_type = 'OUT' AND COALESCE(bbox_json, '') = ''
                 THEN COALESCE(quantity, 0) ELSE 0
             END) AS outbound,
             COUNT(*) AS recognition_count

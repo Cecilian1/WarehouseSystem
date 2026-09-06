@@ -95,6 +95,39 @@ class RecognitionRepository:
             (produce_id, quantity, expire_date),
         )
 
+    def _current_stock(self, conn: Any, produce_id: int) -> int:
+        row = conn.execute(
+            "SELECT COALESCE(current_qty, 0) AS qty FROM stock_summary WHERE produce_id = ?",
+            (produce_id,),
+        ).fetchone()
+        return int(row["qty"]) if row else 0
+
+    def _insert_movement(
+        self,
+        conn: Any,
+        frame_id: int,
+        produce_id: int,
+        delta: int,
+    ) -> int | None:
+        if delta == 0:
+            return None
+        cursor = conn.execute(
+            """
+            INSERT INTO inventory_log
+                (produce_id, action_type, quantity, sync_status,
+                 source_frame_id, model_version)
+            VALUES (?, ?, ?, 'local', ?, ?)
+            """,
+            (
+                produce_id,
+                "IN" if delta > 0 else "OUT",
+                abs(delta),
+                frame_id,
+                self.config.model_version,
+            ),
+        )
+        return int(cursor.lastrowid)
+
     def save_results(
         self,
         frame_id: int,
@@ -152,7 +185,13 @@ class RecognitionRepository:
                 log_ids.append(int(cursor.lastrowid))
 
             for produce_id, quantity in frame_counts.items():
+                previous = self._current_stock(conn, produce_id)
                 self._set_stock(conn, produce_id, quantity, produce_defs[produce_id])
+                movement_id = self._insert_movement(
+                    conn, frame_id, produce_id, quantity - previous
+                )
+                if movement_id is not None:
+                    log_ids.append(movement_id)
 
             status = "processed" if results else "discarded"
             message = "" if results else "未检测到支持的果蔬目标"
