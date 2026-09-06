@@ -8,6 +8,14 @@ __pycache__/
 # Qt构建产物
 qt-frontend/build-*/
 qt-frontend/*.pro.user
+/qt-frontend/WarehouseKeeper
+/qt-frontend/WarehouseKeeper.exe
+/qt-frontend/*.o
+/qt-frontend/*.obj
+/qt-frontend/moc_*.cpp
+/qt-frontend/moc_*.h
+/qt-frontend/qrc_*.cpp
+/qt-frontend/.qmake.stash
 
 # 采集图片（数据库可入库，帧文件仍只留本地）
 backend/camera_service/frames/
