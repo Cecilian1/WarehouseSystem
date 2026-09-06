@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,16 @@ class RecognitionRepository:
         row = conn.execute(
             """
             SELECT id FROM produce_info
+            WHERE name = ?
+            ORDER BY id LIMIT 1
+            """,
+            (definition.name,),
+        ).fetchone()
+        if row:
+            return int(row["id"])
+        row = conn.execute(
+            """
+            SELECT id FROM produce_info
             WHERE name = ? AND category = ?
             ORDER BY id LIMIT 1
             """,
@@ -46,7 +57,7 @@ class RecognitionRepository:
             """
             INSERT INTO produce_info
                 (name, category, shelf_life_days, unit, location)
-            VALUES (?, ?, ?, ?, 'AI识别区')
+            VALUES (?, ?, ?, ?, '本地库存')
             """,
             (
                 definition.name,
@@ -58,23 +69,12 @@ class RecognitionRepository:
         return int(cursor.lastrowid)
 
     @staticmethod
-    def _update_stock(
+    def _set_stock(
         conn: Any,
         produce_id: int,
-        action: str,
+        quantity: int,
         definition: ProduceDefinition,
     ) -> None:
-        if action == "OUT":
-            conn.execute(
-                """
-                UPDATE stock_summary
-                SET current_qty = MAX(0, COALESCE(current_qty, 0) - 1),
-                    last_updated = datetime('now', 'localtime')
-                WHERE produce_id = ?
-                """,
-                (produce_id,),
-            )
-            return
         expire_date = (
             date.today() + timedelta(days=definition.shelf_life_days)
         ).isoformat()
@@ -82,9 +82,9 @@ class RecognitionRepository:
             """
             INSERT INTO stock_summary
                 (produce_id, current_qty, earliest_expire_date, last_updated)
-            VALUES (?, 1, ?, datetime('now', 'localtime'))
+            VALUES (?, ?, ?, datetime('now', 'localtime'))
             ON CONFLICT(produce_id) DO UPDATE SET
-                current_qty = COALESCE(current_qty, 0) + 1,
+                current_qty = excluded.current_qty,
                 earliest_expire_date = CASE
                     WHEN earliest_expire_date IS NULL OR earliest_expire_date = ''
                     THEN excluded.earliest_expire_date
@@ -92,7 +92,7 @@ class RecognitionRepository:
                 END,
                 last_updated = excluded.last_updated
             """,
-            (produce_id, expire_date),
+            (produce_id, quantity, expire_date),
         )
 
     def save_results(
@@ -103,9 +103,13 @@ class RecognitionRepository:
     ) -> list[int]:
         log_ids: list[int] = []
         with connection_scope(str(self.config.db_path)) as conn:
+            frame_counts: Counter[int] = Counter()
+            produce_defs: dict[int, ProduceDefinition] = {}
             for result in results:
                 definition = self.config.produce_catalog[result.detection.species]
                 produce_id = self._resolve_produce(conn, definition)
+                frame_counts[produce_id] += 1
+                produce_defs[produce_id] = definition
                 bbox = {
                     "x1": result.detection.bbox[0],
                     "y1": result.detection.bbox[1],
@@ -146,13 +150,9 @@ class RecognitionRepository:
                     ),
                 )
                 log_ids.append(int(cursor.lastrowid))
-                if self.config.update_stock_summary:
-                    self._update_stock(
-                        conn,
-                        produce_id,
-                        self.config.inventory_action,
-                        definition,
-                    )
+
+            for produce_id, quantity in frame_counts.items():
+                self._set_stock(conn, produce_id, quantity, produce_defs[produce_id])
 
             status = "processed" if results else "discarded"
             message = "" if results else "未检测到支持的果蔬目标"

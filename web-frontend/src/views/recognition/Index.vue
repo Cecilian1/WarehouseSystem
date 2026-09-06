@@ -162,7 +162,7 @@ onBeforeUnmount(() => {
         <div class="detail-copy">
           <span class="status-chip is-online"><Image :size="12" /> Frame #{{ selected.id }}</span>
           <h2>{{ selected.name }}</h2>
-          <p>{{ selected.category }} · {{ selected.action === 'IN' ? '自动入库' : '自动出库' }} {{ selected.quantity }} 件</p>
+          <p>{{ selected.category }} · {{ selected.isRecognition ? '自动识别' : (selected.action === 'IN' ? '自动入库' : '自动出库') }} {{ selected.quantity }} 件</p>
           <dl><div><dt>识别置信度</dt><dd>{{ (selected.confidence * 100).toFixed(1) }}%</dd></div><div><dt>新鲜度评分</dt><dd>{{ (selected.freshnessScore * 100).toFixed(1) }}</dd></div><div><dt>推理延迟</dt><dd>{{ selected.latency }} ms</dd></div><div><dt>记录时间</dt><dd>{{ selected.time }}</dd></div></dl>
         </div>
       </div>

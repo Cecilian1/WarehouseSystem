@@ -19,16 +19,20 @@ class RecognitionContractTest(unittest.TestCase):
             with connection_scope(db_path) as conn:
                 conn.execute(
                     """
-                    INSERT INTO produce_info (id, name, category)
-                    VALUES (1, '测试苹果', '水果')
+                    INSERT INTO produce_info (name, category)
+                    VALUES ('测试苹果', '水果')
                     """
                 )
+                produce_id = conn.execute(
+                    "SELECT id FROM produce_info WHERE name = '测试苹果'"
+                ).fetchone()["id"]
                 conn.execute(
                     """
                     INSERT INTO inventory_log
                         (produce_id, action_type, quantity, confidence, sync_status)
-                    VALUES (1, 'IN', 3, 0.99, 'local')
-                    """
+                    VALUES (?, 'IN', 3, 0.99, 'local')
+                    """,
+                    (produce_id,),
                 )
                 conn.execute(
                     """

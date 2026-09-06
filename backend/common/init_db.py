@@ -8,9 +8,11 @@ import argparse
 import sqlite3
 from pathlib import Path
 
+from backend.common.catalog import PRODUCE_CATALOG
 from backend.common.db import get_connection
 
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+AI_STOCK_TRIGGER = "inventory_log_ai_stock_after_insert"
 
 
 def _ensure_column(
@@ -25,6 +27,43 @@ def _ensure_column(
     }
     if column not in columns:
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+def _seed_produce_catalog(conn: sqlite3.Connection) -> None:
+    """预置五种果蔬；已有同名行复用，缺库存汇总时补 0，绝不按识别流水回填。"""
+    for item in PRODUCE_CATALOG:
+        row = conn.execute(
+            """
+            SELECT id FROM produce_info
+            WHERE name = ?
+            ORDER BY id
+            LIMIT 1
+            """,
+            (item.name,),
+        ).fetchone()
+        if row:
+            produce_id = int(row["id"])
+        else:
+            cursor = conn.execute(
+                """
+                INSERT INTO produce_info
+                    (name, category, shelf_life_days, unit, location)
+                VALUES (?, ?, ?, ?, '本地库存')
+                """,
+                (item.name, item.category, item.shelf_life_days, item.unit),
+            )
+            produce_id = int(cursor.lastrowid)
+        conn.execute(
+            """
+            INSERT INTO stock_summary
+                (produce_id, current_qty, earliest_expire_date, last_updated)
+            SELECT ?, 0, '', datetime('now', 'localtime')
+            WHERE NOT EXISTS (
+                SELECT 1 FROM stock_summary WHERE produce_id = ?
+            )
+            """,
+            (produce_id, produce_id),
+        )
 
 
 def init_db(db_path: str) -> None:
@@ -66,6 +105,8 @@ def init_db(db_path: str) -> None:
             "last_error",
             "TEXT DEFAULT ''",
         )
+        conn.execute(f"DROP TRIGGER IF EXISTS {AI_STOCK_TRIGGER}")
+        _seed_produce_catalog(conn)
         conn.commit()
     finally:
         conn.close()

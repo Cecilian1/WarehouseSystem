@@ -15,8 +15,8 @@ poll_interval_sec: 1.0
 max_attempts: 3
 onnx_threads: 2
 
-# 单张变化帧无法可靠判断入库还是出库，第一版按接口契约记录为IN。
-# 默认不直接修改stock_summary，待用户确认后再更新库存，避免重复拍摄导致库存膨胀。
+# 识别流水仍按接口契约记为IN，供画面框和历史展示。
+# 库存按本帧检出个数 SET，不再对每个检测框 +1，避免重复拍摄把数量拍涨。
 inventory_action: IN
 update_stock_summary: false
 model_version: yolo-5class-v1+shufflenet-v4-seed20260722

@@ -301,6 +301,7 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
             l.confidence,
             l.image_path,
             l.created_at,
+            l.model_version,
             COALESCE(p.name, '未知果蔬') AS name,
             COALESCE(p.category, '') AS category
         FROM inventory_log l
@@ -314,6 +315,7 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
     records: list[dict[str, Any]] = []
     for row in rows:
         action = str(row.get("action_type") or "IN").upper()
+        model_version = str(row.get("model_version") or "")
         freshness = normalize_freshness(row.get("freshness_level"), row.get("freshness_score"))
         confidence = safe_float(row.get("confidence"), 0.0)
         freshness_score = safe_float(row.get("freshness_score"), default_freshness_score(freshness))
@@ -329,6 +331,8 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
                 "quantity": safe_float(row.get("quantity"), 0),
                 "action": action,
                 "type": "inbound" if action == "IN" else "outbound",
+                "modelVersion": model_version,
+                "isRecognition": bool(model_version),
                 "confidence": max(0.0, min(1.0, confidence)),
                 "freshness": freshness,
                 "freshnessScore": max(0.0, min(1.0, freshness_score)),
@@ -413,6 +417,7 @@ def stock_trend() -> list[dict[str, Any]]:
             SUM(CASE WHEN action_type = 'IN' THEN COALESCE(quantity, 0) ELSE 0 END) AS inbound,
             SUM(CASE WHEN action_type = 'OUT' THEN COALESCE(quantity, 0) ELSE 0 END) AS outbound
         FROM inventory_log
+        WHERE COALESCE(model_version, '') = ''
         GROUP BY date(created_at)
         ORDER BY date(created_at) DESC
         LIMIT 12
@@ -555,9 +560,17 @@ def history_rows(page: int = 1, page_size: int = 10) -> dict[str, Any]:
                 l.id,
                 created_at AS time,
                 'AI 识别' AS module,
-                CASE action_type WHEN 'IN' THEN '自动入库' ELSE '自动出库' END AS action,
+                CASE
+                    WHEN COALESCE(model_version, '') <> '' THEN '自动识别'
+                    WHEN action_type = 'IN' THEN '自动入库'
+                    ELSE '自动出库'
+                END AS action,
                 COALESCE(p.name, '未知果蔬') || ' ' ||
-                    CASE action_type WHEN 'IN' THEN '+' ELSE '-' END ||
+                    CASE
+                        WHEN COALESCE(model_version, '') <> '' THEN '识别 '
+                        WHEN action_type = 'IN' THEN '+'
+                        ELSE '-'
+                    END ||
                     COALESCE(quantity, 0) || ' 件' AS detail,
                 'Edge AI' AS operator,
                 'success' AS status

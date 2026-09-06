@@ -230,7 +230,9 @@ def dashboard() -> dict[str, Any]:
         """
         SELECT SUM(COALESCE(quantity, 0)) AS total
         FROM inventory_log
-        WHERE action_type = 'IN' AND date(created_at) = date('now', 'localtime')
+        WHERE action_type = 'IN'
+          AND date(created_at) = date('now', 'localtime')
+          AND COALESCE(model_version, '') = ''
         """
     )
     alerts = alert_rows()
@@ -467,6 +469,7 @@ def analytics() -> dict[str, Any]:
             SUM(CASE WHEN action_type = 'IN' THEN COALESCE(quantity, 0) ELSE 0 END) AS inbound,
             SUM(CASE WHEN action_type = 'OUT' THEN COALESCE(quantity, 0) ELSE 0 END) AS outbound
         FROM inventory_log
+        WHERE COALESCE(model_version, '') = ''
         GROUP BY date(created_at)
         ORDER BY date(created_at) DESC
         LIMIT 14

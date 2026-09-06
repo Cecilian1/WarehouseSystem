@@ -32,7 +32,7 @@ function normalizeRecognitionItem(item) {
   const action = String(record.action || '').trim().toUpperCase()
   const type = record.type === 'inbound' || record.type === 'outbound'
     ? record.type
-    : (action === 'IN' || record.action === '自动入库' ? 'inbound' : 'outbound')
+    : (action === 'IN' || record.action === '自动入库' || record.action === '自动识别' ? 'inbound' : 'outbound')
   return { ...record, type }
 }
 

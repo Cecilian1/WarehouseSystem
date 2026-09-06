@@ -75,8 +75,14 @@ def build_daily_snapshot() -> dict[str, Any]:
     flow_today = query_one(
         """
         SELECT
-            SUM(CASE WHEN action_type = 'IN' THEN COALESCE(quantity, 0) ELSE 0 END) AS inbound,
-            SUM(CASE WHEN action_type = 'OUT' THEN COALESCE(quantity, 0) ELSE 0 END) AS outbound,
+            SUM(CASE
+                WHEN action_type = 'IN' AND COALESCE(model_version, '') = ''
+                THEN COALESCE(quantity, 0) ELSE 0
+            END) AS inbound,
+            SUM(CASE
+                WHEN action_type = 'OUT' AND COALESCE(model_version, '') = ''
+                THEN COALESCE(quantity, 0) ELSE 0
+            END) AS outbound,
             COUNT(*) AS recognition_count
         FROM inventory_log
         WHERE date(created_at) = date('now', 'localtime')

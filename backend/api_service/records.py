@@ -13,16 +13,23 @@ router = APIRouter()
 
 def _to_record(item: dict[str, Any]) -> dict[str, Any]:
     is_inbound = item["action"] == "IN"
-    sign = "+" if is_inbound else "-"
+    is_recognition = bool(item.get("isRecognition") or item.get("modelVersion"))
+    if is_recognition:
+        action = "自动识别"
+        detail = f"{item['name']} 识别 {item['quantity']}件"
+    else:
+        action = "自动入库" if is_inbound else "自动出库"
+        sign = "+" if is_inbound else "-"
+        detail = f"{item['name']} {sign}{item['quantity']}件"
     return {
         "id": item["id"],
         "time": item["time"],
         "produceId": item.get("produceId"),
         "name": item["name"],
         "type": "inbound" if is_inbound else "outbound",
-        "action": "自动入库" if is_inbound else "自动出库",
+        "action": action,
         "quantity": item["quantity"],
-        "detail": f"{item['name']} {sign}{item['quantity']}件",
+        "detail": detail,
         "operator": "Edge AI",
         "status": "success",
         "confidence": item["confidence"],

@@ -25,24 +25,29 @@ class DailyReportTest(unittest.TestCase):
             conn.execute(
                 """
                 INSERT INTO produce_info
-                    (id, name, category, shelf_life_days, unit)
-                VALUES (1, '草莓', '水果', 5, '盒')
+                    (name, category, shelf_life_days, unit)
+                VALUES ('草莓', '水果', 5, '盒')
                 """
             )
+            produce_id = conn.execute(
+                "SELECT id FROM produce_info WHERE name = '草莓'"
+            ).fetchone()["id"]
             conn.execute(
                 """
                 INSERT INTO stock_summary
                     (produce_id, current_qty, earliest_expire_date)
-                VALUES (1, 5, date('now', '+1 day'))
-                """
+                VALUES (?, 5, date('now', '+1 day'))
+                """,
+                (produce_id,),
             )
             conn.execute(
                 """
                 INSERT INTO inventory_log
                     (produce_id, action_type, quantity, freshness_level,
                      freshness_score, created_at)
-                VALUES (1, 'IN', 5, 'warning', 0.6, datetime('now', 'localtime'))
-                """
+                VALUES (?, 'IN', 5, 'warning', 0.6, datetime('now', 'localtime'))
+                """,
+                (produce_id,),
             )
             conn.execute(
                 """
@@ -55,8 +60,9 @@ class DailyReportTest(unittest.TestCase):
                 """
                 INSERT INTO alert_record
                     (produce_id, alert_type, expire_date, is_read)
-                VALUES (1, 'expiring', date('now', '+1 day'), 0)
-                """
+                VALUES (?, 'expiring', date('now', '+1 day'), 0)
+                """,
+                (produce_id,),
             )
 
         snapshot = daily_report.build_daily_snapshot()

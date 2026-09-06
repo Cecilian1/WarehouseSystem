@@ -154,7 +154,7 @@
         <view class="recognition-main">
           <view class="recognition-name">
             {{item.name}}
-            <text class="recognition-type {{item.type}}">{{item.type === 'inbound' ? '入库' : '出库'}} ×{{item.quantity}}</text>
+            <text class="recognition-type {{item.isRecognition ? 'recognize' : item.type}}">{{item.isRecognition ? '识别' : (item.type === 'inbound' ? '入库' : '出库')}} ×{{item.quantity}}</text>
           </view>
           <view class="recognition-meta">{{item.time}} · 置信度 {{item.confidence}}% · 耗时 {{item.latency}}ms</view>
         </view>

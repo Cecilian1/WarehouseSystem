@@ -358,9 +358,14 @@ public:
     void save(long long frame_id, const std::vector<Recognition> &results) {
         execute("BEGIN IMMEDIATE");
         try {
+            std::map<long long, int> frame_counts;
             for (const auto &result : results) {
                 const long long produce_id = resolve_produce(result.detection.species);
                 insert_result(frame_id, produce_id, result);
+                frame_counts[produce_id] += 1;
+            }
+            for (const auto &entry : frame_counts) {
+                set_stock(entry.first, entry.second);
             }
             sqlite3_stmt *statement = nullptr;
             const char *sql = "UPDATE pending_frames SET status=?,processed_at=datetime('now','localtime'),last_error=? WHERE id=?";
@@ -409,19 +414,37 @@ private:
         return catalog.at(species);
     }
 
-    long long resolve_produce(const std::string &species) {
-        const ProduceInfo info = produce_info(species);
+    long long lookup_produce(const char *sql, const ProduceInfo &info, bool bind_category) {
         sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, "SELECT id FROM produce_info WHERE name=? AND category=? ORDER BY id LIMIT 1", -1, &statement, nullptr), database_, "查询果蔬失败");
+        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "查询果蔬失败");
         sqlite3_bind_text(statement, 1, info.name.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(statement, 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
+        if (bind_category) {
+            sqlite3_bind_text(statement, 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
+        }
         if (sqlite3_step(statement) == SQLITE_ROW) {
             const long long id = sqlite3_column_int64(statement, 0);
             sqlite3_finalize(statement);
             return id;
         }
         sqlite3_finalize(statement);
-        const char *sql = "INSERT INTO produce_info(name,category,shelf_life_days,unit,location) VALUES(?,?,?,?,'AI识别区')";
+        return 0;
+    }
+
+    long long resolve_produce(const std::string &species) {
+        const ProduceInfo info = produce_info(species);
+        const long long by_name = lookup_produce(
+            "SELECT id FROM produce_info WHERE name=? ORDER BY id LIMIT 1", info, false);
+        if (by_name > 0) {
+            return by_name;
+        }
+        const long long by_name_category = lookup_produce(
+            "SELECT id FROM produce_info WHERE name=? AND category=? ORDER BY id LIMIT 1",
+            info, true);
+        if (by_name_category > 0) {
+            return by_name_category;
+        }
+        sqlite3_stmt *statement = nullptr;
+        const char *sql = "INSERT INTO produce_info(name,category,shelf_life_days,unit,location) VALUES(?,?,?,?,'本地库存')";
         check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "创建果蔬失败");
         sqlite3_bind_text(statement, 1, info.name.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(statement, 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
@@ -430,6 +453,19 @@ private:
         check_sqlite(sqlite3_step(statement), database_, "创建果蔬失败");
         sqlite3_finalize(statement);
         return sqlite3_last_insert_rowid(database_);
+    }
+
+    void set_stock(long long produce_id, int quantity) {
+        const char *sql = "INSERT INTO stock_summary(produce_id,current_qty,earliest_expire_date,last_updated) "
+                          "VALUES(?,?, '', datetime('now','localtime')) "
+                          "ON CONFLICT(produce_id) DO UPDATE SET "
+                          "current_qty=excluded.current_qty, last_updated=excluded.last_updated";
+        sqlite3_stmt *statement = nullptr;
+        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "更新库存失败");
+        sqlite3_bind_int64(statement, 1, produce_id);
+        sqlite3_bind_int(statement, 2, quantity);
+        check_sqlite(sqlite3_step(statement), database_, "更新库存失败");
+        sqlite3_finalize(statement);
     }
 
     void insert_result(long long frame_id, long long produce_id, const Recognition &result) {
