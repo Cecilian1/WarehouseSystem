@@ -105,6 +105,16 @@ def init_db(db_path: str) -> None:
             "last_error",
             "TEXT DEFAULT ''",
         )
+        _ensure_column(
+            conn,
+            "pending_frames",
+            "door_cycle_id",
+            "INTEGER REFERENCES door_cycle(id)",
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_pending_frames_door_cycle "
+            "ON pending_frames(door_cycle_id)"
+        )
         conn.execute(f"DROP TRIGGER IF EXISTS {AI_STOCK_TRIGGER}")
         _seed_produce_catalog(conn)
         conn.commit()

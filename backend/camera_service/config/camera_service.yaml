@@ -8,6 +8,20 @@ resolution: [640, 480]
 # Web预览每5秒刷新一次；变化触发记录仍由change_ratio_threshold控制
 capture_interval_sec: 5
 
+# Qt 门状态请求轮询周期，以及关门后等待画面稳定的时间。
+door_poll_interval_sec: 0.2
+close_settle_sec: 0.3
+
+# 板载 LED 仅模拟冰箱门状态（亮=开门、灭=关门），不作为摄像补光灯。
+door_led_brightness_path: /sys/class/leds/user-led/brightness
+
+# 板载实体 USER-KEY。第一次按下开门亮灯，第二次按下关门、熄灯并拍照。
+# 使用 by-path 稳定别名，避免触摸屏或其他 input 设备改变 event 编号。
+door_key_enabled: true
+door_key_event_path: /dev/input/by-path/platform-gpio_keys@0-event
+door_key_code: 114
+door_key_debounce_sec: 0.25
+
 # 低频读取UVC设备时，正式取帧前丢弃的旧缓冲帧数量
 discard_frames_before_capture: 4
 

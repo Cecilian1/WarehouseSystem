@@ -80,6 +80,11 @@ else
 fi
 AI_SERVICE_NAME=""
 if [ -x "$INSTALL_ROOT/bin/warehouse-ai-service" ]; then
+    if ! grep -a -q "recapture_requested" "$INSTALL_ROOT/bin/warehouse-ai-service"; then
+        echo "==> bin/warehouse-ai-service 仍是旧版本，缺少门周期盘点支持。" >&2
+        echo "    请先用当前 cpp-ai-service 源码重新交叉编译并替换该文件。" >&2
+        exit 1
+    fi
     for model_file in \
         "$INSTALL_ROOT/models/best_ncnn_model/model.ncnn.param" \
         "$INSTALL_ROOT/models/best_ncnn_model/model.ncnn.bin" \

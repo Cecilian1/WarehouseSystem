@@ -19,7 +19,7 @@ class RecognitionRepository:
         with connection_scope(str(self.config.db_path)) as conn:
             row = conn.execute(
                 """
-                SELECT id, image_path, attempt_count
+                SELECT id, image_path, attempt_count, door_cycle_id
                 FROM pending_frames
                 WHERE status = 'pending'
                 ORDER BY id
@@ -102,6 +102,37 @@ class RecognitionRepository:
         ).fetchone()
         return int(row["qty"]) if row else 0
 
+    @staticmethod
+    def _recognition_counts(conn: Any, frame_id: int) -> Counter[int]:
+        rows = conn.execute(
+            """
+            SELECT produce_id, COUNT(*) AS quantity
+            FROM inventory_log
+            WHERE source_frame_id = ?
+              AND COALESCE(bbox_json, '') <> ''
+              AND produce_id IS NOT NULL
+            GROUP BY produce_id
+            """,
+            (frame_id,),
+        ).fetchall()
+        return Counter({int(row["produce_id"]): int(row["quantity"]) for row in rows})
+
+    @staticmethod
+    def _previous_cycle_counts(conn: Any, cycle_id: int) -> Counter[int] | None:
+        row = conn.execute(
+            """
+            SELECT frame_id
+            FROM door_cycle
+            WHERE id < ? AND status = 'completed' AND frame_id IS NOT NULL
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (cycle_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return RecognitionRepository._recognition_counts(conn, int(row["frame_id"]))
+
     def _insert_movement(
         self,
         conn: Any,
@@ -136,6 +167,15 @@ class RecognitionRepository:
     ) -> list[int]:
         log_ids: list[int] = []
         with connection_scope(str(self.config.db_path)) as conn:
+            frame_row = conn.execute(
+                "SELECT door_cycle_id FROM pending_frames WHERE id = ?",
+                (frame_id,),
+            ).fetchone()
+            cycle_id = (
+                int(frame_row["door_cycle_id"])
+                if frame_row and frame_row["door_cycle_id"] is not None
+                else None
+            )
             frame_counts: Counter[int] = Counter()
             produce_defs: dict[int, ProduceDefinition] = {}
             for result in results:
@@ -184,17 +224,83 @@ class RecognitionRepository:
                 )
                 log_ids.append(int(cursor.lastrowid))
 
-            for produce_id, quantity in frame_counts.items():
-                previous = self._current_stock(conn, produce_id)
-                self._set_stock(conn, produce_id, quantity, produce_defs[produce_id])
-                movement_id = self._insert_movement(
-                    conn, frame_id, produce_id, quantity - previous
-                )
-                if movement_id is not None:
-                    log_ids.append(movement_id)
+            if cycle_id is None:
+                # 兼容升级前遗留的帧；新门事件流程不再依赖周期帧差触发。
+                for produce_id, quantity in frame_counts.items():
+                    previous = self._current_stock(conn, produce_id)
+                    self._set_stock(conn, produce_id, quantity, produce_defs[produce_id])
+                    movement_id = self._insert_movement(
+                        conn, frame_id, produce_id, quantity - previous
+                    )
+                    if movement_id is not None:
+                        log_ids.append(movement_id)
+            else:
+                previous_counts = self._previous_cycle_counts(conn, cycle_id)
+                cycle = conn.execute(
+                    "SELECT retry_count FROM door_cycle WHERE id = ?",
+                    (cycle_id,),
+                ).fetchone()
+                retry_count = int(cycle["retry_count"] or 0) if cycle else 0
 
-            status = "processed" if results else "discarded"
-            message = "" if results else "未检测到支持的果蔬目标"
+                if not results and previous_counts and retry_count < 1:
+                    conn.execute(
+                        """
+                        UPDATE pending_frames
+                        SET status = 'discarded',
+                            processed_at = datetime('now', 'localtime'),
+                            last_error = '空识别结果，已请求自动复拍'
+                        WHERE id = ?
+                        """,
+                        (frame_id,),
+                    )
+                    conn.execute(
+                        """
+                        UPDATE door_cycle
+                        SET status = 'recapture_requested', retry_count = retry_count + 1,
+                            frame_id = NULL, last_error = '空识别结果，正在自动复拍'
+                        WHERE id = ? AND status = 'processing'
+                        """,
+                        (cycle_id,),
+                    )
+                    return log_ids
+
+                # 解析完整目录，确保本次完全消失的品类也以数量 0 参与比较。
+                for definition in self.config.produce_catalog.values():
+                    produce_id = self._resolve_produce(conn, definition)
+                    produce_defs[produce_id] = definition
+                all_produce_ids = set(produce_defs) | set(frame_counts)
+                if previous_counts is not None:
+                    all_produce_ids |= set(previous_counts)
+
+                is_baseline = previous_counts is None
+                for produce_id in all_produce_ids:
+                    quantity = int(frame_counts.get(produce_id, 0))
+                    definition = produce_defs.get(produce_id)
+                    if definition is None:
+                        continue
+                    self._set_stock(conn, produce_id, quantity, definition)
+                    if not is_baseline:
+                        movement_id = self._insert_movement(
+                            conn,
+                            frame_id,
+                            produce_id,
+                            quantity - int(previous_counts.get(produce_id, 0)),
+                        )
+                        if movement_id is not None:
+                            log_ids.append(movement_id)
+
+                conn.execute(
+                    """
+                    UPDATE door_cycle
+                    SET status = 'completed', frame_id = ?, is_baseline = ?,
+                        completed_at = datetime('now', 'localtime'), last_error = ''
+                    WHERE id = ? AND status = 'processing'
+                    """,
+                    (frame_id, 1 if is_baseline else 0, cycle_id),
+                )
+
+            status = "processed" if results or cycle_id is not None else "discarded"
+            message = "" if status == "processed" else "未检测到支持的果蔬目标"
             conn.execute(
                 """
                 UPDATE pending_frames
@@ -209,7 +315,7 @@ class RecognitionRepository:
     def record_failure(self, frame_id: int, error: Exception) -> None:
         with connection_scope(str(self.config.db_path)) as conn:
             row = conn.execute(
-                "SELECT attempt_count FROM pending_frames WHERE id = ?",
+                "SELECT attempt_count, door_cycle_id FROM pending_frames WHERE id = ?",
                 (frame_id,),
             ).fetchone()
             attempts = int(row["attempt_count"] or 0) + 1 if row else 1
@@ -224,4 +330,18 @@ class RecognitionRepository:
                 """,
                 (attempts, str(error)[:500], status, status, frame_id),
             )
+            if (
+                status == "discarded"
+                and row
+                and row["door_cycle_id"] is not None
+            ):
+                conn.execute(
+                    """
+                    UPDATE door_cycle
+                    SET status = 'failed', completed_at = datetime('now', 'localtime'),
+                        last_error = ?
+                    WHERE id = ?
+                    """,
+                    (str(error)[:500], int(row["door_cycle_id"])),
+                )
 

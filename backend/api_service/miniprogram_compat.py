@@ -132,8 +132,13 @@ def inventory_detail(id: int = Query(...)) -> dict[str, Any]:
 
 @router.get("/api/recognitions/latest")
 def recognitions_latest() -> dict[str, Any]:
-    records = recognition_rows(8)
+    records = [
+        row for row in recognition_rows(40) if row.get("isRecognition")
+    ][:8]
     latest = records[0] if records else None
+    pending = query_one(
+        "SELECT id, created_at FROM pending_frames ORDER BY id DESC LIMIT 1"
+    ) if latest is None else None
     targets = []
     for index, row in enumerate(records[:4]):
         targets.append(
@@ -151,16 +156,21 @@ def recognitions_latest() -> dict[str, Any]:
     return ok(
         {
             "id": latest["id"] if latest else 0,
-            "frameNo": f"LOG-{latest['id']}" if latest else "暂无记录",
-            "time": latest["createdAt"] if latest else "",
-            "status": "completed" if latest else "empty",
+            "frameNo": (
+                f"LOG-{latest['id']}" if latest
+                else f"FRAME-{pending['id']}" if pending
+                else "暂无记录"
+            ),
+            "time": latest["createdAt"] if latest else pending.get("created_at", "") if pending else "",
+            "status": "completed" if latest else "camera_only" if pending else "empty",
+            "hasInference": latest is not None,
             "image": latest.get("image") if latest else None,
             "latency": latest.get("latency", 0) if latest else 0,
             "pipeline": [
-                {"key": "capture", "name": "图像采集", "done": True, "cost": "完成"},
-                {"key": "detect", "name": "果蔬识别", "done": True, "cost": "完成"},
-                {"key": "freshness", "name": "新鲜度分析", "done": True, "cost": "完成"},
-                {"key": "done", "name": "写入库存", "done": True, "cost": "完成"},
+                {"key": "capture", "name": "图像采集", "done": latest is not None or pending is not None, "cost": "完成" if latest or pending else "等待"},
+                {"key": "detect", "name": "果蔬识别", "done": latest is not None, "cost": "完成" if latest else "等待"},
+                {"key": "freshness", "name": "新鲜度分析", "done": latest is not None, "cost": "完成" if latest else "等待"},
+                {"key": "done", "name": "写入库存", "done": latest is not None, "cost": "完成" if latest else "等待"},
             ],
             "targets": targets,
             "latencyTrend": [row.get("latency", 0) for row in reversed(records)],

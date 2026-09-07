@@ -161,7 +161,7 @@ onMounted(store.fetchList)
         <el-table-column label="果蔬信息" min-width="190" fixed>
           <template #default="{ row }">
             <button class="produce-cell ripple-target" @click="preview(row)">
-              <ProduceVisual :name="row.name" :color="row.color" />
+              <ProduceVisual :name="row.name" :color="row.color" :src="row.color" />
               <span><strong>{{ row.name }}</strong><small>{{ row.location }}</small></span>
             </button>
           </template>
@@ -202,7 +202,7 @@ onMounted(store.fetchList)
     <div v-else class="inventory-cards">
       <GlassPanel v-for="item in store.list" :key="item.id" hover class="inventory-card">
         <div class="inventory-card__top">
-          <button class="preview-button ripple-target" @click="preview(item)"><ProduceVisual :name="item.name" :color="item.color" size="large" /></button>
+          <button class="preview-button ripple-target" @click="preview(item)"><ProduceVisual :name="item.name" :color="item.color" :src="item.color" size="large" /></button>
           <el-tag :type="toneOf(item.freshness)" effect="dark">{{ labelOf(item.freshness) }}</el-tag>
         </div>
         <div class="inventory-card__heading"><div><h3>{{ item.name }}</h3><span>{{ item.category }} · {{ item.location }}</span></div><strong>{{ item.quantity }}<small>{{ item.unit }}</small></strong></div>
@@ -229,7 +229,7 @@ onMounted(store.fetchList)
 
     <el-dialog v-model="previewVisible" title="库存图片预览" width="420px" align-center>
       <div v-if="previewItem" class="preview-dialog">
-        <ProduceVisual :name="previewItem.name" :color="previewItem.color" size="large" />
+        <ProduceVisual :name="previewItem.name" :color="previewItem.color" :src="previewItem.color" size="large" />
         <h3>{{ previewItem.name }}</h3>
         <p>{{ previewItem.location }} · 新鲜度 {{ Math.round(previewItem.freshnessScore * 100) }}%</p>
       </div>

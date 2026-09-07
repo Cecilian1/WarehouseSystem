@@ -65,6 +65,21 @@ systemctl status qt-frontend --no-pager
 journalctl -u qt-frontend -n 80 --no-pager
 ```
 
+### 板载 LED 门状态与自动盘点
+
+“实时识别”页的按钮通过共享 SQLite 提交开关门请求。`camera-service` 独占
+板载 LED 和摄像头：`user-led` 亮表示门开；关门后熄灯、拍摄单帧并交给 AI。
+板载实体 `USER-KEY` 也接入同一状态机：第一次按下开门亮灯，第二次按下
+关门熄灯并触发拍照；处理中按键会被忽略。真机默认通过稳定节点
+`/dev/input/by-path/platform-gpio_keys@0-event` 读取键码 `114`。
+首次成功识别只建立库存基线，后续关门结果与上一次成功盘点比较并生成
+`IN/OUT` 流水。板载 LED 路径可在
+`backend/camera_service/config/camera_service.yaml` 的
+`door_led_brightness_path` 中修改。
+
+升级该功能后必须同时重新编译并部署 Qt 前端与 C++ AI 可执行文件；仅上传
+Python 源码不会改变 `ai-service-cpp` 的库存比较行为。
+
 启用 C++ AI 服务前，在开发板核对二进制架构并设置执行权限：
 
 ```bash

@@ -94,6 +94,24 @@ class RecognitionStockTest(unittest.TestCase):
                 (frame_id, str(self.crop_dir / "frame.jpg")),
             )
 
+    def _queue_door_frame(self, cycle_id: int, frame_id: int) -> None:
+        with connection_scope(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO door_cycle (id, status, frame_id)
+                VALUES (?, 'processing', ?)
+                """,
+                (cycle_id, frame_id),
+            )
+            conn.execute(
+                """
+                INSERT INTO pending_frames
+                    (id, image_path, change_ratio, status, door_cycle_id)
+                VALUES (?, ?, 1.0, 'pending', ?)
+                """,
+                (frame_id, str(self.crop_dir / f"frame-{frame_id}.jpg"), cycle_id),
+            )
+
     def test_init_seeds_catalog_and_drops_increment_trigger(self) -> None:
         with connection_scope(self.db_path) as conn:
             names = {
@@ -303,6 +321,105 @@ class RecognitionStockTest(unittest.TestCase):
         self.assertEqual(self._stock("苹果"), 1)
         self.assertEqual(self._movements("香蕉"), [("IN", 1.0)])
         self.assertEqual(self._movements("苹果"), [("IN", 2.0), ("OUT", 1.0)])
+
+    def test_door_cycle_first_frame_is_baseline_and_missing_species_is_outbound(self) -> None:
+        self._queue_door_frame(1, 101)
+        self.repository.save_results(
+            101,
+            self.crop_dir / "frame-101.jpg",
+            [
+                _result("apple", self.crop_dir / "a1.jpg"),
+                _result("apple", self.crop_dir / "a2.jpg"),
+                _result("banana", self.crop_dir / "b1.jpg"),
+            ],
+        )
+        self.assertEqual(self._stock("苹果"), 2)
+        self.assertEqual(self._stock("香蕉"), 1)
+        self.assertEqual(self._movements("苹果"), [])
+        with connection_scope(self.db_path) as conn:
+            baseline = conn.execute(
+                "SELECT status, is_baseline FROM door_cycle WHERE id = 1"
+            ).fetchone()
+        self.assertEqual((baseline["status"], baseline["is_baseline"]), ("completed", 1))
+
+        self._queue_door_frame(2, 102)
+        self.repository.save_results(
+            102,
+            self.crop_dir / "frame-102.jpg",
+            [
+                _result("banana", self.crop_dir / "b2.jpg"),
+                _result("apple", self.crop_dir / "a3.jpg"),
+            ],
+        )
+        self.assertEqual(self._stock("苹果"), 1)
+        self.assertEqual(self._movements("苹果"), [("OUT", 1.0)])
+
+        self._queue_door_frame(3, 103)
+        self.repository.save_results(
+            103,
+            self.crop_dir / "frame-103.jpg",
+            [_result("banana", self.crop_dir / "b3.jpg")],
+        )
+        self.assertEqual(self._stock("苹果"), 0)
+        self.assertEqual(self._movements("苹果"), [("OUT", 1.0), ("OUT", 1.0)])
+
+    def test_door_cycle_empty_result_requests_one_retry_then_clears_stock(self) -> None:
+        self._queue_door_frame(1, 201)
+        self.repository.save_results(
+            201,
+            self.crop_dir / "frame-201.jpg",
+            [_result("apple", self.crop_dir / "a.jpg")],
+        )
+
+        self._queue_door_frame(2, 202)
+        self.repository.save_results(202, self.crop_dir / "frame-202.jpg", [])
+        with connection_scope(self.db_path) as conn:
+            cycle = conn.execute(
+                "SELECT status, retry_count FROM door_cycle WHERE id = 2"
+            ).fetchone()
+            first_frame = conn.execute(
+                "SELECT status FROM pending_frames WHERE id = 202"
+            ).fetchone()
+        self.assertEqual((cycle["status"], cycle["retry_count"]), ("recapture_requested", 1))
+        self.assertEqual(first_frame["status"], "discarded")
+        self.assertEqual(self._stock("苹果"), 1)
+
+        with connection_scope(self.db_path) as conn:
+            conn.execute(
+                "UPDATE door_cycle SET status='processing', frame_id=203 WHERE id=2"
+            )
+            conn.execute(
+                """
+                INSERT INTO pending_frames
+                    (id, image_path, change_ratio, status, door_cycle_id)
+                VALUES (203, ?, 1.0, 'pending', 2)
+                """,
+                (str(self.crop_dir / "frame-203.jpg"),),
+            )
+        self.repository.save_results(203, self.crop_dir / "frame-203.jpg", [])
+        self.assertEqual(self._stock("苹果"), 0)
+        self.assertEqual(self._movements("苹果"), [("OUT", 1.0)])
+        with connection_scope(self.db_path) as conn:
+            status = conn.execute(
+                "SELECT status FROM door_cycle WHERE id=2"
+            ).fetchone()["status"]
+        self.assertEqual(status, "completed")
+
+    def test_door_cycle_inference_failure_preserves_stock_and_marks_failed(self) -> None:
+        self._queue_door_frame(1, 301)
+        for _ in range(3):
+            self.repository.record_failure(301, RuntimeError("inference failed"))
+        with connection_scope(self.db_path) as conn:
+            frame = conn.execute(
+                "SELECT status, attempt_count FROM pending_frames WHERE id=301"
+            ).fetchone()
+            cycle = conn.execute(
+                "SELECT status, last_error FROM door_cycle WHERE id=1"
+            ).fetchone()
+        self.assertEqual((frame["status"], frame["attempt_count"]), ("discarded", 3))
+        self.assertEqual(cycle["status"], "failed")
+        self.assertIn("inference failed", cycle["last_error"])
+        self.assertEqual(self._stock("苹果"), 0)
 
 
 if __name__ == "__main__":

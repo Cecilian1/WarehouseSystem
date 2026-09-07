@@ -78,7 +78,23 @@ CREATE TABLE IF NOT EXISTS pending_frames (
     created_at    TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     processed_at  TEXT,
     attempt_count INTEGER NOT NULL DEFAULT 0,
-    last_error    TEXT DEFAULT ''
+    last_error    TEXT DEFAULT '',
+    door_cycle_id INTEGER REFERENCES door_cycle(id)
+);
+
+-- 板载 Qt 提交开关门请求，camera_service 独占 LED/摄像头并推进状态，
+-- AI 服务在识别完成后提交库存差量。该表只保存在板端，不参与电脑同步。
+CREATE TABLE IF NOT EXISTS door_cycle (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    status             TEXT NOT NULL DEFAULT 'open_requested',
+    opened_at          TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    close_requested_at TEXT,
+    captured_at        TEXT,
+    completed_at       TEXT,
+    frame_id           INTEGER REFERENCES pending_frames(id),
+    retry_count        INTEGER NOT NULL DEFAULT 0,
+    is_baseline        INTEGER NOT NULL DEFAULT 0,
+    last_error         TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS sync_source_status (
@@ -112,6 +128,7 @@ CREATE INDEX IF NOT EXISTS idx_inventory_log_created_at ON inventory_log(created
 CREATE INDEX IF NOT EXISTS idx_alert_record_is_read ON alert_record(is_read);
 CREATE INDEX IF NOT EXISTS idx_env_log_recorded_at ON env_log(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_pending_frames_status ON pending_frames(status);
+CREATE INDEX IF NOT EXISTS idx_door_cycle_status ON door_cycle(status, id);
 CREATE INDEX IF NOT EXISTS idx_board_sync_outbox_status ON board_sync_outbox(status, id);
 
 -- 以下为 Web/小程序客户端业务接口所需的表，均为服务端(api_service)新增，

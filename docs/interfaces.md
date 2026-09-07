@@ -56,6 +56,16 @@ INSERT INTO inventory_log (produce_id, action_type, quantity, freshness_level, c
 VALUES (1, 'IN', 3, '新鲜', datetime('now','localtime'));
 ```
 
+## 门状态与自动盘点契约
+
+Qt 前端只写 `door_cycle` 状态；`camera_service` 是板载 LED 和摄像头的唯一
+控制者。状态依次为 `open_requested`、`open`、`close_requested`、
+`capturing`、`processing`，最终进入 `completed` 或 `failed`。空识别保护会短暂
+进入 `recapture_requested`。事件照片通过 `pending_frames.door_cycle_id` 关联。
+
+AI 服务以最近一条成功门周期为基线，检测框流水用于还原各品类数量；只有
+`bbox_json` 为空的 `inventory_log` 行才代表实际 `IN/OUT` 差量。
+
 ## Qt前端预留的AI结果信号
 
 `qt-frontend/pages/recognitionpage.h` 中声明了信号：

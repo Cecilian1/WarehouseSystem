@@ -65,6 +65,7 @@ class PendingFrameWriter:
         self,
         frame: np.ndarray,
         change_ratio: float,
+        door_cycle_id: int | None = None,
     ) -> int | None:
         """保存图片并写入pending_frames，返回新记录id。"""
         if not self._has_pending_capacity():
@@ -78,12 +79,25 @@ class PendingFrameWriter:
         with connection_scope(self.db_path) as conn:
             cursor = conn.execute(
                 """
-                INSERT INTO pending_frames (image_path, change_ratio, status)
-                VALUES (?, ?, 'pending')
+                INSERT INTO pending_frames
+                    (image_path, change_ratio, status, door_cycle_id)
+                VALUES (?, ?, 'pending', ?)
                 """,
-                (image_path, change_ratio),
+                (image_path, change_ratio, door_cycle_id),
             )
             frame_id = cursor.lastrowid
+            if door_cycle_id is not None:
+                cycle_cursor = conn.execute(
+                    """
+                    UPDATE door_cycle
+                    SET status = 'processing', frame_id = ?,
+                        captured_at = datetime('now', 'localtime'), last_error = ''
+                    WHERE id = ? AND status = 'capturing'
+                    """,
+                    (frame_id, door_cycle_id),
+                )
+                if cycle_cursor.rowcount != 1:
+                    raise RuntimeError(f"门周期{door_cycle_id}状态已变化，取消登记图片")
 
         logger.info(
             "触发变化(ratio=%.3f)，已保存帧: %s (pending_frames.id=%d)",

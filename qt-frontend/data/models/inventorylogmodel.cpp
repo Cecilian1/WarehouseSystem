@@ -78,7 +78,7 @@ void InventoryLogModel::refresh(const QString &filterCategory, const QString &st
         "       COALESCE(l.freshness_level, ''), l.created_at "
         "FROM inventory_log l "
         "LEFT JOIN produce_info p ON p.id = l.produce_id "
-        "WHERE 1=1 ";
+        "WHERE COALESCE(l.bbox_json, '') = '' ";
 
     if (!filterCategory.isEmpty())
         sql += "AND p.category = :category ";

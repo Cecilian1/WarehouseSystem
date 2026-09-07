@@ -5,8 +5,8 @@ set(LOONGARCH_TOOLCHAIN_ROOT "/opt/atk-dl2k0300-toolchain" CACHE PATH "龙芯交
 set(CMAKE_C_COMPILER "${LOONGARCH_TOOLCHAIN_ROOT}/bin/loongarch64-linux-gnu-gcc")
 set(CMAKE_CXX_COMPILER "${LOONGARCH_TOOLCHAIN_ROOT}/bin/loongarch64-linux-gnu-g++")
 
-# 必须改成开发板根文件系统或SDK sysroot的真实路径。
-set(CMAKE_SYSROOT "${LOONGARCH_TOOLCHAIN_ROOT}/sysroot" CACHE PATH "开发板sysroot")
+# ATK-DL2K0300 SDK ships the target sysroot below the target tuple directory.
+set(CMAKE_SYSROOT "${LOONGARCH_TOOLCHAIN_ROOT}/loongarch64-buildroot-linux-gnu/sysroot" CACHE PATH "开发板sysroot")
 set(CMAKE_FIND_ROOT_PATH "${CMAKE_SYSROOT}")
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
