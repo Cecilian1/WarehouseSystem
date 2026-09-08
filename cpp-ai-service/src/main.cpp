@@ -29,7 +29,7 @@ struct Options {
     fs::path detector_model = "/opt/warehousekeeper/models/best_ncnn_model";
     fs::path freshness_model = "/opt/warehousekeeper/models/shufflenet_v2_freshness_ncnn_model";
     fs::path crop_dir = "/data/warehousekeeper/frames/crops";
-    float confidence = 0.35F;
+    float confidence = 0.50F;
     float iou = 0.45F;
     int image_size = 640;
     int threads = 2;
@@ -64,7 +64,6 @@ struct Recognition {
 struct Frame {
     long long id = 0;
     std::string image_path;
-    long long door_cycle_id = 0;
 };
 
 const std::vector<std::string> kDetectorClasses = {
@@ -80,8 +79,7 @@ std::string lowercase(std::string value) {
 }
 
 std::string species_from_label(const std::string &label) {
-    const auto separator = label.find('_');
-    return lowercase(label.substr(0, separator));
+    return lowercase(label);
 }
 
 class YoloDetector {
@@ -117,12 +115,8 @@ public:
         forward_ms = elapsed_ms(forward_started);
 
         const auto postprocess_started = Clock::now();
-        if (ncnn_output.dims != 2 || ncnn_output.elempack != 1) {
-            throw std::runtime_error(
-                "YOLO NCNN输出形状不正确 dims=" + std::to_string(ncnn_output.dims) +
-                " w=" + std::to_string(ncnn_output.w) +
-                " h=" + std::to_string(ncnn_output.h) +
-                " elempack=" + std::to_string(ncnn_output.elempack));
+        if (ncnn_output.dims != 2 || ncnn_output.h != static_cast<int>(kDetectorClasses.size()) + 4) {
+            throw std::runtime_error("YOLO NCNN输出形状不正确");
         }
         cv::Mat output(ncnn_output.h, ncnn_output.w, CV_32F);
         for (int channel = 0; channel < ncnn_output.h; ++channel) {
@@ -246,10 +240,7 @@ private:
             flat = transposed;
         }
         if (flat.cols != expected && flat.cols != expected_objectness) {
-            throw std::runtime_error(
-                "YOLO输出列数与类别数量不匹配 rows=" + std::to_string(flat.rows) +
-                " cols=" + std::to_string(flat.cols) +
-                " expected=" + std::to_string(expected));
+            throw std::runtime_error("YOLO输出列数与类别数量不匹配");
         }
         return flat;
     }
@@ -265,6 +256,9 @@ public:
     explicit FreshnessClassifier(const Options &options) {
         net_.opt.num_threads = std::max(1, options.threads);
         net_.opt.use_vulkan_compute = false;
+        // The classifier has three logits. Disable channel packing so the output is
+        // exposed as three scalar floats on every LoongArch NCNN build.
+        net_.opt.use_packing_layout = false;
         if (net_.load_param((options.freshness_model / "model.ncnn.param").string().c_str()) != 0 ||
             net_.load_model((options.freshness_model / "model.ncnn.bin").string().c_str()) != 0) {
             throw std::runtime_error("无法加载新鲜度NCNN模型");
@@ -303,10 +297,23 @@ public:
         ncnn::Mat logits;
         if (extractor.extract("out0", logits) != 0) throw std::runtime_error("新鲜度NCNN推理失败");
         const double inference_ms = elapsed_ms(inference_started);
-        if (logits.total() != 3) {
-            throw std::runtime_error("新鲜度模型输出不是3个logit");
+        const int logical_count = logits.dims == 1 ? logits.w * logits.elempack :
+            logits.dims == 2 ? logits.w * logits.h * logits.elempack :
+            logits.dims == 3 ? logits.w * logits.h * logits.c * logits.elempack : 0;
+        if (logical_count != 3) {
+            throw std::runtime_error(
+                "新鲜度输出形状异常 dims=" + std::to_string(logits.dims) +
+                " w=" + std::to_string(logits.w) + " h=" + std::to_string(logits.h) +
+                " c=" + std::to_string(logits.c) + " elempack=" +
+                std::to_string(logits.elempack) + " total=" + std::to_string(logits.total()));
         }
-        const float *values = logits;
+        ncnn::Mat unpacked;
+        if (logits.elempack != 1) {
+            ncnn::convert_packing(logits, unpacked, 1, net_.opt);
+        } else {
+            unpacked = logits;
+        }
+        const float *values = unpacked;
         const float maximum = *std::max_element(values, values + 3);
         std::array<float, 3> probabilities{};
         float sum = 0.0F;
@@ -347,15 +354,13 @@ public:
     }
 
     bool next_frame(Frame &frame) {
-        const char *sql = "SELECT id,image_path,door_cycle_id FROM pending_frames WHERE status='pending' ORDER BY id LIMIT 1";
+        const char *sql = "SELECT id,image_path FROM pending_frames WHERE status='pending' ORDER BY id LIMIT 1";
         sqlite3_stmt *statement = nullptr;
         check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "查询待处理帧失败");
         const int result = sqlite3_step(statement);
         if (result == SQLITE_ROW) {
             frame.id = sqlite3_column_int64(statement, 0);
             frame.image_path = reinterpret_cast<const char *>(sqlite3_column_text(statement, 1));
-            frame.door_cycle_id = sqlite3_column_type(statement, 2) == SQLITE_NULL
-                ? 0 : sqlite3_column_int64(statement, 2);
             sqlite3_finalize(statement);
             return true;
         }
@@ -363,68 +368,21 @@ public:
         return false;
     }
 
-    void save(const Frame &frame, const std::vector<Recognition> &results) {
+    void save(long long frame_id, const std::vector<Recognition> &results) {
         execute("BEGIN IMMEDIATE");
         try {
-            std::map<long long, int> frame_counts;
             for (const auto &result : results) {
                 const long long produce_id = resolve_produce(result.detection.species);
-                insert_result(frame.id, produce_id, result);
-                frame_counts[produce_id] += 1;
-            }
-
-            if (frame.door_cycle_id > 0) {
-                bool has_previous = false;
-                std::map<long long, int> previous = previous_cycle_counts(
-                    frame.door_cycle_id, has_previous);
-                if (results.empty() && has_previous && !previous.empty() &&
-                    cycle_retry_count(frame.door_cycle_id) < 1) {
-                    request_recapture(frame.id, frame.door_cycle_id);
-                    execute("COMMIT");
-                    return;
-                }
-
-                // 将目录中的全部品类纳入比较；未检出品类数量按 0 处理。
-                const std::array<std::string, 5> species = {
-                    "apple", "banana", "carrot", "cucumber", "orange"
-                };
-                for (const auto &name : species) {
-                    const long long produce_id = resolve_produce(name);
-                    if (frame_counts.find(produce_id) == frame_counts.end()) {
-                        frame_counts[produce_id] = 0;
-                    }
-                }
-                for (const auto &entry : previous) {
-                    if (frame_counts.find(entry.first) == frame_counts.end()) {
-                        frame_counts[entry.first] = 0;
-                    }
-                }
-                for (const auto &entry : frame_counts) {
-                    set_stock(entry.first, entry.second);
-                    if (has_previous) {
-                        const auto old = previous.find(entry.first);
-                        const int previous_quantity = old == previous.end() ? 0 : old->second;
-                        insert_movement(frame.id, entry.first, entry.second - previous_quantity);
-                    }
-                }
-                complete_cycle(frame.door_cycle_id, frame.id, !has_previous);
-            } else {
-                // 兼容升级前遗留的周期帧差任务。
-                for (const auto &entry : frame_counts) {
-                    const int previous = current_stock(entry.first);
-                    set_stock(entry.first, entry.second);
-                    insert_movement(frame.id, entry.first, entry.second - previous);
-                }
+                insert_result(frame_id, produce_id, result);
             }
             sqlite3_stmt *statement = nullptr;
             const char *sql = "UPDATE pending_frames SET status=?,processed_at=datetime('now','localtime'),last_error=? WHERE id=?";
             check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "更新帧状态失败");
-            const std::string status = (!results.empty() || frame.door_cycle_id > 0)
-                ? "processed" : "discarded";
-            const std::string message = status == "processed" ? "" : "未检测到支持的果蔬目标";
+            const std::string status = results.empty() ? "discarded" : "processed";
+            const std::string message = results.empty() ? "未检测到支持的果蔬目标" : "";
             sqlite3_bind_text(statement, 1, status.c_str(), -1, SQLITE_TRANSIENT);
             sqlite3_bind_text(statement, 2, message.c_str(), -1, SQLITE_TRANSIENT);
-            sqlite3_bind_int64(statement, 3, frame.id);
+            sqlite3_bind_int64(statement, 3, frame_id);
             check_sqlite(sqlite3_step(statement), database_, "更新帧状态失败");
             sqlite3_finalize(statement);
             execute("COMMIT");
@@ -434,18 +392,15 @@ public:
         }
     }
 
-    void fail(const Frame &frame, const std::string &error) {
+    void fail(long long frame_id, const std::string &error) {
         sqlite3_stmt *statement = nullptr;
         const char *sql = "UPDATE pending_frames SET attempt_count=attempt_count+1,last_error=?,"
                           "status=CASE WHEN attempt_count+1>=3 THEN 'discarded' ELSE 'pending' END WHERE id=?";
         check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "记录失败状态失败");
         sqlite3_bind_text(statement, 1, error.substr(0, 500).c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int64(statement, 2, frame.id);
+        sqlite3_bind_int64(statement, 2, frame_id);
         check_sqlite(sqlite3_step(statement), database_, "记录失败状态失败");
         sqlite3_finalize(statement);
-        if (frame.door_cycle_id > 0 && frame_status(frame.id) == "discarded") {
-            fail_cycle(frame.door_cycle_id, error);
-        }
     }
 
 private:
@@ -467,37 +422,19 @@ private:
         return catalog.at(species);
     }
 
-    long long lookup_produce(const char *sql, const ProduceInfo &info, bool bind_category) {
+    long long resolve_produce(const std::string &species) {
+        const ProduceInfo info = produce_info(species);
         sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "查询果蔬失败");
+        check_sqlite(sqlite3_prepare_v2(database_, "SELECT id FROM produce_info WHERE name=? AND category=? ORDER BY id LIMIT 1", -1, &statement, nullptr), database_, "查询果蔬失败");
         sqlite3_bind_text(statement, 1, info.name.c_str(), -1, SQLITE_TRANSIENT);
-        if (bind_category) {
-            sqlite3_bind_text(statement, 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
-        }
+        sqlite3_bind_text(statement, 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
         if (sqlite3_step(statement) == SQLITE_ROW) {
             const long long id = sqlite3_column_int64(statement, 0);
             sqlite3_finalize(statement);
             return id;
         }
         sqlite3_finalize(statement);
-        return 0;
-    }
-
-    long long resolve_produce(const std::string &species) {
-        const ProduceInfo info = produce_info(species);
-        const long long by_name = lookup_produce(
-            "SELECT id FROM produce_info WHERE name=? ORDER BY id LIMIT 1", info, false);
-        if (by_name > 0) {
-            return by_name;
-        }
-        const long long by_name_category = lookup_produce(
-            "SELECT id FROM produce_info WHERE name=? AND category=? ORDER BY id LIMIT 1",
-            info, true);
-        if (by_name_category > 0) {
-            return by_name_category;
-        }
-        sqlite3_stmt *statement = nullptr;
-        const char *sql = "INSERT INTO produce_info(name,category,shelf_life_days,unit,location) VALUES(?,?,?,?,'本地库存')";
+        const char *sql = "INSERT INTO produce_info(name,category,shelf_life_days,unit,location) VALUES(?,?,?,?,'AI识别区')";
         check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "创建果蔬失败");
         sqlite3_bind_text(statement, 1, info.name.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(statement, 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
@@ -506,147 +443,6 @@ private:
         check_sqlite(sqlite3_step(statement), database_, "创建果蔬失败");
         sqlite3_finalize(statement);
         return sqlite3_last_insert_rowid(database_);
-    }
-
-    int current_stock(long long produce_id) {
-        sqlite3_stmt *statement = nullptr;
-        const char *sql = "SELECT COALESCE(current_qty, 0) FROM stock_summary WHERE produce_id=?";
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "查询库存失败");
-        sqlite3_bind_int64(statement, 1, produce_id);
-        int quantity = 0;
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            quantity = sqlite3_column_int(statement, 0);
-        }
-        sqlite3_finalize(statement);
-        return quantity;
-    }
-
-    std::map<long long, int> recognition_counts(long long frame_id) {
-        std::map<long long, int> counts;
-        const char *sql = "SELECT produce_id,COUNT(*) FROM inventory_log "
-                          "WHERE source_frame_id=? AND COALESCE(bbox_json,'')<>'' "
-                          "AND produce_id IS NOT NULL GROUP BY produce_id";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "读取识别快照失败");
-        sqlite3_bind_int64(statement, 1, frame_id);
-        while (sqlite3_step(statement) == SQLITE_ROW) {
-            counts[sqlite3_column_int64(statement, 0)] = sqlite3_column_int(statement, 1);
-        }
-        sqlite3_finalize(statement);
-        return counts;
-    }
-
-    std::map<long long, int> previous_cycle_counts(long long cycle_id, bool &found) {
-        found = false;
-        const char *sql = "SELECT frame_id FROM door_cycle WHERE id<? AND status='completed' "
-                          "AND frame_id IS NOT NULL ORDER BY id DESC LIMIT 1";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "读取上次门周期失败");
-        sqlite3_bind_int64(statement, 1, cycle_id);
-        long long previous_frame_id = 0;
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            found = true;
-            previous_frame_id = sqlite3_column_int64(statement, 0);
-        }
-        sqlite3_finalize(statement);
-        return found ? recognition_counts(previous_frame_id) : std::map<long long, int>{};
-    }
-
-    int cycle_retry_count(long long cycle_id) {
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, "SELECT retry_count FROM door_cycle WHERE id=?", -1,
-                                        &statement, nullptr), database_, "读取复拍次数失败");
-        sqlite3_bind_int64(statement, 1, cycle_id);
-        const int count = sqlite3_step(statement) == SQLITE_ROW ? sqlite3_column_int(statement, 0) : 0;
-        sqlite3_finalize(statement);
-        return count;
-    }
-
-    void request_recapture(long long frame_id, long long cycle_id) {
-        sqlite3_stmt *statement = nullptr;
-        const char *frame_sql = "UPDATE pending_frames SET status='discarded',"
-                                "processed_at=datetime('now','localtime'),"
-                                "last_error='空识别结果，已请求自动复拍' WHERE id=?";
-        check_sqlite(sqlite3_prepare_v2(database_, frame_sql, -1, &statement, nullptr), database_, "登记空结果复拍失败");
-        sqlite3_bind_int64(statement, 1, frame_id);
-        check_sqlite(sqlite3_step(statement), database_, "登记空结果复拍失败");
-        sqlite3_finalize(statement);
-
-        const char *cycle_sql = "UPDATE door_cycle SET status='recapture_requested',"
-                                "retry_count=retry_count+1,frame_id=NULL,"
-                                "last_error='空识别结果，正在自动复拍' "
-                                "WHERE id=? AND status='processing'";
-        check_sqlite(sqlite3_prepare_v2(database_, cycle_sql, -1, &statement, nullptr), database_, "请求自动复拍失败");
-        sqlite3_bind_int64(statement, 1, cycle_id);
-        check_sqlite(sqlite3_step(statement), database_, "请求自动复拍失败");
-        sqlite3_finalize(statement);
-    }
-
-    void complete_cycle(long long cycle_id, long long frame_id, bool baseline) {
-        const char *sql = "UPDATE door_cycle SET status='completed',frame_id=?,is_baseline=?,"
-                          "completed_at=datetime('now','localtime'),last_error='' "
-                          "WHERE id=? AND status='processing'";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "完成门周期失败");
-        sqlite3_bind_int64(statement, 1, frame_id);
-        sqlite3_bind_int(statement, 2, baseline ? 1 : 0);
-        sqlite3_bind_int64(statement, 3, cycle_id);
-        check_sqlite(sqlite3_step(statement), database_, "完成门周期失败");
-        sqlite3_finalize(statement);
-    }
-
-    std::string frame_status(long long frame_id) {
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, "SELECT status FROM pending_frames WHERE id=?", -1,
-                                        &statement, nullptr), database_, "读取帧状态失败");
-        sqlite3_bind_int64(statement, 1, frame_id);
-        std::string status;
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            status = reinterpret_cast<const char *>(sqlite3_column_text(statement, 0));
-        }
-        sqlite3_finalize(statement);
-        return status;
-    }
-
-    void fail_cycle(long long cycle_id, const std::string &error) {
-        const char *sql = "UPDATE door_cycle SET status='failed',completed_at=datetime('now','localtime'),"
-                          "last_error=? WHERE id=?";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "标记门周期失败");
-        sqlite3_bind_text(statement, 1, error.substr(0, 500).c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int64(statement, 2, cycle_id);
-        check_sqlite(sqlite3_step(statement), database_, "标记门周期失败");
-        sqlite3_finalize(statement);
-    }
-
-    void insert_movement(long long frame_id, long long produce_id, int delta) {
-        if (delta == 0) {
-            return;
-        }
-        const char *sql = "INSERT INTO inventory_log(produce_id,action_type,quantity,sync_status,"
-                          "source_frame_id,model_version) VALUES(?,?,?,'local',?,?)";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "写入出入库差额失败");
-        sqlite3_bind_int64(statement, 1, produce_id);
-        sqlite3_bind_text(statement, 2, delta > 0 ? "IN" : "OUT", -1, SQLITE_STATIC);
-        sqlite3_bind_int(statement, 3, delta > 0 ? delta : -delta);
-        sqlite3_bind_int64(statement, 4, frame_id);
-        sqlite3_bind_text(statement, 5, "yolo-best+shufflenet-v4-cpp", -1, SQLITE_STATIC);
-        check_sqlite(sqlite3_step(statement), database_, "写入出入库差额失败");
-        sqlite3_finalize(statement);
-    }
-
-    void set_stock(long long produce_id, int quantity) {
-        const char *sql = "INSERT INTO stock_summary(produce_id,current_qty,earliest_expire_date,last_updated) "
-                          "VALUES(?,?, '', datetime('now','localtime')) "
-                          "ON CONFLICT(produce_id) DO UPDATE SET "
-                          "current_qty=excluded.current_qty, last_updated=excluded.last_updated";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "更新库存失败");
-        sqlite3_bind_int64(statement, 1, produce_id);
-        sqlite3_bind_int(statement, 2, quantity);
-        check_sqlite(sqlite3_step(statement), database_, "更新库存失败");
-        sqlite3_finalize(statement);
     }
 
     void insert_result(long long frame_id, long long produce_id, const Recognition &result) {
@@ -677,7 +473,7 @@ private:
         sqlite3_bind_text(statement, 10, bbox.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(statement, 11, probabilities.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_double(statement, 12, result.total_inference_ms);
-        sqlite3_bind_text(statement, 13, "yolo-best+shufflenet-v4-cpp", -1, SQLITE_STATIC);
+        sqlite3_bind_text(statement, 13, "yolo-5class-v1+shufflenet-v4-cpp", -1, SQLITE_STATIC);
         check_sqlite(sqlite3_step(statement), database_, "写入识别结果失败");
         sqlite3_finalize(statement);
     }
@@ -782,7 +578,7 @@ int main(int argc, char **argv) {
                                        preprocessing + prediction.inference_ms});
                 }
                 const auto db_started = Clock::now();
-                repository.save(frame, results);
+                repository.save(frame.id, results);
                 const double db_ms = elapsed_ms(db_started);
                 std::cout << "frame=" << frame.id << " targets=" << results.size()
                           << " decode=" << decode_ms
@@ -794,7 +590,7 @@ int main(int argc, char **argv) {
                           << " db=" << db_ms
                           << " total=" << elapsed_ms(total_started) << " ms\n";
             } catch (const std::exception &error) {
-                repository.fail(frame, error.what());
+                repository.fail(frame.id, error.what());
                 std::cerr << "frame=" << frame.id << " 处理失败: " << error.what() << '\n';
             }
             if (options.once) break;
