@@ -1,3 +1,0 @@
-<view class="glass-card tone-{{tone}} padding-{{padding}} {{hover ? 'tap-scale' : ''}}">
-  <slot></slot>
-</view>

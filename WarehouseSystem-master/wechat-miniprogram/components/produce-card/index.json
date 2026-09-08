@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "status-tag": "/components/status-tag/index",
-    "x-icon": "/components/x-icon/index"
-  }
-}
