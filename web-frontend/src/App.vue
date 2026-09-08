@@ -9,9 +9,13 @@ const dashboardStore = useDashboardStore()
 onMounted(async () => {
   await dashboardStore.fetchOverview()
   dashboardStore.connectRealtime()
+  dashboardStore.startPolling()
 })
 
-onUnmounted(() => dashboardStore.disconnectRealtime())
+onUnmounted(() => {
+  dashboardStore.stopPolling()
+  dashboardStore.disconnectRealtime()
+})
 </script>
 
 <template>

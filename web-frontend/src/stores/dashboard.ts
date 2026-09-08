@@ -7,23 +7,34 @@ import { realtimeSocket } from '@/utils/websocket'
 export const useDashboardStore = defineStore('dashboard', () => {
   const data = ref<DashboardData | null>(null)
   const loading = ref(false)
+  const error = ref('')
   const lastUpdated = ref(new Date())
   const socketConnected = ref(false)
   let unsubscribe: (() => void) | undefined
+  let refreshTimer: number | undefined
+  let requestInFlight = false
 
   const environment = computed(() => data.value?.environment)
   const activeAlerts = computed(() => data.value?.metrics.find((item) => item.id === 'alerts')?.value || 0)
 
-  const fetchOverview = async () => {
-    loading.value = true
+  const loadOverview = async (showLoading: boolean) => {
+    if (requestInFlight) return
+    requestInFlight = true
+    if (showLoading) loading.value = true
     try {
       const response = await dashboardApi.getOverview()
       data.value = response.data
+      error.value = ''
       lastUpdated.value = new Date()
+    } catch (cause) {
+      error.value = cause instanceof Error ? cause.message : '仪表盘数据刷新失败'
     } finally {
-      loading.value = false
+      if (showLoading) loading.value = false
+      requestInFlight = false
     }
   }
+
+  const fetchOverview = () => loadOverview(true)
 
   const connectRealtime = () => {
     if (unsubscribe) return
@@ -58,14 +69,27 @@ export const useDashboardStore = defineStore('dashboard', () => {
     socketConnected.value = false
   }
 
+  const startPolling = () => {
+    if (refreshTimer !== undefined) return
+    refreshTimer = window.setInterval(() => { void loadOverview(false) }, 5000)
+  }
+
+  const stopPolling = () => {
+    if (refreshTimer !== undefined) window.clearInterval(refreshTimer)
+    refreshTimer = undefined
+  }
+
   return {
     data,
     loading,
+    error,
     lastUpdated,
     socketConnected,
     environment,
     activeAlerts,
     fetchOverview,
+    startPolling,
+    stopPolling,
     connectRealtime,
     disconnectRealtime,
   }

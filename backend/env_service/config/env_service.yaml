@@ -8,8 +8,8 @@ i2c_bus: /dev/i2c-0
 # 需上板后用 i2cdetect -y 3 实测确认
 sht30_address: 0x44
 
-# 采集周期（秒），docx建议1~5分钟，默认180秒(3分钟)
-read_interval_sec: 180
+# 仪表盘按实时监控使用；5秒采样一次，与板端同步及Web刷新周期一致。
+read_interval_sec: 5
 
 # 设备异常判定：温度超过该值(摄氏度)且持续超过abnormal_duration_sec则告警
 temp_high_threshold_c: 8.0

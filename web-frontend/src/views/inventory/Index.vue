@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Boxes, Grid2X2, List, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -115,7 +115,8 @@ const remainingCardText = (days: number) => {
   return `剩余 ${days} 天`
 }
 
-onMounted(store.fetchList)
+onMounted(store.startPolling)
+onBeforeUnmount(store.stopPolling)
 </script>
 
 <template>

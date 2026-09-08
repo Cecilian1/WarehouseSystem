@@ -16,6 +16,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from backend.common.db import connection_scope
+from backend.common.freshness_life import predict_freshness_and_shelf_life
 
 DEFAULT_DB_PATH = "/data/warehousekeeper/warehousekeeper.db"
 DB_PATH = os.environ.get("WAREHOUSE_DB_PATH", DEFAULT_DB_PATH)
@@ -212,17 +213,34 @@ def inventory_rows() -> list[dict[str, Any]]:
         """
     )
 
+    latest_environment = query_one(
+        """
+        SELECT temperature, humidity
+        FROM env_log
+        ORDER BY datetime(recorded_at) DESC, id DESC
+        LIMIT 1
+        """
+    ) or {}
+
     items: list[dict[str, Any]] = []
     for row in rows:
         category = normalize_category(row.get("category"))
-        days_left = remaining_days(row)
-        freshness = normalize_freshness(
-            row.get("freshness_level"),
-            row.get("freshness_score"),
-            days_left,
+        prediction = predict_freshness_and_shelf_life(
+            item_name=row.get("name") or "未命名果蔬",
+            shelf_life_days=row.get("shelf_life_days"),
+            freshness=row.get("freshness_level"),
+            freshness_score=row.get("freshness_score"),
+            temperature=latest_environment.get("temperature"),
+            humidity=latest_environment.get("humidity"),
+            inbound_at=row.get("inbound_at"),
         )
+        days_left = prediction["remainingDays"]
+        freshness = prediction["freshness"]
         freshness_score = safe_float(row.get("freshness_score"), default_freshness_score(freshness))
         shelf_life = safe_int(row.get("shelf_life_days"), max(days_left, 0))
+        storage_advice = prediction["warningMessage"]
+        if row.get("ideal_temp_range"):
+            storage_advice = f"{storage_advice} 建议储存环境：{row['ideal_temp_range']}。"
         items.append(
             {
                 "id": row["id"],
@@ -234,7 +252,7 @@ def inventory_rows() -> list[dict[str, Any]]:
                 "remainingDays": days_left,
                 "freshness": freshness,
                 "freshnessScore": max(0.0, min(1.0, freshness_score)),
-                "storageAdvice": row.get("ideal_temp_range") or "按果蔬适宜温湿度储存",
+                "storageAdvice": storage_advice,
                 "inboundAt": format_dt(row.get("inbound_at"), "暂无入库记录"),
                 "location": row.get("location") or "本地库存",
                 "color": row.get("icon_url") or color_for(row.get("name") or "", category),
@@ -355,7 +373,7 @@ def environment_data() -> dict[str, Any]:
         """
         SELECT temperature, humidity, is_abnormal, recorded_at
         FROM env_log
-        ORDER BY id DESC
+        ORDER BY datetime(recorded_at) DESC, id DESC
         LIMIT 1
         """
     )
@@ -363,7 +381,7 @@ def environment_data() -> dict[str, Any]:
         """
         SELECT temperature, humidity, is_abnormal, recorded_at
         FROM env_log
-        ORDER BY id DESC
+        ORDER BY datetime(recorded_at) DESC, id DESC
         LIMIT 16
         """
     )

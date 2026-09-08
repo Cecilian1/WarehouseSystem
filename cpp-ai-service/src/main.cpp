@@ -92,10 +92,6 @@ public:
         : confidence_(options.confidence), iou_(options.iou), image_size_(options.image_size) {
         net_.opt.num_threads = std::max(1, options.threads);
         net_.opt.use_vulkan_compute = false;
-        // The current LoongArch NCNN packing path crashes in Slice for this
-        // exported YOLO graph on the target board.  Keep tensors unpacked;
-        // this is slower but deterministic and matches the proven board build.
-        net_.opt.use_packing_layout = false;
         if (net_.load_param((options.detector_model / "model.ncnn.param").string().c_str()) != 0 ||
             net_.load_model((options.detector_model / "model.ncnn.bin").string().c_str()) != 0) {
             throw std::runtime_error("无法加载YOLO NCNN模型");
@@ -264,7 +260,6 @@ public:
     explicit FreshnessClassifier(const Options &options) {
         net_.opt.num_threads = std::max(1, options.threads);
         net_.opt.use_vulkan_compute = false;
-        net_.opt.use_packing_layout = false;
         if (net_.load_param((options.freshness_model / "model.ncnn.param").string().c_str()) != 0 ||
             net_.load_model((options.freshness_model / "model.ncnn.bin").string().c_str()) != 0) {
             throw std::runtime_error("无法加载新鲜度NCNN模型");

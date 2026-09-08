@@ -7,11 +7,12 @@ response shape without changing any table definition.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import urllib.error
 import urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -309,7 +310,7 @@ def environment_latest() -> dict[str, Any]:
         """
         SELECT temperature, humidity, is_abnormal, recorded_at
         FROM env_log
-        ORDER BY id DESC
+        ORDER BY datetime(recorded_at) DESC, id DESC
         LIMIT 1
         """
     )
@@ -635,6 +636,92 @@ def frame_image_response(frame_id: int, image_path: Any) -> Response:
         if path.is_file():
             return FileResponse(path, headers={"Cache-Control": "no-store"})
     return proxy_board_frame(frame_id)
+
+
+def local_latest_frame_info() -> dict[str, Any] | None:
+    """Return metadata for the newest locally accessible camera frame."""
+    latest_path = Path(LATEST_FRAME_PATH)
+    if latest_path.is_file():
+        captured_at = datetime.fromtimestamp(latest_path.stat().st_mtime)
+        return {
+            "available": True,
+            "captureTime": captured_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "source": "local_latest",
+            "frameId": None,
+            "imageUrl": "/api/frames/latest/image",
+        }
+
+    row = query_one(
+        """
+        SELECT id, image_path, created_at, status
+        FROM pending_frames
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+        """
+    )
+    if not row:
+        return None
+
+    image_path = Path(str(row.get("image_path") or ""))
+    if not image_path.is_file():
+        return None
+    return {
+        "available": True,
+        "captureTime": str(row.get("created_at") or ""),
+        "source": "local_pending",
+        "frameId": safe_int(row.get("id")),
+        "status": str(row.get("status") or ""),
+        "imageUrl": "/api/frames/latest/image",
+    }
+
+
+def board_latest_frame_info() -> dict[str, Any] | None:
+    """Fetch board metadata without making a missing preview a server error."""
+    if not BOARD_SOURCE_URL:
+        return None
+
+    url = f"{BOARD_SOURCE_URL.rstrip('/')}/api/frames/latest/info"
+    request = urllib.request.Request(url, method="GET")
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(request, timeout=5) as upstream:
+            payload = json.loads(upstream.read(64 * 1024).decode("utf-8"))
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+
+    data = payload.get("data") if isinstance(payload, dict) else None
+    return data if isinstance(data, dict) else None
+
+
+@app.get("/api/frames/latest/info")
+def latest_frame_info() -> dict[str, Any]:
+    """Expose the preview capture time used by the Web dashboard.
+
+    This endpoint deliberately returns a successful empty state while the camera
+    is waiting for a door event.  A missing frame is an expected hardware state,
+    not an HTTP routing failure.
+    """
+    info = local_latest_frame_info()
+    if info:
+        return ok(info)
+
+    board_info = board_latest_frame_info()
+    if board_info:
+        return ok({
+            **board_info,
+            "source": "board_proxy",
+            "imageUrl": "/api/frames/latest/image",
+        })
+
+    return ok(
+        {
+            "available": False,
+            "captureTime": "",
+            "source": "unavailable",
+            "frameId": None,
+            "imageUrl": "/api/frames/latest/image",
+        }
+    )
 
 
 @app.get("/api/frames/latest/image")

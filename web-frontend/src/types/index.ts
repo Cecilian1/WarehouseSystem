@@ -97,6 +97,7 @@ export interface RecognitionRecord {
   category: string
   quantity: number
   action: 'IN' | 'OUT'
+  isRecognition?: boolean
   confidence: number
   freshness: FreshnessLevel
   freshnessScore: number
