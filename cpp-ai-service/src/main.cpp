@@ -68,9 +68,7 @@ struct Frame {
 };
 
 const std::vector<std::string> kDetectorClasses = {
-    "Apple_fresh", "Apple_rotten", "Banana_fresh", "Banana_rotten",
-    "Carrot_fresh", "Carrot_rotten", "Cucumber_freesh", "Cucumber_rotten",
-    "Orange_fresh", "Orange_rotten"
+    "Apple", "Banana", "Carrot", "Cucumber", "Orange"
 };
 const std::array<std::string, 3> kFreshnessClasses = {"fresh", "mild", "rotten"};
 
@@ -119,8 +117,12 @@ public:
         forward_ms = elapsed_ms(forward_started);
 
         const auto postprocess_started = Clock::now();
-        if (ncnn_output.dims != 2 || ncnn_output.h != static_cast<int>(kDetectorClasses.size()) + 4) {
-            throw std::runtime_error("YOLO NCNN输出形状不正确");
+        if (ncnn_output.dims != 2 || ncnn_output.elempack != 1) {
+            throw std::runtime_error(
+                "YOLO NCNN输出形状不正确 dims=" + std::to_string(ncnn_output.dims) +
+                " w=" + std::to_string(ncnn_output.w) +
+                " h=" + std::to_string(ncnn_output.h) +
+                " elempack=" + std::to_string(ncnn_output.elempack));
         }
         cv::Mat output(ncnn_output.h, ncnn_output.w, CV_32F);
         for (int channel = 0; channel < ncnn_output.h; ++channel) {
@@ -244,7 +246,10 @@ private:
             flat = transposed;
         }
         if (flat.cols != expected && flat.cols != expected_objectness) {
-            throw std::runtime_error("YOLO输出列数与类别数量不匹配");
+            throw std::runtime_error(
+                "YOLO输出列数与类别数量不匹配 rows=" + std::to_string(flat.rows) +
+                " cols=" + std::to_string(flat.cols) +
+                " expected=" + std::to_string(expected));
         }
         return flat;
     }
