@@ -130,8 +130,22 @@ CREATE TABLE IF NOT EXISTS applied_remote_operation (
 CREATE INDEX IF NOT EXISTS idx_inventory_log_created_at ON inventory_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_alert_record_is_read ON alert_record(is_read);
 CREATE INDEX IF NOT EXISTS idx_env_log_recorded_at ON env_log(recorded_at);
+-- 主库专用：桥接服务把关门照片投递给工作库，并在写回库存时做幂等。
+-- 工作库不使用此表。旧 NCNN 绝不能打开主库。
+CREATE TABLE IF NOT EXISTS inference_job (
+    main_frame_id   INTEGER PRIMARY KEY REFERENCES pending_frames(id),
+    door_cycle_id   INTEGER REFERENCES door_cycle(id),
+    worker_frame_id INTEGER,
+    image_path      TEXT NOT NULL,
+    status          TEXT NOT NULL,
+    last_error      TEXT DEFAULT '',
+    created_at      TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    finished_at     TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_pending_frames_status ON pending_frames(status);
 CREATE INDEX IF NOT EXISTS idx_door_cycle_status ON door_cycle(status, id);
+CREATE INDEX IF NOT EXISTS idx_inference_job_status ON inference_job(status, main_frame_id);
 CREATE INDEX IF NOT EXISTS idx_board_sync_outbox_status ON board_sync_outbox(status, id);
 
 -- 以下为 Web/小程序客户端业务接口所需的表，均为服务端(api_service)新增，

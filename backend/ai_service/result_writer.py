@@ -198,185 +198,236 @@ class RecognitionRepository:
         source_image_path: str | Path,
         results: list[RecognitionResult],
     ) -> list[int]:
-        log_ids: list[int] = []
         with connection_scope(str(self.config.db_path)) as conn:
-            frame_row = conn.execute(
-                "SELECT door_cycle_id FROM pending_frames WHERE id = ?",
-                (frame_id,),
-            ).fetchone()
-            cycle_id = (
-                int(frame_row["door_cycle_id"])
-                if frame_row and frame_row["door_cycle_id"] is not None
-                else None
+            return self.save_results_on_connection(
+                conn, frame_id, source_image_path, results
             )
-            frame_counts: Counter[int] = Counter()
-            produce_defs: dict[int, ProduceDefinition] = {}
-            for result in results:
-                definition = self.config.produce_catalog[result.detection.species]
-                produce_id = self._resolve_produce(conn, definition)
-                frame_counts[produce_id] += 1
-                produce_defs[produce_id] = definition
-                bbox = {
-                    "x1": result.detection.bbox[0],
-                    "y1": result.detection.bbox[1],
-                    "x2": result.detection.bbox[2],
-                    "y2": result.detection.bbox[3],
-                    "image_width": result.image_width,
-                    "image_height": result.image_height,
-                }
-                cursor = conn.execute(
-                    """
-                    INSERT INTO inventory_log
-                        (produce_id, action_type, quantity, freshness_level,
-                         freshness_score, confidence, image_path, sync_status,
-                         source_frame_id, detector_label,
-                         detector_confidence, freshness_confidence, bbox_json,
-                         freshness_probabilities_json, inference_latency_ms,
-                         model_version)
-                    VALUES (?, ?, 1, ?, ?, ?, ?, 'local', ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        produce_id,
-                        self.config.inventory_action,
-                        result.freshness.label,
-                        result.freshness.score,
-                        result.freshness.confidence,
-                        str(result.crop_path),
-                        frame_id,
-                        result.detection.detector_label,
-                        result.detection.confidence,
-                        result.freshness.confidence,
-                        json.dumps(bbox, ensure_ascii=False),
-                        json.dumps(
-                            result.freshness.probabilities,
-                            ensure_ascii=False,
-                        ),
-                        result.inference_latency_ms,
-                        self.config.model_version,
+
+    def save_results_on_connection(
+        self,
+        conn: Any,
+        frame_id: int,
+        source_image_path: str | Path,
+        results: list[RecognitionResult],
+    ) -> list[int]:
+        del source_image_path
+        log_ids: list[int] = []
+        frame_row = conn.execute(
+            "SELECT door_cycle_id FROM pending_frames WHERE id = ?",
+            (frame_id,),
+        ).fetchone()
+        cycle_id = (
+            int(frame_row["door_cycle_id"])
+            if frame_row and frame_row["door_cycle_id"] is not None
+            else None
+        )
+        frame_counts: Counter[int] = Counter()
+        produce_defs: dict[int, ProduceDefinition] = {}
+        for result in results:
+            definition = self.config.produce_catalog[result.detection.species]
+            produce_id = self._resolve_produce(conn, definition)
+            frame_counts[produce_id] += 1
+            produce_defs[produce_id] = definition
+            bbox = {
+                "x1": result.detection.bbox[0],
+                "y1": result.detection.bbox[1],
+                "x2": result.detection.bbox[2],
+                "y2": result.detection.bbox[3],
+                "image_width": result.image_width,
+                "image_height": result.image_height,
+            }
+            cursor = conn.execute(
+                """
+                INSERT INTO inventory_log
+                    (produce_id, action_type, quantity, freshness_level,
+                     freshness_score, confidence, image_path, sync_status,
+                     source_frame_id, detector_label,
+                     detector_confidence, freshness_confidence, bbox_json,
+                     freshness_probabilities_json, inference_latency_ms,
+                     model_version)
+                VALUES (?, ?, 1, ?, ?, ?, ?, 'local', ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    produce_id,
+                    self.config.inventory_action,
+                    result.freshness.label,
+                    result.freshness.score,
+                    result.freshness.confidence,
+                    str(result.crop_path),
+                    frame_id,
+                    result.detection.detector_label,
+                    result.detection.confidence,
+                    result.freshness.confidence,
+                    json.dumps(bbox, ensure_ascii=False),
+                    json.dumps(
+                        result.freshness.probabilities,
+                        ensure_ascii=False,
                     ),
+                    result.inference_latency_ms,
+                    self.config.model_version,
+                ),
+            )
+            log_ids.append(int(cursor.lastrowid))
+
+        if cycle_id is None:
+            # 兼容升级前遗留的帧；新门事件流程不再依赖周期帧差触发。
+            for produce_id, quantity in frame_counts.items():
+                previous = self._current_stock(conn, produce_id)
+                self._set_stock(conn, produce_id, quantity, produce_defs[produce_id])
+                movement_id = self._insert_movement(
+                    conn, frame_id, produce_id, quantity - previous
                 )
-                log_ids.append(int(cursor.lastrowid))
+                if movement_id is not None:
+                    log_ids.append(movement_id)
+        else:
+            previous_counts = self._previous_cycle_counts(conn, cycle_id)
+            cycle = conn.execute(
+                "SELECT retry_count FROM door_cycle WHERE id = ?",
+                (cycle_id,),
+            ).fetchone()
+            retry_count = int(cycle["retry_count"] or 0) if cycle else 0
 
-            if cycle_id is None:
-                # 兼容升级前遗留的帧；新门事件流程不再依赖周期帧差触发。
-                for produce_id, quantity in frame_counts.items():
-                    previous = self._current_stock(conn, produce_id)
-                    self._set_stock(conn, produce_id, quantity, produce_defs[produce_id])
-                    movement_id = self._insert_movement(
-                        conn, frame_id, produce_id, quantity - previous
-                    )
-                    if movement_id is not None:
-                        log_ids.append(movement_id)
-            else:
-                previous_counts = self._previous_cycle_counts(conn, cycle_id)
-                cycle = conn.execute(
-                    "SELECT retry_count FROM door_cycle WHERE id = ?",
-                    (cycle_id,),
-                ).fetchone()
-                retry_count = int(cycle["retry_count"] or 0) if cycle else 0
-
-                if not results and previous_counts and retry_count < 1:
-                    conn.execute(
-                        """
-                        UPDATE pending_frames
-                        SET status = 'discarded',
-                            processed_at = datetime('now', 'localtime'),
-                            last_error = '空识别结果，已请求自动复拍',
-                            claimed_by = NULL, claimed_at = NULL
-                        WHERE id = ?
-                        """,
-                        (frame_id,),
-                    )
-                    conn.execute(
-                        """
-                        UPDATE door_cycle
-                        SET status = 'recapture_requested', retry_count = retry_count + 1,
-                            frame_id = NULL, last_error = '空识别结果，正在自动复拍'
-                        WHERE id = ? AND status = 'processing'
-                        """,
-                        (cycle_id,),
-                    )
-                    return log_ids
-
-                # 解析完整目录，确保本次完全消失的品类也以数量 0 参与比较。
-                for definition in self.config.produce_catalog.values():
-                    produce_id = self._resolve_produce(conn, definition)
-                    produce_defs[produce_id] = definition
-                all_produce_ids = set(produce_defs) | set(frame_counts)
-                if previous_counts is not None:
-                    all_produce_ids |= set(previous_counts)
-
-                is_baseline = previous_counts is None
-                for produce_id in all_produce_ids:
-                    quantity = int(frame_counts.get(produce_id, 0))
-                    definition = produce_defs.get(produce_id)
-                    if definition is None:
-                        continue
-                    self._set_stock(conn, produce_id, quantity, definition)
-                    if not is_baseline:
-                        movement_id = self._insert_movement(
-                            conn,
-                            frame_id,
-                            produce_id,
-                            quantity - int(previous_counts.get(produce_id, 0)),
-                        )
-                        if movement_id is not None:
-                            log_ids.append(movement_id)
-
+            if not results and previous_counts and retry_count < 1:
+                conn.execute(
+                    """
+                    UPDATE pending_frames
+                    SET status = 'discarded',
+                        processed_at = datetime('now', 'localtime'),
+                        last_error = '空识别结果，已请求自动复拍',
+                        claimed_by = NULL, claimed_at = NULL
+                    WHERE id = ?
+                    """,
+                    (frame_id,),
+                )
                 conn.execute(
                     """
                     UPDATE door_cycle
-                    SET status = 'completed', frame_id = ?, is_baseline = ?,
-                        completed_at = datetime('now', 'localtime'), last_error = ''
+                    SET status = 'recapture_requested', retry_count = retry_count + 1,
+                        frame_id = NULL, last_error = '空识别结果，正在自动复拍'
                     WHERE id = ? AND status = 'processing'
                     """,
-                    (frame_id, 1 if is_baseline else 0, cycle_id),
+                    (cycle_id,),
                 )
+                return log_ids
 
-            status = "processed" if results or cycle_id is not None else "discarded"
-            message = "" if status == "processed" else "未检测到支持的果蔬目标"
+            # 解析完整目录，确保本次完全消失的品类也以数量 0 参与比较。
+            for definition in self.config.produce_catalog.values():
+                produce_id = self._resolve_produce(conn, definition)
+                produce_defs[produce_id] = definition
+            all_produce_ids = set(produce_defs) | set(frame_counts)
+            if previous_counts is not None:
+                all_produce_ids |= set(previous_counts)
+
+            is_baseline = previous_counts is None
+            for produce_id in all_produce_ids:
+                quantity = int(frame_counts.get(produce_id, 0))
+                definition = produce_defs.get(produce_id)
+                if definition is None:
+                    continue
+                self._set_stock(conn, produce_id, quantity, definition)
+                if not is_baseline:
+                    movement_id = self._insert_movement(
+                        conn,
+                        frame_id,
+                        produce_id,
+                        quantity - int(previous_counts.get(produce_id, 0)),
+                    )
+                    if movement_id is not None:
+                        log_ids.append(movement_id)
+
             conn.execute(
                 """
-                UPDATE pending_frames
-                SET status = ?, processed_at = datetime('now', 'localtime'),
-                    last_error = ?, claimed_by = NULL, claimed_at = NULL
-                WHERE id = ?
+                UPDATE door_cycle
+                SET status = 'completed', frame_id = ?, is_baseline = ?,
+                    completed_at = datetime('now', 'localtime'), last_error = ''
+                WHERE id = ? AND status = 'processing'
                 """,
-                (status, message, frame_id),
+                (frame_id, 1 if is_baseline else 0, cycle_id),
             )
+
+        status = "processed" if results or cycle_id is not None else "discarded"
+        message = "" if status == "processed" else "未检测到支持的果蔬目标"
+        conn.execute(
+            """
+            UPDATE pending_frames
+            SET status = ?, processed_at = datetime('now', 'localtime'),
+                last_error = ?, claimed_by = NULL, claimed_at = NULL
+            WHERE id = ?
+            """,
+            (status, message, frame_id),
+        )
         return log_ids
 
     def record_failure(self, frame_id: int, error: Exception) -> None:
         with connection_scope(str(self.config.db_path)) as conn:
-            row = conn.execute(
-                "SELECT attempt_count, door_cycle_id FROM pending_frames WHERE id = ?",
-                (frame_id,),
-            ).fetchone()
-            attempts = int(row["attempt_count"] or 0) + 1 if row else 1
-            status = "discarded" if attempts >= self.config.max_attempts else "pending"
+            self.record_failure_on_connection(conn, frame_id, error)
+
+    def record_failure_on_connection(
+        self,
+        conn: Any,
+        frame_id: int,
+        error: Exception,
+    ) -> None:
+        row = conn.execute(
+            "SELECT attempt_count, door_cycle_id FROM pending_frames WHERE id = ?",
+            (frame_id,),
+        ).fetchone()
+        attempts = int(row["attempt_count"] or 0) + 1 if row else 1
+        status = "discarded" if attempts >= self.config.max_attempts else "pending"
+        conn.execute(
+            """
+            UPDATE pending_frames
+            SET attempt_count = ?, last_error = ?, status = ?,
+                processed_at = CASE WHEN ? = 'discarded'
+                    THEN datetime('now', 'localtime') ELSE processed_at END,
+                claimed_by = NULL, claimed_at = NULL
+            WHERE id = ?
+            """,
+            (attempts, str(error)[:500], status, status, frame_id),
+        )
+        if (
+            status == "discarded"
+            and row
+            and row["door_cycle_id"] is not None
+        ):
             conn.execute(
                 """
-                UPDATE pending_frames
-                SET attempt_count = ?, last_error = ?, status = ?,
-                    processed_at = CASE WHEN ? = 'discarded'
-                        THEN datetime('now', 'localtime') ELSE processed_at END,
-                    claimed_by = NULL, claimed_at = NULL
+                UPDATE door_cycle
+                SET status = 'failed', completed_at = datetime('now', 'localtime'),
+                    last_error = ?
                 WHERE id = ?
                 """,
-                (attempts, str(error)[:500], status, status, frame_id),
+                (str(error)[:500], int(row["door_cycle_id"])),
             )
-            if (
-                status == "discarded"
-                and row
-                and row["door_cycle_id"] is not None
-            ):
-                conn.execute(
-                    """
-                    UPDATE door_cycle
-                    SET status = 'failed', completed_at = datetime('now', 'localtime'),
-                        last_error = ?
-                    WHERE id = ?
-                    """,
-                    (str(error)[:500], int(row["door_cycle_id"])),
-                )
+
+    def record_terminal_failure_on_connection(
+        self,
+        conn: Any,
+        frame_id: int,
+        error: Exception,
+    ) -> None:
+        row = conn.execute(
+            "SELECT door_cycle_id FROM pending_frames WHERE id = ?",
+            (frame_id,),
+        ).fetchone()
+        conn.execute(
+            """
+            UPDATE pending_frames
+            SET status = 'discarded', last_error = ?,
+                processed_at = datetime('now', 'localtime'),
+                claimed_by = NULL, claimed_at = NULL
+            WHERE id = ?
+            """,
+            (str(error)[:500], frame_id),
+        )
+        if row and row["door_cycle_id"] is not None:
+            conn.execute(
+                """
+                UPDATE door_cycle
+                SET status = 'failed', completed_at = datetime('now', 'localtime'),
+                    last_error = ?
+                WHERE id = ?
+                """,
+                (str(error)[:500], int(row["door_cycle_id"])),
+            )
 

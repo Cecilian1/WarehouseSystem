@@ -56,11 +56,12 @@ echo "==> 检查Python依赖..."
 install_python_dependencies
 
 echo "==> 创建数据目录..."
-mkdir -p "$DATA_ROOT/frames"
+mkdir -p "$DATA_ROOT/frames" "$DATA_ROOT/frames/crops"
 
-echo "==> 初始化SQLite数据库..."
+echo "==> 初始化主库和工作库..."
 cd "$INSTALL_ROOT"
 python3 -m backend.common.init_db --db-path "$DATA_ROOT/warehousekeeper.db"
+python3 -m backend.common.init_db --db-path "$DATA_ROOT/inference-worker.db"
 
 echo "==> 安装systemd服务单元..."
 install_unit camera-service.service
@@ -78,45 +79,55 @@ if [ -f "$INSTALL_ROOT/qt-frontend/WarehouseKeeper" ]; then
 else
     echo "==> 未发现 qt-frontend/WarehouseKeeper，跳过 Qt 前端自启动服务。"
 fi
-AI_SERVICE_NAME=""
-if [ -x "$INSTALL_ROOT/bin/warehouse-ai-service" ]; then
-    if ! grep -a -q "recapture_requested" "$INSTALL_ROOT/bin/warehouse-ai-service"; then
-        echo "==> bin/warehouse-ai-service 仍是旧版本，缺少门周期盘点支持。" >&2
-        echo "    请先用当前 cpp-ai-service 源码重新交叉编译并替换该文件。" >&2
+if [ ! -f "$INSTALL_ROOT/backend/inference_bridge/main.py" ]; then
+    echo "==> 缺少 inference-bridge，不能安装。旧 NCNN 不能直接写主库。" >&2
+    exit 1
+fi
+if [ ! -x "$INSTALL_ROOT/bin/warehouse-ai-service" ]; then
+    echo "==> 缺少可执行的 bin/warehouse-ai-service（应使用旧稳定 NCNN 程序）。" >&2
+    exit 1
+fi
+for model_file in \
+    "$INSTALL_ROOT/models/best_ncnn_model/model.ncnn.param" \
+    "$INSTALL_ROOT/models/best_ncnn_model/model.ncnn.bin" \
+    "$INSTALL_ROOT/models/shufflenet_v2_freshness_ncnn_model/model.ncnn.param" \
+    "$INSTALL_ROOT/models/shufflenet_v2_freshness_ncnn_model/model.ncnn.bin"; do
+    if [ ! -f "$model_file" ]; then
+        echo "==> 缺少 AI 模型文件: $model_file" >&2
         exit 1
     fi
-    for model_file in \
-        "$INSTALL_ROOT/models/best_ncnn_model/model.ncnn.param" \
-        "$INSTALL_ROOT/models/best_ncnn_model/model.ncnn.bin" \
-        "$INSTALL_ROOT/models/shufflenet_v2_freshness_ncnn_model/model.ncnn.param" \
-        "$INSTALL_ROOT/models/shufflenet_v2_freshness_ncnn_model/model.ncnn.bin"; do
-        if [ ! -f "$model_file" ]; then
-            echo "==> 缺少 AI 模型文件: $model_file" >&2
-            exit 1
-        fi
-    done
-    install_unit ai-service-cpp.service
-    AI_SERVICE_NAME=ai-service-cpp
-else
-    echo "==> 未发现 bin/warehouse-ai-service，跳过 C++ AI 推理服务。"
+done
+chmod 755 "$INSTALL_ROOT/deploy/run_warehouse_ai_service.sh"
+install_unit ai-service-cpp.service
+install_unit inference-bridge.service
+if ! grep -q 'inference-worker.db' /etc/systemd/system/ai-service-cpp.service; then
+    echo "==> ai-service-cpp 未指向工作库，拒绝安装。" >&2
+    exit 1
+fi
+if grep -E -- '--db[[:space:]]+/data/warehousekeeper/warehousekeeper.db' \
+    /etc/systemd/system/ai-service-cpp.service >/dev/null; then
+    echo "==> ai-service-cpp 仍指向主库，旧 NCNN 不能直接接触主库。" >&2
+    exit 1
 fi
 systemctl daemon-reload
 
 echo "==> 启用并启动服务..."
+systemctl disable --now ai-service 2>/dev/null || true
 systemctl enable --now camera-service
 systemctl enable --now env-service
 systemctl enable --now api-service
 if [ -n "$QT_FRONTEND_SERVICE" ]; then
     systemctl enable --now "$QT_FRONTEND_SERVICE"
 fi
-if [ -n "$AI_SERVICE_NAME" ]; then
-    # Python AI 服务与 NCNN C++ 服务不能同时消费同一批 pending_frames。
-    systemctl disable --now ai-service 2>/dev/null || true
-    systemctl enable --now "$AI_SERVICE_NAME"
+systemctl enable --now ai-service-cpp
+systemctl enable --now inference-bridge
+if systemctl is-enabled --quiet ai-service 2>/dev/null; then
+    echo "==> Python 备用 AI 服务必须保持禁用。" >&2
+    exit 1
 fi
 
 sleep 2
-for service_name in camera-service env-service api-service $QT_FRONTEND_SERVICE $AI_SERVICE_NAME; do
+for service_name in camera-service env-service api-service $QT_FRONTEND_SERVICE ai-service-cpp inference-bridge; do
     if ! systemctl is-active --quiet "$service_name"; then
         echo "==> $service_name 启动失败，最近日志如下：" >&2
         journalctl -u "$service_name" -n 40 --no-pager >&2 || true
@@ -131,12 +142,13 @@ echo "    systemctl status api-service"
 if [ -n "$QT_FRONTEND_SERVICE" ]; then
     echo "    systemctl status qt-frontend"
 fi
-if [ -n "$AI_SERVICE_NAME" ]; then
-    echo "    systemctl status $AI_SERVICE_NAME"
-fi
+echo "    systemctl status ai-service-cpp"
+echo "    systemctl status inference-bridge"
 echo "    journalctl -u camera-service -f"
 echo "    journalctl -u env-service -f"
 echo "    journalctl -u api-service -f"
 if [ -n "$QT_FRONTEND_SERVICE" ]; then
     echo "    journalctl -u qt-frontend -f"
 fi
+echo "    journalctl -u ai-service-cpp -f"
+echo "    journalctl -u inference-bridge -f"

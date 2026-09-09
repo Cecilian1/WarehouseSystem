@@ -1,0 +1,12 @@
+# 主库给门控、Qt、库存和电脑同步使用。
+# 旧 NCNN 只能打开工作库，绝不能直接接触主库。
+main_db_path: /data/warehousekeeper/warehousekeeper.db
+worker_db_path: /data/warehousekeeper/inference-worker.db
+lock_path: /data/warehousekeeper/inference-bridge.lock
+
+poll_interval_sec: 1.0
+worker_timeout_sec: 180.0
+lease_renew_sec: 30.0
+stale_claim_minutes: 5
+max_attempts: 3
+model_version: yolo-best+shufflenet-v4-bridge

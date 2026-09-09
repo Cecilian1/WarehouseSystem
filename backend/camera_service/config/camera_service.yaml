@@ -5,7 +5,7 @@ camera_device: /dev/video0
 # 采集分辨率（与官方QCamera示例一致，控制单核CPU负载）
 resolution: [640, 480]
 
-# Web预览每5秒刷新一次；变化触发记录仍由change_ratio_threshold控制
+# Web预览每5秒只覆盖 latest.jpg，不入队、不推理、不改库存。
 capture_interval_sec: 5
 
 # Qt 门状态请求轮询周期，以及关门后等待画面稳定的时间。

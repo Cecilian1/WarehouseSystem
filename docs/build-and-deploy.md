@@ -52,11 +52,21 @@ sh deploy/install_on_device.sh
 ```
 
 该脚本会自动识别当前仓库目录；依次安装 Python 依赖、创建
-`/data/warehousekeeper` 数据目录、初始化 SQLite 数据库，并安装和启动
-摄像头、环境监测、API 和 Qt 前端 systemd 服务。若项目同时包含已授权执行的
-`bin/warehouse-ai-service` 及两组 NCNN 模型，脚本还会自动启动
-`ai-service-cpp`。若任一已启用服务未成功进入 active 状态，脚本会打印最近
-日志并失败退出。详见 `deploy/install_on_device.sh` 源码。
+`/data/warehousekeeper` 数据目录、初始化**主库和工作库**，并安装摄像头、
+环境监测、API、Qt、旧 NCNN（`ai-service-cpp`）和 `inference-bridge`。
+Python 备用 `ai-service` 保持禁用。旧 NCNN 只打开
+`/data/warehousekeeper/inference-worker.db`，由桥接服务写回主库。
+若任一已启用服务未成功进入 active 状态，脚本会打印最近日志并失败退出。
+
+**不要**用旧稳定包整目录覆盖后再跑旧安装脚本。正确顺序：
+
+1. 备份 `/opt/warehousekeeper` 和 `/data/warehousekeeper`。
+2. 部署当前仓库的新 Python、Qt 和安装脚本。
+3. 从旧稳定包只拿回 `bin/warehouse-ai-service`、两组 `models` 和必需运行库。
+4. 不要用旧包里的 Python、Qt、systemd 和安装脚本覆盖新版本。
+5. 初始化工作库并执行**新的** `deploy/install_on_device.sh`。
+
+板上也可执行 `sh deploy/cutover_inference_bridge.sh /path/to/old-stable`。
 
 Qt 前端自启动状态与日志：
 
@@ -77,10 +87,11 @@ journalctl -u qt-frontend -n 80 --no-pager
 `backend/camera_service/config/camera_service.yaml` 的
 `door_led_brightness_path` 中修改。
 
-升级该功能后必须同时重新编译并部署 Qt 前端与 C++ AI 可执行文件；仅上传
-Python 源码不会改变 `ai-service-cpp` 的库存比较行为。
+不要重新编译旧 NCNN。关门拍照后由 `inference-bridge` 比较库存并生成
+`IN/OUT`；旧 `warehouse-ai-service` 只负责检测框、品类、置信度和新鲜度。
+每 5 秒预览只覆盖 `latest.jpg`，不入队、不推理、不改库存。
 
-启用 C++ AI 服务前，在开发板核对二进制架构并设置执行权限：
+启用旧 NCNN 前，在开发板核对二进制架构并设置执行权限：
 
 ```bash
 file bin/warehouse-ai-service  # 应显示 LoongArch ELF
@@ -92,16 +103,20 @@ chmod 755 bin/warehouse-ai-service
 ```bash
 systemctl status camera-service
 systemctl status env-service
+systemctl status ai-service-cpp
+systemctl status inference-bridge
 systemctl restart camera-service
 journalctl -u camera-service -f     # 实时查看日志
-journalctl -u env-service -f
+journalctl -u inference-bridge -f
+journalctl -u ai-service-cpp -f
 ```
 
 ## 5. 数据库文件位置
 
-三个进程（Qt前端、camera_service、env_service）共用同一个SQLite文件：
-`/data/warehousekeeper/warehousekeeper.db`（路径在各自配置文件中约定，
-需保持一致）。WAL模式下会产生`.db-wal`/`.db-shm`辅助文件，属正常现象。
+Qt、camera_service、env_service、api_service 和 inference-bridge 共用主库
+`/data/warehousekeeper/warehousekeeper.db`。旧 NCNN 只能打开工作库
+`/data/warehousekeeper/inference-worker.db`。WAL 模式下各自会产生
+`.db-wal` / `.db-shm`，属正常现象。
 
 手动查看数据：
 

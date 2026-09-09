@@ -135,7 +135,7 @@ void RecognitionPage::onDoorButtonClicked()
 {
     QSqlDatabase database = DatabaseManager::database();
     QSqlQuery transaction(database);
-    if (!transaction.exec(QStringLiteral("BEGIN IMMEDIATE"))) {
+    if (!transaction.exec("BEGIN IMMEDIATE")) {
         m_doorStatusLabel->setText(
             QStringLiteral("锁定门状态失败：%1").arg(transaction.lastError().text()));
         return;

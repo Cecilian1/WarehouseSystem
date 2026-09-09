@@ -63,8 +63,28 @@ Qt 前端只写 `door_cycle` 状态；`camera_service` 是板载 LED 和摄像�
 `capturing`、`processing`，最终进入 `completed` 或 `failed`。空识别保护会短暂
 进入 `recapture_requested`。事件照片通过 `pending_frames.door_cycle_id` 关联。
 
-AI 服务以最近一条成功门周期为基线，检测框流水用于还原各品类数量；只有
-`bbox_json` 为空的 `inventory_log` 行才代表实际 `IN/OUT` 差量。
+每 5 秒预览只覆盖 `latest.jpg`，不写入 `pending_frames`，不启动推理，不改库存。
+只有关门（或复拍）才会保存独立照片并加入主库队列。
+
+## 旧 NCNN 与 inference-bridge
+
+主库：`/data/warehousekeeper/warehousekeeper.db`
+工作库：`/data/warehousekeeper/inference-worker.db`
+
+旧 `warehouse-ai-service` **只能**打开工作库。它把每个检测框写成 `IN 1`，
+不认识 `door_cycle`。`inference-bridge` 把关门照片送进工作库，读取检测结果后，
+在主库按上次成功盘点计算差量，并完成门周期。
+
+工作库里的 `IN 1` 和 `stock_summary` 不得复制成主库流水。只有主库中
+`bbox_json` 为空的 `inventory_log` 行才代表实际 `IN/OUT`。
+
+桥接保护：
+
+- 识别结果落主库与 `inference_job=done|failed` 在同一事务中提交。
+- 工作帧 `discarded` 且 `attempt_count=0` 才是有效空结果；`attempt_count>=3`
+  按推理失败处理，不把冰箱判空。
+- 等待旧 AI 时续期主库 `pending_frames.claimed_at`。
+- 旧 AI 与桥接服务都使用 `flock`，保证只有一个实例。
 
 ## Qt前端预留的AI结果信号
 

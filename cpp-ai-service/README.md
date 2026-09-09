@@ -1,6 +1,8 @@
 # NCNN C++ AI服务
 
-该程序是板端AI流水线的C++版本，现已从OpenCV DNN切换为NCNN推理，继续复用原有SQLite数据库与前后端数据接口。
+板上生产路径不再重编本目录。稳定旧 `warehouse-ai-service` 只作为推理引擎，
+打开独立工作库 `/data/warehousekeeper/inference-worker.db`；门周期、库存差量
+和复拍由 `inference-bridge` 写回主库。不要让本程序直接打开主库。
 
 ## 推理流程
 
@@ -32,7 +34,7 @@ ATK-DL2K0300B 的稳定生产构建固定使用官方 NCNN `20260526`
 
 ```text
 NCNN_RUNTIME_CPU=OFF
-NCNN_LSX=ON
+NCNN_LSX=OFF
 NCNN_LASX=OFF
 NCNN_OPENMP=OFF
 NCNN_PIXEL_DRAWING=OFF
@@ -41,8 +43,9 @@ NCNN_INT8=ON
 NCNN_ENABLE_LTO=OFF
 ```
 
-2K0300 不支持 LASX；不要在关闭 `NCNN_RUNTIME_CPU` 时启用 LASX，否则整个
-静态库可能生成板端无法执行的指令。配置好工具链后，可直接运行：
+当前龙芯 SDK 的 GCC 13.3 不识别 NCNN 探测使用的 `-mlsx/-mlasx` 参数，因此
+LSX 和 LASX 都必须显式关闭。尤其不要在关闭 `NCNN_RUNTIME_CPU` 时启用 LASX，
+否则整个静态库可能生成板端无法执行的指令。配置好工具链后，可直接运行：
 
 ```bash
 git clone --depth 1 --branch 20260526 \
