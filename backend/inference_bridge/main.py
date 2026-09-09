@@ -27,6 +27,9 @@ def run(config: BridgeConfig) -> None:
     init_db(str(config.main_db_path))
     init_db(str(config.worker_db_path))
     bridge = InferenceBridge(config)
+    discarded = bridge.discard_legacy_pending_frames()
+    if discarded:
+        logger.info("已丢弃升级前无门周期遗留帧: %d", discarded)
     logger.info(
         "inference-bridge 启动，主库=%s，工作库=%s",
         config.main_db_path,

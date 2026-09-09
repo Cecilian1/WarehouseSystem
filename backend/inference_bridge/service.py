@@ -176,13 +176,11 @@ class InferenceBridge:
                             )
                         )
                       )
-                  AND (
-                        pf.door_cycle_id IS NULL
-                        OR EXISTS (
-                            SELECT 1 FROM door_cycle AS dc
-                            WHERE dc.id = pf.door_cycle_id
-                              AND dc.status = 'processing'
-                        )
+                  AND pf.door_cycle_id IS NOT NULL
+                  AND EXISTS (
+                        SELECT 1 FROM door_cycle AS dc
+                        WHERE dc.id = pf.door_cycle_id
+                          AND dc.status = 'processing'
                   )
                   AND NOT EXISTS (
                         SELECT 1 FROM inference_job
@@ -212,13 +210,11 @@ class InferenceBridge:
                             )
                        )
                   )
-                  AND (
-                       door_cycle_id IS NULL
-                       OR EXISTS (
-                           SELECT 1 FROM door_cycle
-                           WHERE door_cycle.id = pending_frames.door_cycle_id
-                             AND door_cycle.status = 'processing'
-                       )
+                  AND door_cycle_id IS NOT NULL
+                  AND EXISTS (
+                       SELECT 1 FROM door_cycle
+                       WHERE door_cycle.id = pending_frames.door_cycle_id
+                         AND door_cycle.status = 'processing'
                   )
                 """,
                 (WORKER_ID, int(row["id"]), stale),
@@ -234,6 +230,22 @@ class InferenceBridge:
                     else None
                 ),
             }
+
+    def discard_legacy_pending_frames(self) -> int:
+        """Discard pre-door-cycle frames so a restart cannot infer preview history."""
+        with connection_scope(str(self.config.main_db_path)) as conn:
+            updated = conn.execute(
+                """
+                UPDATE pending_frames
+                SET status = 'discarded',
+                    processed_at = datetime('now', 'localtime'),
+                    last_error = '门周期模式已忽略升级前遗留帧',
+                    claimed_by = NULL, claimed_at = NULL
+                WHERE door_cycle_id IS NULL
+                  AND status IN ('pending', 'processing')
+                """
+            )
+            return max(0, updated.rowcount)
 
     def ensure_worker_job(self, frame: dict[str, Any]) -> InferenceJob:
         existing = self._job_for_frame(int(frame["id"]))

@@ -307,6 +307,24 @@ class InferenceBridgeTest(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(int(worker_frames), 0)
 
+    def test_legacy_frame_without_door_cycle_is_discarded_not_inferred(self) -> None:
+        with connection_scope(self.main_db) as conn:
+            conn.execute(
+                """
+                INSERT INTO pending_frames (id, image_path, change_ratio, status)
+                VALUES (553, ?, 0.5, 'pending')
+                """,
+                (str(Path(self.directory.name) / "legacy.jpg"),),
+            )
+        self.assertIsNone(self.bridge.claim_next_frame())
+        self.assertEqual(self.bridge.discard_legacy_pending_frames(), 1)
+        with connection_scope(self.main_db) as conn:
+            frame = conn.execute(
+                "SELECT status, last_error FROM pending_frames WHERE id=553"
+            ).fetchone()
+        self.assertEqual(frame["status"], "discarded")
+        self.assertIn("遗留帧", frame["last_error"])
+
     def test_result_is_ignored_if_cycle_failed_while_worker_was_running(self) -> None:
         self._queue_main_frame(1, 552, "frame-552.jpg")
         job = self.bridge.next_job()
