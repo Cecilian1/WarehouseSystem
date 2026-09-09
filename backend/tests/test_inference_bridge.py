@@ -296,6 +296,37 @@ class InferenceBridgeTest(unittest.TestCase):
         self.assertEqual(first["id"], 501)
         self.assertIsNone(second)
 
+    def test_failed_door_cycle_frame_is_not_claimed(self) -> None:
+        self._queue_main_frame(1, 551, "frame-551.jpg")
+        with connection_scope(self.main_db) as conn:
+            conn.execute("UPDATE door_cycle SET status='failed' WHERE id=1")
+        self.assertIsNone(self.bridge.claim_next_frame())
+        with connection_scope(self.worker_db) as conn:
+            worker_frames = conn.execute(
+                "SELECT COUNT(*) FROM pending_frames"
+            ).fetchone()[0]
+        self.assertEqual(int(worker_frames), 0)
+
+    def test_result_is_ignored_if_cycle_failed_while_worker_was_running(self) -> None:
+        self._queue_main_frame(1, 552, "frame-552.jpg")
+        job = self.bridge.next_job()
+        assert job is not None
+        self._simulate_old_ai(job.worker_frame_id, ["苹果"])
+        outcome = self.bridge.wait_for_worker(job)
+        with connection_scope(self.main_db) as conn:
+            conn.execute("UPDATE door_cycle SET status='failed' WHERE id=1")
+        self.bridge.apply_outcome(job, outcome)
+        self.assertEqual(self._stock("苹果"), 0)
+        with connection_scope(self.main_db) as conn:
+            job_row = conn.execute(
+                "SELECT status FROM inference_job WHERE main_frame_id=552"
+            ).fetchone()
+            logs = conn.execute(
+                "SELECT COUNT(*) FROM inventory_log WHERE source_frame_id=552"
+            ).fetchone()[0]
+        self.assertEqual(job_row["status"], "failed")
+        self.assertEqual(int(logs), 0)
+
     def test_lease_renewal_prevents_reclaim(self) -> None:
         self._queue_main_frame(1, 601, "frame-601.jpg")
         claimed = self.bridge.claim_next_frame()

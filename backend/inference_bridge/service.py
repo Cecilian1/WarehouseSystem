@@ -164,24 +164,32 @@ class InferenceBridge:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
                 """
-                SELECT id, image_path, door_cycle_id
-                FROM pending_frames
+                SELECT pf.id, pf.image_path, pf.door_cycle_id
+                FROM pending_frames AS pf
                 WHERE (
-                        status = 'pending'
+                        pf.status = 'pending'
                         OR (
-                            status = 'processing'
+                            pf.status = 'processing'
                             AND (
-                                 claimed_at IS NULL
-                                 OR claimed_at <= datetime('now', 'localtime', ?)
+                                 pf.claimed_at IS NULL
+                                 OR pf.claimed_at <= datetime('now', 'localtime', ?)
                             )
                         )
                       )
+                  AND (
+                        pf.door_cycle_id IS NULL
+                        OR EXISTS (
+                            SELECT 1 FROM door_cycle AS dc
+                            WHERE dc.id = pf.door_cycle_id
+                              AND dc.status = 'processing'
+                        )
+                  )
                   AND NOT EXISTS (
                         SELECT 1 FROM inference_job
-                        WHERE inference_job.main_frame_id = pending_frames.id
+                        WHERE inference_job.main_frame_id = pf.id
                           AND inference_job.status = 'done'
                   )
-                ORDER BY id
+                ORDER BY pf.id
                 LIMIT 1
                 """,
                 (stale,),
@@ -202,6 +210,14 @@ class InferenceBridge:
                                  claimed_at IS NULL
                                  OR claimed_at <= datetime('now', 'localtime', ?)
                             )
+                       )
+                  )
+                  AND (
+                       door_cycle_id IS NULL
+                       OR EXISTS (
+                           SELECT 1 FROM door_cycle
+                           WHERE door_cycle.id = pending_frames.door_cycle_id
+                             AND door_cycle.status = 'processing'
                        )
                   )
                 """,
@@ -349,6 +365,33 @@ class InferenceBridge:
                 (job.main_frame_id,),
             ).fetchone()
             if current and str(current["status"]) in {"done", "failed"}:
+                return
+            frame = conn.execute(
+                """
+                SELECT pf.door_cycle_id, dc.status AS cycle_status
+                FROM pending_frames AS pf
+                LEFT JOIN door_cycle AS dc ON dc.id = pf.door_cycle_id
+                WHERE pf.id = ?
+                """,
+                (job.main_frame_id,),
+            ).fetchone()
+            if (
+                frame
+                and frame["door_cycle_id"] is not None
+                and str(frame["cycle_status"] or "") != "processing"
+            ):
+                error = "门周期已结束，忽略遗留推理结果"
+                conn.execute(
+                    """
+                    UPDATE pending_frames
+                    SET status = 'discarded', last_error = ?,
+                        processed_at = datetime('now', 'localtime'),
+                        claimed_by = NULL, claimed_at = NULL
+                    WHERE id = ?
+                    """,
+                    (error, job.main_frame_id),
+                )
+                self._finish_job(conn, job.main_frame_id, "failed", error)
                 return
             if outcome.kind == "timeout":
                 self.repository.record_failure_on_connection(
