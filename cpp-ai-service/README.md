@@ -82,6 +82,6 @@ models/shufflenet_v2_freshness_ncnn_model/model.ncnn.bin
 
 ## 注意事项
 
-- 当前YOLO模型输出苹果、香蕉、胡萝卜、黄瓜、橙子5个品类；最终三级新鲜度由ShuffleNetV2独立输出。
+- 当前YOLO输出5个果蔬品类：苹果、香蕉、胡萝卜、黄瓜、橙子；最终三级新鲜度由ShuffleNetV2输出。
 - 正式替换旧服务前，必须使用同一批真实图片比较ONNX旧版与NCNN新版的检测框、品类和新鲜度结果。
 - 开发板第一次运行建议保留旧程序，确认NCNN结果正确后再修改systemd启动项。
