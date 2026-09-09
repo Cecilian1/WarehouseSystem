@@ -83,10 +83,11 @@ if [ ! -f "$INSTALL_ROOT/backend/inference_bridge/main.py" ]; then
     echo "==> 缺少 inference-bridge，不能安装。旧 NCNN 不能直接写主库。" >&2
     exit 1
 fi
-if [ ! -x "$INSTALL_ROOT/bin/warehouse-ai-service" ]; then
-    echo "==> 缺少可执行的 bin/warehouse-ai-service（应使用旧稳定 NCNN 程序）。" >&2
+if [ ! -f "$INSTALL_ROOT/bin/warehouse-ai-service" ]; then
+    echo "==> 缺少 bin/warehouse-ai-service（应使用旧稳定 NCNN 程序）。" >&2
     exit 1
 fi
+chmod 755 "$INSTALL_ROOT/bin/warehouse-ai-service"
 for model_file in \
     "$INSTALL_ROOT/models/best_ncnn_model/model.ncnn.param" \
     "$INSTALL_ROOT/models/best_ncnn_model/model.ncnn.bin" \
