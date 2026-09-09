@@ -32,7 +32,7 @@ struct Options {
     float confidence = 0.35F;
     float iou = 0.45F;
     int image_size = 640;
-    int threads = 2;
+    int threads = 1;
     int poll_ms = 1000;
     bool once = false;
 };
@@ -90,14 +90,20 @@ public:
         : confidence_(options.confidence), iou_(options.iou), image_size_(options.image_size) {
         net_.opt.num_threads = std::max(1, options.threads);
         net_.opt.use_vulkan_compute = false;
-        // The current LoongArch NCNN packing path crashes in Slice for this
-        // exported YOLO graph on the target board.  Keep tensors unpacked;
-        // this is slower but deterministic and matches the proven board build.
+        // Keep the production LoongArch path conservative.  The optimized
+        // packing/half-precision path has produced SIGSEGV/SIGBUS failures in
+        // Slice on the target board with this exported graph.
         net_.opt.use_packing_layout = false;
+        net_.opt.use_fp16_packed = false;
+        net_.opt.use_fp16_storage = false;
+        net_.opt.use_fp16_arithmetic = false;
+        net_.opt.use_bf16_storage = false;
+        std::cerr << "AI阶段: 加载YOLO模型参数" << std::endl;
         if (net_.load_param((options.detector_model / "model.ncnn.param").string().c_str()) != 0 ||
             net_.load_model((options.detector_model / "model.ncnn.bin").string().c_str()) != 0) {
             throw std::runtime_error("无法加载YOLO NCNN模型");
         }
+        std::cerr << "AI阶段: YOLO模型加载完成" << std::endl;
     }
 
     std::vector<Detection> detect(const cv::Mat &image, double &preprocess_ms,
@@ -281,10 +287,16 @@ public:
         net_.opt.num_threads = std::max(1, options.threads);
         net_.opt.use_vulkan_compute = false;
         net_.opt.use_packing_layout = false;
+        net_.opt.use_fp16_packed = false;
+        net_.opt.use_fp16_storage = false;
+        net_.opt.use_fp16_arithmetic = false;
+        net_.opt.use_bf16_storage = false;
+        std::cerr << "AI阶段: 加载新鲜度模型参数" << std::endl;
         if (net_.load_param((options.freshness_model / "model.ncnn.param").string().c_str()) != 0 ||
             net_.load_model((options.freshness_model / "model.ncnn.bin").string().c_str()) != 0) {
             throw std::runtime_error("无法加载新鲜度NCNN模型");
         }
+        std::cerr << "AI阶段: 新鲜度模型加载完成" << std::endl;
     }
 
     FreshnessPrediction predict(const cv::Mat &image, double &preprocess_ms) {
