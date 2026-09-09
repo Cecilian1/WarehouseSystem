@@ -12,21 +12,54 @@ from backend.common.db import connection_scope
 
 
 class RecognitionRepository:
+    _worker_id = "python-ai-service"
+
     def __init__(self, config: AIServiceConfig) -> None:
         self.config = config
 
     def next_pending_frame(self) -> dict[str, Any] | None:
         with connection_scope(str(self.config.db_path)) as conn:
+            # 领取和读取必须处在同一个写事务中。这样即便 Python 备用服务
+            # 与 C++/NCNN 服务被误启动，也只有一个进程能拿到同一张图片。
+            conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
                 """
                 SELECT id, image_path, attempt_count, door_cycle_id
                 FROM pending_frames
                 WHERE status = 'pending'
+                   OR (
+                        status = 'processing'
+                        AND (
+                             claimed_at IS NULL
+                             OR claimed_at <= datetime('now', 'localtime', '-5 minutes')
+                        )
+                   )
                 ORDER BY id
                 LIMIT 1
                 """
             ).fetchone()
-            return dict(row) if row else None
+            if row is None:
+                return None
+            updated = conn.execute(
+                """
+                UPDATE pending_frames
+                SET status = 'processing', claimed_by = ?,
+                    claimed_at = datetime('now', 'localtime')
+                WHERE id = ?
+                  AND (
+                       status = 'pending'
+                       OR (
+                            status = 'processing'
+                            AND (
+                                 claimed_at IS NULL
+                                 OR claimed_at <= datetime('now', 'localtime', '-5 minutes')
+                            )
+                       )
+                  )
+                """,
+                (self._worker_id, int(row["id"])),
+            )
+            return dict(row) if updated.rowcount == 1 else None
 
     @staticmethod
     def _resolve_produce(
@@ -248,7 +281,8 @@ class RecognitionRepository:
                         UPDATE pending_frames
                         SET status = 'discarded',
                             processed_at = datetime('now', 'localtime'),
-                            last_error = '空识别结果，已请求自动复拍'
+                            last_error = '空识别结果，已请求自动复拍',
+                            claimed_by = NULL, claimed_at = NULL
                         WHERE id = ?
                         """,
                         (frame_id,),
@@ -305,7 +339,7 @@ class RecognitionRepository:
                 """
                 UPDATE pending_frames
                 SET status = ?, processed_at = datetime('now', 'localtime'),
-                    last_error = ?
+                    last_error = ?, claimed_by = NULL, claimed_at = NULL
                 WHERE id = ?
                 """,
                 (status, message, frame_id),
@@ -325,7 +359,8 @@ class RecognitionRepository:
                 UPDATE pending_frames
                 SET attempt_count = ?, last_error = ?, status = ?,
                     processed_at = CASE WHEN ? = 'discarded'
-                        THEN datetime('now', 'localtime') ELSE processed_at END
+                        THEN datetime('now', 'localtime') ELSE processed_at END,
+                    claimed_by = NULL, claimed_at = NULL
                 WHERE id = ?
                 """,
                 (attempts, str(error)[:500], status, status, frame_id),

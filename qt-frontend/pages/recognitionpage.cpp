@@ -133,31 +133,52 @@ void RecognitionPage::refresh()
 
 void RecognitionPage::onDoorButtonClicked()
 {
-    QSqlQuery query(DatabaseManager::database());
+    QSqlDatabase database = DatabaseManager::database();
+    QSqlQuery transaction(database);
+    if (!transaction.exec(QStringLiteral("BEGIN IMMEDIATE"))) {
+        m_doorStatusLabel->setText(
+            QStringLiteral("锁定门状态失败：%1").arg(transaction.lastError().text()));
+        return;
+    }
+
+    QString errorMessage;
+    QSqlQuery query(database);
     query.prepare(
         "SELECT id, status FROM door_cycle "
         "WHERE status NOT IN ('completed', 'failed') ORDER BY id DESC LIMIT 1");
     if (!query.exec()) {
-        m_doorStatusLabel->setText(QStringLiteral("读取门状态失败：%1").arg(query.lastError().text()));
-        return;
-    }
-    if (!query.next()) {
-        QSqlQuery insert(DatabaseManager::database());
+        errorMessage = QStringLiteral("读取门状态失败：%1").arg(query.lastError().text());
+    } else if (!query.next()) {
+        QSqlQuery insert(database);
         if (!insert.exec(
                 "INSERT INTO door_cycle(status, opened_at) "
                 "VALUES('open_requested', datetime('now', 'localtime'))")) {
-            m_doorStatusLabel->setText(QStringLiteral("提交开门请求失败：%1").arg(insert.lastError().text()));
+            errorMessage = QStringLiteral("提交开门请求失败：%1").arg(insert.lastError().text());
         }
     } else if (query.value(1).toString() == QStringLiteral("open")) {
-        QSqlQuery close(DatabaseManager::database());
+        QSqlQuery close(database);
         close.prepare(
             "UPDATE door_cycle SET status='close_requested', "
             "close_requested_at=datetime('now', 'localtime'), last_error='' "
             "WHERE id=:id AND status='open'");
         close.bindValue(":id", query.value(0));
         if (!close.exec()) {
-            m_doorStatusLabel->setText(QStringLiteral("提交关门请求失败：%1").arg(close.lastError().text()));
+            errorMessage = QStringLiteral("提交关门请求失败：%1").arg(close.lastError().text());
         }
+    }
+
+    QSqlQuery finish(database);
+    if (!errorMessage.isEmpty()) {
+        finish.exec(QStringLiteral("ROLLBACK"));
+        m_doorStatusLabel->setText(errorMessage);
+        return;
+    }
+    if (!finish.exec(QStringLiteral("COMMIT"))) {
+        const QString commitError = finish.lastError().text();
+        finish.exec(QStringLiteral("ROLLBACK"));
+        m_doorStatusLabel->setText(
+            QStringLiteral("保存门状态失败：%1").arg(commitError));
+        return;
     }
     refresh();
 }

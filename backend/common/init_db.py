@@ -111,6 +111,8 @@ def init_db(db_path: str) -> None:
             "door_cycle_id",
             "INTEGER REFERENCES door_cycle(id)",
         )
+        _ensure_column(conn, "pending_frames", "claimed_by", "TEXT")
+        _ensure_column(conn, "pending_frames", "claimed_at", "TEXT")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_pending_frames_door_cycle "
             "ON pending_frames(door_cycle_id)"

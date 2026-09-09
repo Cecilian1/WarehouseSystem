@@ -361,6 +361,30 @@ void check_sqlite(int code, sqlite3 *database, const std::string &operation) {
     }
 }
 
+class SqliteStatement {
+public:
+    SqliteStatement(sqlite3 *database, const char *sql, const std::string &operation) {
+        check_sqlite(
+            sqlite3_prepare_v2(database, sql, -1, &statement_, nullptr),
+            database,
+            operation);
+    }
+
+    ~SqliteStatement() {
+        if (statement_ != nullptr) {
+            sqlite3_finalize(statement_);
+        }
+    }
+
+    SqliteStatement(const SqliteStatement &) = delete;
+    SqliteStatement &operator=(const SqliteStatement &) = delete;
+
+    sqlite3_stmt *get() const { return statement_; }
+
+private:
+    sqlite3_stmt *statement_ = nullptr;
+};
+
 class Repository {
 public:
     explicit Repository(const fs::path &db_path) {
@@ -375,20 +399,49 @@ public:
     }
 
     bool next_frame(Frame &frame) {
-        const char *sql = "SELECT id,image_path,door_cycle_id FROM pending_frames WHERE status='pending' ORDER BY id LIMIT 1";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "查询待处理帧失败");
-        const int result = sqlite3_step(statement);
-        if (result == SQLITE_ROW) {
-            frame.id = sqlite3_column_int64(statement, 0);
-            frame.image_path = reinterpret_cast<const char *>(sqlite3_column_text(statement, 1));
-            frame.door_cycle_id = sqlite3_column_type(statement, 2) == SQLITE_NULL
-                ? 0 : sqlite3_column_int64(statement, 2);
-            sqlite3_finalize(statement);
-            return true;
+        execute("BEGIN IMMEDIATE");
+        try {
+            const char *sql =
+                "SELECT id,image_path,door_cycle_id FROM pending_frames "
+                "WHERE status='pending' OR (status='processing' AND "
+                "(claimed_at IS NULL OR claimed_at<=datetime('now','localtime','-5 minutes'))) "
+                "ORDER BY id LIMIT 1";
+            bool found = false;
+            {
+                SqliteStatement statement(database_, sql, "查询待处理帧失败");
+                const int result = sqlite3_step(statement.get());
+                if (result == SQLITE_ROW) {
+                    found = true;
+                    frame.id = sqlite3_column_int64(statement.get(), 0);
+                    const unsigned char *image_path = sqlite3_column_text(statement.get(), 1);
+                    frame.image_path = image_path == nullptr
+                        ? std::string{} : reinterpret_cast<const char *>(image_path);
+                    frame.door_cycle_id = sqlite3_column_type(statement.get(), 2) == SQLITE_NULL
+                        ? 0 : sqlite3_column_int64(statement.get(), 2);
+                } else {
+                    check_sqlite(result, database_, "查询待处理帧失败");
+                }
+            }
+            if (!found) {
+                execute("COMMIT");
+                return false;
+            }
+
+            const char *claim_sql =
+                "UPDATE pending_frames SET status='processing',claimed_by='cpp-ai-service',"
+                "claimed_at=datetime('now','localtime') WHERE id=? AND "
+                "(status='pending' OR (status='processing' AND "
+                "(claimed_at IS NULL OR claimed_at<=datetime('now','localtime','-5 minutes'))))";
+            SqliteStatement claim(database_, claim_sql, "领取待处理帧失败");
+            sqlite3_bind_int64(claim.get(), 1, frame.id);
+            check_sqlite(sqlite3_step(claim.get()), database_, "领取待处理帧失败");
+            const bool claimed = sqlite3_changes(database_) == 1;
+            execute("COMMIT");
+            return claimed;
+        } catch (...) {
+            execute("ROLLBACK");
+            throw;
         }
-        sqlite3_finalize(statement);
-        return false;
     }
 
     void save(const Frame &frame, const std::vector<Recognition> &results) {
@@ -444,17 +497,16 @@ public:
                     insert_movement(frame.id, entry.first, entry.second - previous);
                 }
             }
-            sqlite3_stmt *statement = nullptr;
-            const char *sql = "UPDATE pending_frames SET status=?,processed_at=datetime('now','localtime'),last_error=? WHERE id=?";
-            check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "更新帧状态失败");
+            const char *sql = "UPDATE pending_frames SET status=?,processed_at=datetime('now','localtime'),"
+                              "last_error=?,claimed_by=NULL,claimed_at=NULL WHERE id=?";
+            SqliteStatement statement(database_, sql, "更新帧状态失败");
             const std::string status = (!results.empty() || frame.door_cycle_id > 0)
                 ? "processed" : "discarded";
             const std::string message = status == "processed" ? "" : "未检测到支持的果蔬目标";
-            sqlite3_bind_text(statement, 1, status.c_str(), -1, SQLITE_TRANSIENT);
-            sqlite3_bind_text(statement, 2, message.c_str(), -1, SQLITE_TRANSIENT);
-            sqlite3_bind_int64(statement, 3, frame.id);
-            check_sqlite(sqlite3_step(statement), database_, "更新帧状态失败");
-            sqlite3_finalize(statement);
+            sqlite3_bind_text(statement.get(), 1, status.c_str(), -1, SQLITE_TRANSIENT);
+            sqlite3_bind_text(statement.get(), 2, message.c_str(), -1, SQLITE_TRANSIENT);
+            sqlite3_bind_int64(statement.get(), 3, frame.id);
+            check_sqlite(sqlite3_step(statement.get()), database_, "更新帧状态失败");
             execute("COMMIT");
         } catch (...) {
             execute("ROLLBACK");
@@ -463,14 +515,13 @@ public:
     }
 
     void fail(const Frame &frame, const std::string &error) {
-        sqlite3_stmt *statement = nullptr;
         const char *sql = "UPDATE pending_frames SET attempt_count=attempt_count+1,last_error=?,"
-                          "status=CASE WHEN attempt_count+1>=3 THEN 'discarded' ELSE 'pending' END WHERE id=?";
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "记录失败状态失败");
-        sqlite3_bind_text(statement, 1, error.substr(0, 500).c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int64(statement, 2, frame.id);
-        check_sqlite(sqlite3_step(statement), database_, "记录失败状态失败");
-        sqlite3_finalize(statement);
+                          "status=CASE WHEN attempt_count+1>=3 THEN 'discarded' ELSE 'pending' END,"
+                          "claimed_by=NULL,claimed_at=NULL WHERE id=?";
+        SqliteStatement statement(database_, sql, "记录失败状态失败");
+        sqlite3_bind_text(statement.get(), 1, error.substr(0, 500).c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int64(statement.get(), 2, frame.id);
+        check_sqlite(sqlite3_step(statement.get()), database_, "记录失败状态失败");
         if (frame.door_cycle_id > 0 && frame_status(frame.id) == "discarded") {
             fail_cycle(frame.door_cycle_id, error);
         }
@@ -496,18 +547,15 @@ private:
     }
 
     long long lookup_produce(const char *sql, const ProduceInfo &info, bool bind_category) {
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "查询果蔬失败");
-        sqlite3_bind_text(statement, 1, info.name.c_str(), -1, SQLITE_TRANSIENT);
+        SqliteStatement statement(database_, sql, "查询果蔬失败");
+        sqlite3_bind_text(statement.get(), 1, info.name.c_str(), -1, SQLITE_TRANSIENT);
         if (bind_category) {
-            sqlite3_bind_text(statement, 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
+            sqlite3_bind_text(statement.get(), 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
         }
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            const long long id = sqlite3_column_int64(statement, 0);
-            sqlite3_finalize(statement);
+        if (sqlite3_step(statement.get()) == SQLITE_ROW) {
+            const long long id = sqlite3_column_int64(statement.get(), 0);
             return id;
         }
-        sqlite3_finalize(statement);
         return 0;
     }
 
@@ -524,28 +572,24 @@ private:
         if (by_name_category > 0) {
             return by_name_category;
         }
-        sqlite3_stmt *statement = nullptr;
         const char *sql = "INSERT INTO produce_info(name,category,shelf_life_days,unit,location) VALUES(?,?,?,?,'本地库存')";
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "创建果蔬失败");
-        sqlite3_bind_text(statement, 1, info.name.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(statement, 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int(statement, 3, info.shelf_life_days);
-        sqlite3_bind_text(statement, 4, info.unit.c_str(), -1, SQLITE_TRANSIENT);
-        check_sqlite(sqlite3_step(statement), database_, "创建果蔬失败");
-        sqlite3_finalize(statement);
+        SqliteStatement statement(database_, sql, "创建果蔬失败");
+        sqlite3_bind_text(statement.get(), 1, info.name.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(statement.get(), 2, info.category.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(statement.get(), 3, info.shelf_life_days);
+        sqlite3_bind_text(statement.get(), 4, info.unit.c_str(), -1, SQLITE_TRANSIENT);
+        check_sqlite(sqlite3_step(statement.get()), database_, "创建果蔬失败");
         return sqlite3_last_insert_rowid(database_);
     }
 
     int current_stock(long long produce_id) {
-        sqlite3_stmt *statement = nullptr;
         const char *sql = "SELECT COALESCE(current_qty, 0) FROM stock_summary WHERE produce_id=?";
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "查询库存失败");
-        sqlite3_bind_int64(statement, 1, produce_id);
+        SqliteStatement statement(database_, sql, "查询库存失败");
+        sqlite3_bind_int64(statement.get(), 1, produce_id);
         int quantity = 0;
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            quantity = sqlite3_column_int(statement, 0);
+        if (sqlite3_step(statement.get()) == SQLITE_ROW) {
+            quantity = sqlite3_column_int(statement.get(), 0);
         }
-        sqlite3_finalize(statement);
         return quantity;
     }
 
@@ -554,13 +598,11 @@ private:
         const char *sql = "SELECT produce_id,COUNT(*) FROM inventory_log "
                           "WHERE source_frame_id=? AND COALESCE(bbox_json,'')<>'' "
                           "AND produce_id IS NOT NULL GROUP BY produce_id";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "读取识别快照失败");
-        sqlite3_bind_int64(statement, 1, frame_id);
-        while (sqlite3_step(statement) == SQLITE_ROW) {
-            counts[sqlite3_column_int64(statement, 0)] = sqlite3_column_int(statement, 1);
+        SqliteStatement statement(database_, sql, "读取识别快照失败");
+        sqlite3_bind_int64(statement.get(), 1, frame_id);
+        while (sqlite3_step(statement.get()) == SQLITE_ROW) {
+            counts[sqlite3_column_int64(statement.get(), 0)] = sqlite3_column_int(statement.get(), 1);
         }
-        sqlite3_finalize(statement);
         return counts;
     }
 
@@ -568,83 +610,77 @@ private:
         found = false;
         const char *sql = "SELECT frame_id FROM door_cycle WHERE id<? AND status='completed' "
                           "AND frame_id IS NOT NULL ORDER BY id DESC LIMIT 1";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "读取上次门周期失败");
-        sqlite3_bind_int64(statement, 1, cycle_id);
+        SqliteStatement statement(database_, sql, "读取上次门周期失败");
+        sqlite3_bind_int64(statement.get(), 1, cycle_id);
         long long previous_frame_id = 0;
-        if (sqlite3_step(statement) == SQLITE_ROW) {
+        if (sqlite3_step(statement.get()) == SQLITE_ROW) {
             found = true;
-            previous_frame_id = sqlite3_column_int64(statement, 0);
+            previous_frame_id = sqlite3_column_int64(statement.get(), 0);
         }
-        sqlite3_finalize(statement);
         return found ? recognition_counts(previous_frame_id) : std::map<long long, int>{};
     }
 
     int cycle_retry_count(long long cycle_id) {
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, "SELECT retry_count FROM door_cycle WHERE id=?", -1,
-                                        &statement, nullptr), database_, "读取复拍次数失败");
-        sqlite3_bind_int64(statement, 1, cycle_id);
-        const int count = sqlite3_step(statement) == SQLITE_ROW ? sqlite3_column_int(statement, 0) : 0;
-        sqlite3_finalize(statement);
+        SqliteStatement statement(database_, "SELECT retry_count FROM door_cycle WHERE id=?",
+                                  "读取复拍次数失败");
+        sqlite3_bind_int64(statement.get(), 1, cycle_id);
+        const int count = sqlite3_step(statement.get()) == SQLITE_ROW
+            ? sqlite3_column_int(statement.get(), 0) : 0;
         return count;
     }
 
     void request_recapture(long long frame_id, long long cycle_id) {
-        sqlite3_stmt *statement = nullptr;
         const char *frame_sql = "UPDATE pending_frames SET status='discarded',"
                                 "processed_at=datetime('now','localtime'),"
-                                "last_error='空识别结果，已请求自动复拍' WHERE id=?";
-        check_sqlite(sqlite3_prepare_v2(database_, frame_sql, -1, &statement, nullptr), database_, "登记空结果复拍失败");
-        sqlite3_bind_int64(statement, 1, frame_id);
-        check_sqlite(sqlite3_step(statement), database_, "登记空结果复拍失败");
-        sqlite3_finalize(statement);
+                                "last_error='空识别结果，已请求自动复拍',"
+                                "claimed_by=NULL,claimed_at=NULL WHERE id=?";
+        {
+            SqliteStatement statement(database_, frame_sql, "登记空结果复拍失败");
+            sqlite3_bind_int64(statement.get(), 1, frame_id);
+            check_sqlite(sqlite3_step(statement.get()), database_, "登记空结果复拍失败");
+        }
 
         const char *cycle_sql = "UPDATE door_cycle SET status='recapture_requested',"
                                 "retry_count=retry_count+1,frame_id=NULL,"
                                 "last_error='空识别结果，正在自动复拍' "
                                 "WHERE id=? AND status='processing'";
-        check_sqlite(sqlite3_prepare_v2(database_, cycle_sql, -1, &statement, nullptr), database_, "请求自动复拍失败");
-        sqlite3_bind_int64(statement, 1, cycle_id);
-        check_sqlite(sqlite3_step(statement), database_, "请求自动复拍失败");
-        sqlite3_finalize(statement);
+        SqliteStatement statement(database_, cycle_sql, "请求自动复拍失败");
+        sqlite3_bind_int64(statement.get(), 1, cycle_id);
+        check_sqlite(sqlite3_step(statement.get()), database_, "请求自动复拍失败");
     }
 
     void complete_cycle(long long cycle_id, long long frame_id, bool baseline) {
         const char *sql = "UPDATE door_cycle SET status='completed',frame_id=?,is_baseline=?,"
                           "completed_at=datetime('now','localtime'),last_error='' "
                           "WHERE id=? AND status='processing'";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "完成门周期失败");
-        sqlite3_bind_int64(statement, 1, frame_id);
-        sqlite3_bind_int(statement, 2, baseline ? 1 : 0);
-        sqlite3_bind_int64(statement, 3, cycle_id);
-        check_sqlite(sqlite3_step(statement), database_, "完成门周期失败");
-        sqlite3_finalize(statement);
+        SqliteStatement statement(database_, sql, "完成门周期失败");
+        sqlite3_bind_int64(statement.get(), 1, frame_id);
+        sqlite3_bind_int(statement.get(), 2, baseline ? 1 : 0);
+        sqlite3_bind_int64(statement.get(), 3, cycle_id);
+        check_sqlite(sqlite3_step(statement.get()), database_, "完成门周期失败");
     }
 
     std::string frame_status(long long frame_id) {
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, "SELECT status FROM pending_frames WHERE id=?", -1,
-                                        &statement, nullptr), database_, "读取帧状态失败");
-        sqlite3_bind_int64(statement, 1, frame_id);
+        SqliteStatement statement(database_, "SELECT status FROM pending_frames WHERE id=?",
+                                  "读取帧状态失败");
+        sqlite3_bind_int64(statement.get(), 1, frame_id);
         std::string status;
-        if (sqlite3_step(statement) == SQLITE_ROW) {
-            status = reinterpret_cast<const char *>(sqlite3_column_text(statement, 0));
+        if (sqlite3_step(statement.get()) == SQLITE_ROW) {
+            const unsigned char *value = sqlite3_column_text(statement.get(), 0);
+            if (value != nullptr) {
+                status = reinterpret_cast<const char *>(value);
+            }
         }
-        sqlite3_finalize(statement);
         return status;
     }
 
     void fail_cycle(long long cycle_id, const std::string &error) {
         const char *sql = "UPDATE door_cycle SET status='failed',completed_at=datetime('now','localtime'),"
                           "last_error=? WHERE id=?";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "标记门周期失败");
-        sqlite3_bind_text(statement, 1, error.substr(0, 500).c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int64(statement, 2, cycle_id);
-        check_sqlite(sqlite3_step(statement), database_, "标记门周期失败");
-        sqlite3_finalize(statement);
+        SqliteStatement statement(database_, sql, "标记门周期失败");
+        sqlite3_bind_text(statement.get(), 1, error.substr(0, 500).c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int64(statement.get(), 2, cycle_id);
+        check_sqlite(sqlite3_step(statement.get()), database_, "标记门周期失败");
     }
 
     void insert_movement(long long frame_id, long long produce_id, int delta) {
@@ -653,15 +689,13 @@ private:
         }
         const char *sql = "INSERT INTO inventory_log(produce_id,action_type,quantity,sync_status,"
                           "source_frame_id,model_version) VALUES(?,?,?,'local',?,?)";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "写入出入库差额失败");
-        sqlite3_bind_int64(statement, 1, produce_id);
-        sqlite3_bind_text(statement, 2, delta > 0 ? "IN" : "OUT", -1, SQLITE_STATIC);
-        sqlite3_bind_int(statement, 3, delta > 0 ? delta : -delta);
-        sqlite3_bind_int64(statement, 4, frame_id);
-        sqlite3_bind_text(statement, 5, "yolo-best+shufflenet-v4-cpp", -1, SQLITE_STATIC);
-        check_sqlite(sqlite3_step(statement), database_, "写入出入库差额失败");
-        sqlite3_finalize(statement);
+        SqliteStatement statement(database_, sql, "写入出入库差额失败");
+        sqlite3_bind_int64(statement.get(), 1, produce_id);
+        sqlite3_bind_text(statement.get(), 2, delta > 0 ? "IN" : "OUT", -1, SQLITE_STATIC);
+        sqlite3_bind_int(statement.get(), 3, delta > 0 ? delta : -delta);
+        sqlite3_bind_int64(statement.get(), 4, frame_id);
+        sqlite3_bind_text(statement.get(), 5, "yolo-best+shufflenet-v4-cpp", -1, SQLITE_STATIC);
+        check_sqlite(sqlite3_step(statement.get()), database_, "写入出入库差额失败");
     }
 
     void set_stock(long long produce_id, int quantity) {
@@ -669,12 +703,10 @@ private:
                           "VALUES(?,?, '', datetime('now','localtime')) "
                           "ON CONFLICT(produce_id) DO UPDATE SET "
                           "current_qty=excluded.current_qty, last_updated=excluded.last_updated";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "更新库存失败");
-        sqlite3_bind_int64(statement, 1, produce_id);
-        sqlite3_bind_int(statement, 2, quantity);
-        check_sqlite(sqlite3_step(statement), database_, "更新库存失败");
-        sqlite3_finalize(statement);
+        SqliteStatement statement(database_, sql, "更新库存失败");
+        sqlite3_bind_int64(statement.get(), 1, produce_id);
+        sqlite3_bind_int(statement.get(), 2, quantity);
+        check_sqlite(sqlite3_step(statement.get()), database_, "更新库存失败");
     }
 
     void insert_result(long long frame_id, long long produce_id, const Recognition &result) {
@@ -691,23 +723,21 @@ private:
                           "freshness_score,confidence,image_path,sync_status,source_frame_id,detector_label,"
                           "detector_confidence,freshness_confidence,bbox_json,freshness_probabilities_json,"
                           "inference_latency_ms,model_version) VALUES(?,'IN',1,?,?,?,?,'local',?,?,?,?,?,?,?,?)";
-        sqlite3_stmt *statement = nullptr;
-        check_sqlite(sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr), database_, "写入识别结果失败");
-        sqlite3_bind_int64(statement, 1, produce_id);
-        sqlite3_bind_text(statement, 2, result.freshness.label.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_double(statement, 3, result.freshness.score);
-        sqlite3_bind_double(statement, 4, result.freshness.confidence);
-        sqlite3_bind_text(statement, 5, result.crop_path.string().c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int64(statement, 6, frame_id);
-        sqlite3_bind_text(statement, 7, result.detection.label.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_double(statement, 8, result.detection.confidence);
-        sqlite3_bind_double(statement, 9, result.freshness.confidence);
-        sqlite3_bind_text(statement, 10, bbox.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(statement, 11, probabilities.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_double(statement, 12, result.total_inference_ms);
-        sqlite3_bind_text(statement, 13, "yolo-best+shufflenet-v4-cpp", -1, SQLITE_STATIC);
-        check_sqlite(sqlite3_step(statement), database_, "写入识别结果失败");
-        sqlite3_finalize(statement);
+        SqliteStatement statement(database_, sql, "写入识别结果失败");
+        sqlite3_bind_int64(statement.get(), 1, produce_id);
+        sqlite3_bind_text(statement.get(), 2, result.freshness.label.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_double(statement.get(), 3, result.freshness.score);
+        sqlite3_bind_double(statement.get(), 4, result.freshness.confidence);
+        sqlite3_bind_text(statement.get(), 5, result.crop_path.string().c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int64(statement.get(), 6, frame_id);
+        sqlite3_bind_text(statement.get(), 7, result.detection.label.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_double(statement.get(), 8, result.detection.confidence);
+        sqlite3_bind_double(statement.get(), 9, result.freshness.confidence);
+        sqlite3_bind_text(statement.get(), 10, bbox.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(statement.get(), 11, probabilities.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_double(statement.get(), 12, result.total_inference_ms);
+        sqlite3_bind_text(statement.get(), 13, "yolo-best+shufflenet-v4-cpp", -1, SQLITE_STATIC);
+        check_sqlite(sqlite3_step(statement.get()), database_, "写入识别结果失败");
     }
 
     void execute(const char *sql) {

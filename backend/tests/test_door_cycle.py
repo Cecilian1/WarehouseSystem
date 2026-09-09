@@ -142,6 +142,8 @@ class DoorCycleTest(unittest.TestCase):
         finally:
             conn.close()
         self.assertIn("door_cycle_id", columns)
+        self.assertIn("claimed_by", columns)
+        self.assertIn("claimed_at", columns)
         self.assertIsNotNone(index)
 
 

@@ -363,6 +363,29 @@ class RecognitionStockTest(unittest.TestCase):
         self.assertEqual(self._stock("苹果"), 0)
         self.assertEqual(self._movements("苹果"), [("OUT", 1.0), ("OUT", 1.0)])
 
+    def test_pending_frame_is_atomically_claimed_and_stale_claim_is_recovered(self) -> None:
+        self._queue_frame(41)
+        first = self.repository.next_pending_frame()
+        self.assertEqual(first["id"], 41)
+        self.assertIsNone(self.repository.next_pending_frame())
+
+        with connection_scope(self.db_path) as conn:
+            claimed = conn.execute(
+                "SELECT status, claimed_by, claimed_at FROM pending_frames WHERE id=41"
+            ).fetchone()
+            conn.execute(
+                "UPDATE pending_frames SET claimed_at=datetime('now', 'localtime', '-10 minutes') "
+                "WHERE id=41"
+            )
+        self.assertEqual(
+            (claimed["status"], claimed["claimed_by"]),
+            ("processing", "python-ai-service"),
+        )
+        self.assertIsNotNone(claimed["claimed_at"])
+
+        recovered = self.repository.next_pending_frame()
+        self.assertEqual(recovered["id"], 41)
+
     def test_door_cycle_empty_result_requests_one_retry_then_clears_stock(self) -> None:
         self._queue_door_frame(1, 201)
         self.repository.save_results(

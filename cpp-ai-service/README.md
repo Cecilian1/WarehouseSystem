@@ -27,6 +27,32 @@ YOLO固定输入为`640×640`；ShuffleNetV2固定输入为`224×224`，输出�
 
 ## 交叉编译
 
+ATK-DL2K0300B 的稳定生产构建固定使用官方 NCNN `20260526`
+（commit `e54f7b1f88434e1d844ea0551b880a1cfb079ce1`）。关键开关为：
+
+```text
+NCNN_RUNTIME_CPU=OFF
+NCNN_LSX=ON
+NCNN_LASX=OFF
+NCNN_OPENMP=OFF
+NCNN_PIXEL_DRAWING=OFF
+NCNN_BF16=ON
+NCNN_INT8=ON
+NCNN_ENABLE_LTO=OFF
+```
+
+2K0300 不支持 LASX；不要在关闭 `NCNN_RUNTIME_CPU` 时启用 LASX，否则整个
+静态库可能生成板端无法执行的指令。配置好工具链后，可直接运行：
+
+```bash
+git clone --depth 1 --branch 20260526 \
+  https://github.com/Tencent/ncnn.git .build/ncnn-20260526
+sh cpp-ai-service/build_stable_loongarch.sh
+```
+
+脚本同时构建 NCNN 和本服务，输出位于
+`.build/cpp-ai-stable-loongarch/warehouse-ai-service`。
+
 已经生成LoongArch版本NCNN：
 
 ```text

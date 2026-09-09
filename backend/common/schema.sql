@@ -69,7 +69,8 @@ CREATE TABLE IF NOT EXISTS env_log (
 );
 
 -- camera_service的轻量事件队列：变化触发后的待处理帧，供未来AI服务消费。
--- status: pending(待处理) / processed(AI服务已处理) / discarded(人工/策略丢弃)
+-- status: pending(待处理) / processing(AI服务已领取) /
+--         processed(AI服务已处理) / discarded(人工/策略丢弃)
 CREATE TABLE IF NOT EXISTS pending_frames (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     image_path    TEXT NOT NULL,
@@ -79,7 +80,9 @@ CREATE TABLE IF NOT EXISTS pending_frames (
     processed_at  TEXT,
     attempt_count INTEGER NOT NULL DEFAULT 0,
     last_error    TEXT DEFAULT '',
-    door_cycle_id INTEGER REFERENCES door_cycle(id)
+    door_cycle_id INTEGER REFERENCES door_cycle(id),
+    claimed_by    TEXT,
+    claimed_at    TEXT
 );
 
 -- 板载 Qt 提交开关门请求，camera_service 独占 LED/摄像头并推进状态，
