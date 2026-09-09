@@ -119,6 +119,16 @@ def init_db(db_path: str) -> None:
         )
         conn.execute(f"DROP TRIGGER IF EXISTS {AI_STOCK_TRIGGER}")
         _seed_produce_catalog(conn)
+        # 零库存没有可过期的批次。升级旧数据库时一并清理历史残留日期，
+        # 避免库存面板把保质期日期误显示成识别时间。
+        conn.execute(
+            """
+            UPDATE stock_summary
+            SET earliest_expire_date = NULL
+            WHERE COALESCE(current_qty, 0) <= 0
+              AND COALESCE(earliest_expire_date, '') <> ''
+            """
+        )
         conn.commit()
     finally:
         conn.close()

@@ -84,6 +84,21 @@ class RecognitionStockTest(unittest.TestCase):
             ).fetchone()
             return float(row["qty"]) if row else -1
 
+    def _expiry(self, name: str) -> str | None:
+        with connection_scope(self.db_path) as conn:
+            row = conn.execute(
+                """
+                SELECT s.earliest_expire_date AS expiry
+                FROM produce_info p
+                LEFT JOIN stock_summary s ON s.produce_id = p.id
+                WHERE p.name = ?
+                ORDER BY p.id
+                LIMIT 1
+                """,
+                (name,),
+            ).fetchone()
+            return row["expiry"] if row else None
+
     def _queue_frame(self, frame_id: int = 1) -> None:
         with connection_scope(self.db_path) as conn:
             conn.execute(
@@ -362,6 +377,22 @@ class RecognitionStockTest(unittest.TestCase):
         )
         self.assertEqual(self._stock("苹果"), 0)
         self.assertEqual(self._movements("苹果"), [("OUT", 1.0), ("OUT", 1.0)])
+        self.assertIsNone(self._expiry("苹果"))
+
+    def test_init_clears_expiry_for_zero_stock(self) -> None:
+        with connection_scope(self.db_path) as conn:
+            conn.execute(
+                """
+                UPDATE stock_summary
+                SET current_qty = 0, earliest_expire_date = '2099-01-01'
+                WHERE produce_id = (
+                    SELECT id FROM produce_info WHERE name = '胡萝卜' LIMIT 1
+                )
+                """
+            )
+        init_db(self.db_path)
+        self.assertEqual(self._stock("胡萝卜"), 0)
+        self.assertIsNone(self._expiry("胡萝卜"))
 
     def test_pending_frame_is_atomically_claimed_and_stale_claim_is_recovered(self) -> None:
         self._queue_frame(41)

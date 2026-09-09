@@ -109,8 +109,10 @@ class RecognitionRepository:
         definition: ProduceDefinition,
     ) -> None:
         expire_date = (
-            date.today() + timedelta(days=definition.shelf_life_days)
-        ).isoformat()
+            (date.today() + timedelta(days=definition.shelf_life_days)).isoformat()
+            if quantity > 0
+            else None
+        )
         conn.execute(
             """
             INSERT INTO stock_summary
@@ -119,9 +121,12 @@ class RecognitionRepository:
             ON CONFLICT(produce_id) DO UPDATE SET
                 current_qty = excluded.current_qty,
                 earliest_expire_date = CASE
-                    WHEN earliest_expire_date IS NULL OR earliest_expire_date = ''
+                    WHEN excluded.current_qty <= 0 THEN NULL
+                    WHEN stock_summary.current_qty <= 0
+                      OR stock_summary.earliest_expire_date IS NULL
+                      OR stock_summary.earliest_expire_date = ''
                     THEN excluded.earliest_expire_date
-                    ELSE earliest_expire_date
+                    ELSE stock_summary.earliest_expire_date
                 END,
                 last_updated = excluded.last_updated
             """,
