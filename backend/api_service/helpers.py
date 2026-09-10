@@ -304,9 +304,28 @@ def get_produce_item(produce_id: int) -> dict[str, Any]:
     raise HTTPException(status_code=404, detail="果蔬信息不存在")
 
 
-def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[str, Any]]:
-    where_clause = "WHERE l.id = ?" if log_id is not None else ""
-    params: tuple[Any, ...] = (log_id,) if log_id is not None else (limit,)
+def recognition_rows(
+    limit: int = 30,
+    log_id: int | None = None,
+    *,
+    action_type: str | None = None,
+    movements_only: bool = False,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    query_params: list[Any] = []
+    if log_id is not None:
+        clauses.append("l.id = ?")
+        query_params.append(log_id)
+    if action_type:
+        clauses.append("UPPER(COALESCE(l.action_type, '')) = ?")
+        query_params.append(action_type.upper())
+    if movements_only:
+        clauses.append("COALESCE(l.bbox_json, '') = ''")
+    where_clause = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    if log_id is None:
+        query_params.extend((limit, offset))
+    params = tuple(query_params)
     rows = query_all(
         f"""
         SELECT
@@ -327,7 +346,7 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
         LEFT JOIN produce_info p ON p.id = l.produce_id
         {where_clause}
         ORDER BY l.created_at DESC, l.id DESC
-        {"" if log_id is not None else "LIMIT ?"}
+        {"" if log_id is not None else "LIMIT ? OFFSET ?"}
         """,
         params,
     )
@@ -361,6 +380,24 @@ def recognition_rows(limit: int = 30, log_id: int | None = None) -> list[dict[st
             }
         )
     return records
+
+
+def recognition_count(
+    *, action_type: str | None = None, movements_only: bool = False
+) -> int:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if action_type:
+        clauses.append("UPPER(COALESCE(action_type, '')) = ?")
+        params.append(action_type.upper())
+    if movements_only:
+        clauses.append("COALESCE(bbox_json, '') = ''")
+    where_clause = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    row = query_one(
+        f"SELECT COUNT(*) AS total FROM inventory_log {where_clause}",
+        tuple(params),
+    )
+    return safe_int(row.get("total") if row else 0)
 
 
 def recognition_row_by_id(log_id: int) -> dict[str, Any] | None:
@@ -600,6 +637,8 @@ def alert_rows() -> list[dict[str, Any]]:
             a.alert_type,
             a.expire_date,
             a.is_read,
+            a.handle_action,
+            a.handled_at,
             a.created_at,
             COALESCE(p.name, '') AS produce_name
         FROM alert_record a
@@ -639,7 +678,14 @@ def alert_rows() -> list[dict[str, Any]]:
                 "source": source,
                 "description": description,
                 "time": format_dt(row.get("created_at")),
-                "status": "confirmed" if safe_int(row.get("is_read")) else "pending",
+                "status": (
+                    "ignored"
+                    if safe_int(row.get("is_read"))
+                    and row.get("handle_action") == "ignore"
+                    else "confirmed"
+                    if safe_int(row.get("is_read"))
+                    else "pending"
+                ),
             }
         )
     return items

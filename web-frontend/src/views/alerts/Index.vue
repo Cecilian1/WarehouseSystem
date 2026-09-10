@@ -11,6 +11,7 @@ const alerts = ref<AlertItem[]>([])
 const selected = ref<AlertItem[]>([])
 const status = ref('')
 const keyword = ref('')
+const handlingIds = ref(new Set<number>())
 
 const iconMap = { expiring: Clock3, spoiled: Flame, device: WifiOff, temperature: Thermometer, humidity: CircleAlert }
 const filtered = computed(() => alerts.value.filter((item) => (!status.value || item.status === status.value) && (!keyword.value || `${item.title}${item.source}`.includes(keyword.value))))
@@ -22,25 +23,43 @@ const stats = computed(() => [
 ])
 
 const handle = async (item: AlertItem, next: 'confirmed' | 'ignored') => {
+  if (handlingIds.value.has(item.id)) return
+  handlingIds.value = new Set(handlingIds.value).add(item.id)
   try {
-    await alertApi.handle({ id: item.id, action: next === 'confirmed' ? 'confirm' : 'ignore' })
-    item.status = next
+    const result = await alertApi.handle({ id: item.id, action: next === 'confirmed' ? 'confirm' : 'ignore' })
+    item.status = result.data.status
     ElMessage.success(next === 'confirmed' ? '预警已确认处理' : '预警已忽略')
   } catch {
     ElMessage.error('处理失败，请稍后重试')
+  } finally {
+    const pending = new Set(handlingIds.value)
+    pending.delete(item.id)
+    handlingIds.value = pending
   }
 }
 
 const batchHandle = async () => {
   const targets = selected.value.filter((item) => item.status === 'pending')
   if (!targets.length) return
+  handlingIds.value = new Set([...handlingIds.value, ...targets.map((item) => item.id)])
   try {
-    await Promise.all(targets.map((item) => alertApi.handle({ id: item.id, action: 'confirm' })))
-    targets.forEach((item) => { item.status = 'confirmed' })
-    ElMessage.success(`已处理 ${targets.length} 条预警`)
+    const results = await Promise.allSettled(targets.map((item) => alertApi.handle({ id: item.id, action: 'confirm' })))
+    const succeeded = results.reduce((count, result, index) => {
+      if (result.status === 'fulfilled') {
+        targets[index].status = result.value.data.status
+        return count + 1
+      }
+      return count
+    }, 0)
+    if (succeeded) ElMessage.success(`已处理 ${succeeded} 条预警`)
+    if (succeeded < targets.length) ElMessage.warning(`${targets.length - succeeded} 条处理失败，请重试`)
     selected.value = []
   } catch {
     ElMessage.error('批量处理失败，请稍后重试')
+  } finally {
+    const pending = new Set(handlingIds.value)
+    targets.forEach((item) => pending.delete(item.id))
+    handlingIds.value = pending
   }
 }
 
@@ -85,8 +104,8 @@ onMounted(async () => { alerts.value = (await alertApi.getList()).data })
           <span :class="`is-${item.status}`">{{ item.status === 'pending' ? '待处理' : item.status === 'confirmed' ? '已确认' : '已忽略' }}</span>
         </div>
         <div class="alert-actions">
-          <el-button v-if="item.status === 'pending'" type="primary" @click="handle(item, 'confirmed')"><Check :size="14" />确认</el-button>
-          <el-button v-if="item.status === 'pending'" @click="handle(item, 'ignored')"><Trash2 :size="14" />忽略</el-button>
+          <el-button v-if="item.status === 'pending'" type="primary" :loading="handlingIds.has(item.id)" :disabled="handlingIds.has(item.id)" @click="handle(item, 'confirmed')"><Check :size="14" />确认处理</el-button>
+          <el-button v-if="item.status === 'pending'" :disabled="handlingIds.has(item.id)" @click="handle(item, 'ignored')"><Trash2 :size="14" />忽略</el-button>
           <el-button v-else circle title="更多"><MoreHorizontal :size="15" /></el-button>
         </div>
       </GlassPanel>

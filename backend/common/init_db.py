@@ -93,6 +93,8 @@ def init_db(db_path: str) -> None:
         }
         for column, definition in inventory_columns.items():
             _ensure_column(conn, "inventory_log", column, definition)
+        _ensure_column(conn, "alert_record", "handle_action", "TEXT")
+        _ensure_column(conn, "alert_record", "handled_at", "TEXT")
         _ensure_column(
             conn,
             "pending_frames",

@@ -95,5 +95,6 @@ VITE_API_BASE_URL=http://开发板IP:8000/api
 - `GET /api/analytics`
 - `GET /api/frames/{frame_id}/image`
 
-说明：Web端当前“新增/编辑/删除库存”和“确认预警”仍是前端占位交互；
-需要真实写数据库时，再补 `POST/PUT/DELETE` 接口。
+说明：Web端“新增/编辑/删除库存”和“确认/忽略预警”均通过后端接口写入
+SQLite；识别历史来自真实入库流水。Mock 数据仅在显式设置
+`VITE_USE_MOCK=true` 时启用。

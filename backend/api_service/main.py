@@ -51,6 +51,7 @@ from backend.api_service.helpers import (
     produce_rows,
     query_all,
     query_one,
+    recognition_count,
     recognition_rows,
     safe_float,
     safe_int,
@@ -286,8 +287,21 @@ def inventory(
 
 
 @app.get("/api/recognitions")
-def recognitions() -> dict[str, Any]:
-    return ok(recognition_rows(60))
+def recognitions(
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(12, ge=1, le=100),
+) -> dict[str, Any]:
+    """Return the real inbound ledger used by the Web recognition history."""
+    total = recognition_count(action_type="IN", movements_only=True)
+    rows = recognition_rows(
+        pageSize,
+        action_type="IN",
+        movements_only=True,
+        offset=(page - 1) * pageSize,
+    )
+    return ok(
+        {"list": rows, "total": total, "page": page, "pageSize": pageSize}
+    )
 
 
 @app.get("/api/environment")

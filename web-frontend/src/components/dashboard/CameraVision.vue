@@ -63,9 +63,9 @@ const produce = [
       </div>
       <div class="vision-header__actions">
         <span class="vision-mode"><Focus :size="13" /> AUTO TRACKING</span>
-        <button class="vision-icon ripple-target" title="补光灯"><Lightbulb :size="16" /></button>
-        <button class="vision-icon ripple-target" title="声音"><Volume2 :size="16" /></button>
-        <button class="vision-icon ripple-target" title="全屏"><Expand :size="16" /></button>
+        <button class="vision-icon" title="补光灯控制尚未接入" disabled><Lightbulb :size="16" /></button>
+        <button class="vision-icon" title="声音控制尚未接入" disabled><Volume2 :size="16" /></button>
+        <button class="vision-icon" title="全屏查看尚未接入" disabled><Expand :size="16" /></button>
       </div>
     </header>
 
@@ -147,6 +147,7 @@ const produce = [
 .vision-mode { display: inline-flex; align-items: center; gap: 5px; margin-right: 4px; color: #8fe9ff; font-size: 9px; }
 .vision-icon, .play-button { display: grid; border: 1px solid var(--stroke); place-items: center; color: var(--text-2); background: rgba(7, 17, 31, 0.36); }
 .vision-icon { width: 30px; height: 30px; border-radius: 9px; }
+.vision-icon:disabled { cursor: not-allowed; opacity: .45; }
 .camera-stage { position: relative; min-height: 280px; flex: 1; overflow: hidden; border: 1px solid rgba(56, 189, 248, 0.19); border-radius: 15px; background: #0b1621; box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.42); }
 .camera-scene { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(180deg, #dce5e2 0%, #bfcac6 18%, #80918d 100%); filter: saturate(0.74) contrast(1.06) brightness(0.72); }
 .real-camera-frame { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; }

@@ -37,13 +37,13 @@ onUnmounted(() => window.clearInterval(timer))
     </div>
 
     <div class="topbar__actions">
-      <button class="icon-button ripple-target" title="帮助中心"><CircleHelp :size="18" /></button>
-      <button class="icon-button notification-button ripple-target" title="消息通知"><Bell :size="18" /><i /></button>
+      <button class="icon-button" title="帮助中心尚未接入" disabled><CircleHelp :size="18" /></button>
+      <button class="icon-button notification-button" title="消息通知尚未接入" disabled><Bell :size="18" /><i /></button>
       <button class="icon-button ripple-target" title="切换主题" @click="appStore.toggleTheme">
         <Sun v-if="appStore.isDark" :size="18" />
         <Moon v-else :size="18" />
       </button>
-      <button class="profile-button ripple-target">
+      <button class="profile-button" title="账号菜单尚未接入" disabled>
         <span class="avatar">管</span>
         <span class="profile-copy"><strong>管理员</strong><small>Super Admin</small></span>
         <ChevronDown :size="15" />
@@ -67,6 +67,7 @@ onUnmounted(() => window.clearInterval(timer))
 .topbar__actions { gap: 8px; }
 .icon-button { position: relative; display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid transparent; border-radius: 10px; color: var(--text-2); background: transparent; }
 .icon-button:hover { border-color: var(--stroke); color: var(--text-1); background: var(--surface-soft); }
+.icon-button:disabled, .profile-button:disabled { cursor: not-allowed; opacity: .55; }
 .notification-button i { position: absolute; top: 7px; right: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--red); box-shadow: 0 0 7px rgba(239, 68, 68, 0.65); }
 .profile-button { display: flex; align-items: center; gap: 9px; margin-left: 5px; padding: 3px 7px 3px 4px; border: 1px solid var(--stroke); border-radius: 11px; color: var(--text-2); background: var(--surface-soft); }
 .avatar { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 9px; color: white; font-size: 12px; font-weight: 700; background: linear-gradient(145deg, #4f8cff, #14b8a6); }

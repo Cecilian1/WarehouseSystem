@@ -45,6 +45,8 @@ TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "alert_type",
         "expire_date",
         "is_read",
+        "handle_action",
+        "handled_at",
         "created_at",
     ),
     "device_status": (

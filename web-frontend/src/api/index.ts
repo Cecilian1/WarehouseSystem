@@ -52,7 +52,7 @@ export const produceApi = {
 export const alertApi = {
   getList: (status = '') => http.get<never, ApiResponse<AlertItem[]>>('/alerts', { params: { status } }),
   handle: (payload: { id: number; action: 'confirm' | 'ignore' }) =>
-    http.post<never, ApiResponse<{ success: boolean; id: number; status: string }>>('/alerts/handle', payload),
+    http.post<never, ApiResponse<{ success: boolean; id: number; status: AlertItem['status'] }>>('/alerts/handle', payload),
 }
 
 export const deviceApi = {

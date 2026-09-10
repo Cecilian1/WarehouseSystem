@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from backend.api_service import ws_hub
-from backend.api_service.auth import get_current_user
+from backend.api_service.auth import get_current_user_or_demo
 from backend.api_service.helpers import (
     DB_PATH,
     allocate_local_id,
@@ -150,22 +150,38 @@ def _to_message(alert: dict[str, Any]) -> dict[str, Any]:
 @router.post("/api/alerts/handle")
 def handle_alert(
     payload: dict[str, Any] = Body(...),
-    user_id: int = Depends(get_current_user),
+    user_id: int = Depends(get_current_user_or_demo),
 ) -> dict[str, Any]:
     alert_id = payload.get("id")
     action = str(payload.get("action") or "confirm")
     if alert_id is None:
         raise HTTPException(status_code=400, detail="缺少预警 id")
+    if action not in {"confirm", "ignore"}:
+        raise HTTPException(status_code=400, detail="不支持的预警处理方式")
 
     with connection_scope(DB_PATH) as conn:
         cursor = conn.execute(
-            "UPDATE alert_record SET is_read = 1 WHERE id = ?",
-            (alert_id,),
+            """
+            UPDATE alert_record
+            SET is_read = 1,
+                handle_action = ?,
+                handled_at = datetime('now', 'localtime')
+            WHERE id = ?
+            """,
+            (action, alert_id),
         )
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="预警不存在")
 
-    return ok({"success": True, "id": alert_id, "action": action})
+    del user_id
+    return ok(
+        {
+            "success": True,
+            "id": alert_id,
+            "action": action,
+            "status": "ignored" if action == "ignore" else "confirmed",
+        }
+    )
 
 
 @router.get("/api/messages")

@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS alert_record (
     alert_type  TEXT NOT NULL,                         -- 'expiring' / 'expired' / 'device_abnormal'
     expire_date TEXT,                                   -- device_abnormal 类型时允许 NULL
     is_read     INTEGER NOT NULL DEFAULT 0,
+    handle_action TEXT,                                 -- confirm / ignore
+    handled_at TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 

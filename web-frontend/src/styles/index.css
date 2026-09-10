@@ -26,6 +26,9 @@
   --radius-sm: 11px;
   --sidebar-width: 244px;
   --header-height: 76px;
+  --scrollbar-thumb: rgba(148, 163, 184, 0.28);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.42);
+  --scrollbar-track: rgba(7, 17, 31, 0.22);
   --el-color-primary: #4f8cff;
   --el-bg-color: #101e32;
   --el-bg-color-overlay: #172942;
@@ -72,6 +75,11 @@ body,
   min-width: 320px;
   min-height: 100%;
   margin: 0;
+}
+
+html {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
 }
 
 body {
@@ -121,8 +129,16 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.22);
+  background: var(--scrollbar-thumb);
   border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
 }
 
 .app-shell {

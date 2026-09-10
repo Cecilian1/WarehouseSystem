@@ -6,7 +6,9 @@ import axios, {
 import { alerts, analyticsData, dashboardData, devices, historyItems, inventoryItems, recognitionRecords } from '@/utils/mockData'
 import type { ApiResponse, PageResult } from '@/types'
 
-const useMock = import.meta.env.VITE_USE_MOCK !== 'false'
+// Mock data is opt-in. Otherwise an empty/deleted database would still look
+// populated whenever a build omits VITE_USE_MOCK.
+const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
 
 const ok = <T>(config: InternalAxiosRequestConfig, data: T): AxiosResponse<ApiResponse<T>> => ({

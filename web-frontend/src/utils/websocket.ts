@@ -15,7 +15,7 @@ export class RealtimeSocket {
   private connected = false
 
   connect() {
-    const useMock = import.meta.env.VITE_USE_MOCK !== 'false'
+    const useMock = import.meta.env.VITE_USE_MOCK === 'true'
     if (useMock) {
       this.connected = true
       this.timer = window.setInterval(() => this.emitMock(), 4200)
