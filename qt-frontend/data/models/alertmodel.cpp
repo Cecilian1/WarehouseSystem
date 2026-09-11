@@ -6,6 +6,22 @@
 #include <QSqlQuery>
 #include <QVariant>
 
+namespace {
+
+QString localizedAlertType(const QString &value)
+{
+    const QString type = value.trimmed().toLower();
+    if (type == QStringLiteral("device_abnormal"))
+        return QStringLiteral("设备异常");
+    if (type == QStringLiteral("expiring"))
+        return QStringLiteral("即将过期");
+    if (type == QStringLiteral("expired"))
+        return QStringLiteral("已过期");
+    return value.trimmed();
+}
+
+} // namespace
+
 AlertModel::AlertModel(QObject *parent)
     : QAbstractTableModel(parent)
 {
@@ -91,7 +107,7 @@ void AlertModel::refresh()
         AlertRow row;
         row.id = query.value(0).toInt();
         row.produceName = query.value(1).toString();
-        row.alertType = query.value(2).toString();
+        row.alertType = localizedAlertType(query.value(2).toString());
         row.expireDate = query.value(3).toString();
         row.isRead = query.value(4).toInt() != 0;
         row.createdAt = query.value(5).toString();

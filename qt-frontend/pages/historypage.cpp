@@ -3,6 +3,7 @@
 #include "../data/models/inventorylogmodel.h"
 
 #include <QDateEdit>
+#include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -20,7 +21,20 @@ HistoryPage::HistoryPage(QWidget *parent)
     , m_endDateEdit(new QDateEdit(this))
 {
     m_tableView->setModel(m_model);
-    m_tableView->horizontalHeader()->setStretchLastSection(true);
+    auto *header = m_tableView->horizontalHeader();
+    header->setStretchLastSection(false);
+    header->setSectionResizeMode(QHeaderView::Fixed);
+    header->setSectionResizeMode(InventoryLogModel::ColProduceName, QHeaderView::Stretch);
+
+    // 时间采用固定的完整时间戳宽度；新鲜度只保留最长中文状态所需空间。
+    // 将余下空间交给果蔬名称，避免末列被自动拉伸得过宽。
+    const QFontMetrics tableFontMetrics(m_tableView->font());
+    m_tableView->setColumnWidth(
+        InventoryLogModel::ColCreatedAt,
+        tableFontMetrics.horizontalAdvance(QStringLiteral("2026-09-11 23:59:59")) + 32);
+    m_tableView->setColumnWidth(
+        InventoryLogModel::ColFreshness,
+        tableFontMetrics.horizontalAdvance(QStringLiteral("轻度不新鲜")) + 32);
     m_tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_tableView->verticalHeader()->setDefaultSectionSize(44);
 

@@ -9,7 +9,6 @@
 #include <QPixmap>
 #include <QPushButton>
 #include <QSettings>
-#include <QSizePolicy>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStringList>
@@ -23,31 +22,22 @@ RecognitionPage::RecognitionPage(QWidget *parent)
     , m_doorButton(new QPushButton(this))
 {
     m_imageLabel->setAlignment(Qt::AlignCenter);
-    // The 7-inch display is only 600 px high. Do not give the preview a large
-    // minimum height: the top status card, door controls and bottom navigation
-    // must always remain visible. The preview receives all remaining space.
-    m_imageLabel->setMinimumHeight(0);
-    m_imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
+    m_imageLabel->setMinimumHeight(320);
     m_imageLabel->setText(QStringLiteral("暂无摄像头画面"));
     m_statusLabel->setAlignment(Qt::AlignCenter);
     m_statusLabel->setText(QStringLiteral("等待摄像头采集"));
     m_doorStatusLabel->setAlignment(Qt::AlignCenter);
     m_doorStatusLabel->setWordWrap(true);
-    m_doorStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    m_doorButton->setMinimumSize(220, 44);
-    m_doorButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    m_doorButton->setMinimumHeight(52);
+    m_doorButton->setFixedWidth(230);
     connect(m_doorButton, &QPushButton::clicked,
             this, &RecognitionPage::onDoorButtonClicked);
 
     auto *doorLayout = new QHBoxLayout();
-    doorLayout->setContentsMargins(0, 0, 0, 0);
-    doorLayout->setSpacing(8);
     doorLayout->addWidget(m_doorStatusLabel, 1);
-    doorLayout->addWidget(m_doorButton, 0, Qt::AlignVCenter);
+    doorLayout->addWidget(m_doorButton, 0, Qt::AlignRight | Qt::AlignVCenter);
 
     auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(8, 4, 8, 4);
-    layout->setSpacing(4);
     layout->addWidget(m_imageLabel, 1);
     layout->addWidget(m_statusLabel);
     layout->addLayout(doorLayout);

@@ -2,6 +2,7 @@
 
 #include "../data/models/alertmodel.h"
 
+#include <QFontMetrics>
 #include <QHeaderView>
 #include <QPushButton>
 #include <QTableView>
@@ -13,7 +14,24 @@ AlertPage::AlertPage(QWidget *parent)
     , m_tableView(new QTableView(this))
 {
     m_tableView->setModel(m_model);
-    m_tableView->horizontalHeader()->setStretchLastSection(true);
+    auto *header = m_tableView->horizontalHeader();
+    header->setStretchLastSection(false);
+    header->setSectionResizeMode(QHeaderView::Fixed);
+    header->setSectionResizeMode(AlertModel::ColProduceName, QHeaderView::Stretch);
+
+    const QFontMetrics tableFontMetrics(m_tableView->font());
+    m_tableView->setColumnWidth(
+        AlertModel::ColCreatedAt,
+        tableFontMetrics.horizontalAdvance(QStringLiteral("2026-09-11 23:59:59")) + 32);
+    m_tableView->setColumnWidth(
+        AlertModel::ColType,
+        tableFontMetrics.horizontalAdvance(QStringLiteral("即将过期")) + 32);
+    m_tableView->setColumnWidth(
+        AlertModel::ColExpireDate,
+        tableFontMetrics.horizontalAdvance(QStringLiteral("2026-09-11")) + 32);
+    m_tableView->setColumnWidth(
+        AlertModel::ColRead,
+        tableFontMetrics.horizontalAdvance(QStringLiteral("未处理")) + 32);
     m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_tableView->verticalHeader()->setDefaultSectionSize(48);

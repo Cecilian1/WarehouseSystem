@@ -77,11 +77,6 @@ void MainWindow::showMainInterface()
 
     auto *mainInterface = new QWidget(this);
     auto *layout = new QVBoxLayout(mainInterface);
-    // Reserve a stable strip for the bottom navigation. Page-specific size
-    // hints must be absorbed by the stacked content instead of pushing it off
-    // the physical display.
-    layout->setContentsMargins(8, 6, 8, 6);
-    layout->setSpacing(4);
     layout->addWidget(m_envStatusCard);
     layout->addWidget(m_stackedWidget, 1);
     layout->addWidget(m_navigationBar);
